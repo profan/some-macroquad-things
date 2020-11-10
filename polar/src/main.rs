@@ -85,15 +85,8 @@ async fn main() {
                 state.current_particle_count = state.new_particle_count;
 
             } else {
-
-                let particles_to_remove = state.current_particle_count - state.new_particle_count;
-                let step_size = state.particles.len() / particles_to_remove;
-
-                for i in (0..state.current_particle_count).step_by(step_size) {
-                    state.particles.remove(i.min(state.particles.len() - 1));
-                }
+                
                 state.particles.resize(state.new_particle_count, Particle::default());
-
                 state.current_particle_count = state.new_particle_count;
 
             }
