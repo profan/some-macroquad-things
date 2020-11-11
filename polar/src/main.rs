@@ -11,14 +11,10 @@ struct Particle {
 
 #[derive(Debug)]
 struct State {
-
     current_mode: i32,
-
     current_particle_count: usize,
     new_particle_count: usize,
-
     particles: Vec<Particle>
-
 }
 
 impl State {
