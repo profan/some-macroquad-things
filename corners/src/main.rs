@@ -1,22 +1,10 @@
 #![feature(bool_to_option)]
 use macroquad::prelude::*;
 
-fn corner_vector(top: bool, bottom: bool, left: bool, right: bool) -> Option<Vec2> {
+fn corner_vector(sides: impl Iterator::<Item=Vec2>) -> Option<Vec2> {
 
-    let top_vector = vec2(0.0, 1.0);
-    let bottom_vector = vec2(0.0, -1.0);
-    let left_vector = vec2(1.0, 0.0);
-    let right_vector = vec2(-1.0, 0.0);
-
-    let results = [
-        top.then_some(top_vector),
-        bottom.then_some(bottom_vector),
-        left.then_some(left_vector),
-        right.then_some(right_vector)
-    ];
-
-    let valid_results = results.iter().filter_map(|v| *v);
-    let result = (valid_results.clone().fold(Vec2::zero(), |acc, v| acc + v) / valid_results.count() as f32).normalize();
+    let (result_vector, num_sides) = sides.fold((Vec2::zero(), 0.0), |(acc_v, acc_i), v| (acc_v + v, acc_i + 1.0));
+    let result = (result_vector / num_sides).normalize();
 
     if !result.is_nan().any() {
         Some(result)
@@ -28,21 +16,6 @@ fn corner_vector(top: bool, bottom: bool, left: bool, right: bool) -> Option<Vec
 
 #[macroquad::main("corners")]
 async fn main() {
-
-    fn _test_stuff() {
-        // false cases
-        dbg!(corner_vector(true, false, false, false));
-
-        // corridoor cases
-        dbg!(corner_vector(true, true, false, false));
-        dbg!(corner_vector(false, false, true, true));
-        
-        // true cases
-        dbg!(corner_vector(true, false, false, true));
-        dbg!(corner_vector(true, true, true, false));
-        dbg!(corner_vector(false, true, true, false));
-        dbg!(corner_vector(false, true, false, true));
-    }
 
     fn draw_debug_text(text: String, x: f32, y: f32) {
         draw_text(
@@ -77,7 +50,16 @@ async fn main() {
         if is_key_pressed(KeyCode::D) { right_set = !right_set; };
 
         let screen_center = vec2(screen_width() / 2.0,screen_height() / 2.0);
-        let current_corner_vector = corner_vector(top_set, bottom_set, left_set, right_set);
+
+        let corners = [
+            top_set.then_some(vec2(0.0, 1.0)),
+            bottom_set.then_some(vec2(0.0, -1.0)),
+            left_set.then_some(vec2(1.0, 0.0)),
+            right_set.then_some(vec2(-1.0, 0.0))
+        ];
+
+        let current_corners = corners.iter().filter_map(|v| *v);
+        let current_corner_vector = corner_vector(current_corners);
         let vector_length = 16.0;
 
         if let Some(current_vector) = current_corner_vector {
