@@ -3,10 +3,10 @@ use macroquad::prelude::*;
 
 fn corner_vector(sides: impl Iterator::<Item=Vec2>) -> Option<Vec2> {
 
-    let (result_vector, num_sides) = sides.fold((Vec2::zero(), 0.0), |(acc_v, acc_i), v| (acc_v + v, acc_i + 1.0));
+    let (result_vector, num_sides) = sides.fold((Vec2::ZERO, 0.0), |(acc_v, acc_i), v| (acc_v + v, acc_i + 1.0));
     let result = (result_vector / num_sides).normalize();
 
-    if !result.is_nan().any() {
+    if !result.is_nan() {
         Some(result)
     } else {
         None
@@ -19,35 +19,35 @@ fn draw_arrow(origin: Vec2, ray: Vec2, arrow_length: f32, thickness: f32) {
     let line_end = origin + ray;
 
     draw_line(
-        origin.x(),
-        origin.y(),
-        line_end.x(),
-        line_end.y(),
+        origin.x,
+        origin.y,
+        line_end.x,
+        line_end.y,
         thickness,
         WHITE
     );
 
-    let p1 = vec2(-ray.y(), ray.x());
-    let p2 = vec2(ray.y(), -ray.x());
+    let p1 = vec2(-ray.y, ray.x);
+    let p2 = vec2(ray.y, -ray.x);
     let left = -ray.lerp(p1, 0.5);
     let right = -ray.lerp(p2, 0.5);
     let left_end = line_end + left.normalize() * arrow_length;
     let right_end = line_end + right.normalize() * arrow_length;
 
     draw_line(
-        line_end.x(),
-        line_end.y(),
-        left_end.x(),
-        left_end.y(),
+        line_end.x,
+        line_end.y,
+        left_end.x,
+        left_end.y,
         thickness,
         WHITE
     );
 
     draw_line(
-        line_end.x(),
-        line_end.y(),
-        right_end.x(),
-        right_end.y(),
+        line_end.x,
+        line_end.y,
+        right_end.x,
+        right_end.y,
         thickness,
         WHITE
     );
@@ -63,14 +63,6 @@ async fn main() {
             x, y,
             16.0, WHITE
         );
-    }
-    
-    fn draw_box(x: f32, y: f32, size: f32) {
-        draw_rectangle(
-            x - (size/2.0), y - (size/2.0),
-            size, size,
-            WHITE
-        )
     }
 
     let mut top_set = false;

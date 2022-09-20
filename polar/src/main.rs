@@ -38,8 +38,8 @@ const PARTICLE_EDGE_BOUNDS: f32 = 64.0;
 const MAX_VELOCITY: f32  = 32.0;
 
 fn cartesian_to_polar(p: Vec2) -> (f32, f32) {
-    let r = p.x()*p.x() + p.y()*p.y();
-    let phi = p.y().atan2(p.x());
+    let r = p.x*p.x + p.y*p.y;
+    let phi = p.y.atan2(p.x);
     (r, phi)
 }
 
@@ -96,28 +96,27 @@ async fn main() {
             
             // handle out of bounds
 
-            if particle.position.x() < 0.0 || particle.position.x() > screen_w {
-                if particle.velocity.x() > 0.0 && particle.position.x() > 0.0 {
-                    *particle.velocity.x_mut() *= -1.0;
-                } else if particle.velocity.x() < 0.0 && particle.position.x() < 0.0 {
-                    *particle.velocity.x_mut() *= -1.0;
+            if particle.position.x < 0.0 || particle.position.x > screen_w {
+                if particle.velocity.x > 0.0 && particle.position.x > 0.0 {
+                    particle.velocity.x *= -1.0;
+                } else if particle.velocity.x < 0.0 && particle.position.x < 0.0 {
+                    particle.velocity.x *= -1.0;
                 }
             }
 
-            if particle.position.y() < 0.0 || particle.position.y() > screen_h {
-                if particle.velocity.y() > 0.0 && particle.position.y() > 0.0 {
-                    *particle.velocity.y_mut() *= -1.0;
-                } else if particle.velocity.y() < 0.0 && particle.position.y() < 0.0 {
-                    *particle.velocity.y_mut() *= -1.0;
+            if particle.position.y < 0.0 || particle.position.y > screen_h {
+                if particle.velocity.y > 0.0 && particle.position.y > 0.0 {
+                    particle.velocity.y *= -1.0;
+                } else if particle.velocity.y < 0.0 && particle.position.y < 0.0 {
+                    particle.velocity.y *= -1.0;
                 }
             }
 
         }
 
         {
-
             // compute centroid
-            let centroid = state.particles.iter().fold(Vec2::zero(), |acc, x| acc + x.position) / state.particles.len() as f32;
+            let centroid = state.particles.iter().fold(Vec2::ZERO, |acc, x| acc + x.position) / state.particles.len() as f32;
 
             // sort our particles by polar coordinates so we can draw a linee
             let sort_by_polar_coordinates = |a: &Particle, b: &Particle| -> Ordering {
@@ -139,8 +138,8 @@ async fn main() {
                 match &slice {
                     &[a, b] => {
                         draw_line(
-                            a.position.x(), a.position.y(),
-                            b.position.x(), b.position.y(),
+                            a.position.x, a.position.y,
+                            b.position.x, b.position.y,
                             1.0, WHITE
                         )
                     },
@@ -152,29 +151,25 @@ async fn main() {
             let first = &state.particles.first().unwrap();
             let last = &state.particles.last().unwrap();
             draw_line(
-                last.position.x(), last.position.y(),
-                first.position.x(), first.position.y(),
+                last.position.x, last.position.y,
+                first.position.x, first.position.y,
                 1.0, WHITE
             );
 
         }
 
         if state.should_render_points() {
-
             for particle in &state.particles {
                 let pos = particle.position;
-                draw_circle(pos.x(), pos.y(), 1.0, WHITE);
+                draw_circle(pos.x, pos.y, 1.0, WHITE);
             }
-
         }
 
         if state.should_render_ids() {
-
             for (idx, particle) in state.particles.iter().enumerate() {
                 let pos = particle.position;
-                draw_text(idx.to_string().as_str(), pos.x(), pos.y(), 16.0, WHITE);
+                draw_text(idx.to_string().as_str(), pos.x, pos.y, 16.0, WHITE);
             }
-
         }
 
     }
