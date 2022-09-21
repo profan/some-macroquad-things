@@ -1,3 +1,13 @@
 /target
 www/
 *.zip
+*.o
+*.bin
+*.d.
+
+
+# Added by cargo
+#
+# already existing elements were commented out
+
+*/target

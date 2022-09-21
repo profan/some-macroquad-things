@@ -1,0 +1,12 @@
+[package]
+name = "dungeons"
+version = "0.1.0"
+authors = ["profan <robinhubner@gmail.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+util = { path = "../util" }
+macroquad = "0.3.24"
+petgraph = "0.6.2"
