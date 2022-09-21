@@ -1,4 +1,3 @@
-#![feature(bool_to_option)]
 use macroquad::prelude::*;
 
 fn corner_vector(sides: impl Iterator::<Item=Vec2>) -> Option<Vec2> {

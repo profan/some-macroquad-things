@@ -1,4 +1,3 @@
-#![feature(clamp)]
 use macroquad::prelude::*;
 use std::cmp::Ordering;
 use std::f32::consts::*;
