@@ -43,6 +43,8 @@ enum TileKind {
     Air,
     Wall,
     Floor,
+    HDoor,
+    VDoor,
     Any
 }
 
@@ -248,11 +250,15 @@ fn char_to_tile_kind(c: char) -> TileKind {
     // # = wall
     // . = floor
     // ? = random object
+    // - = horizontal door
+    // | = vertical door
     match c {
         '*' => TileKind::Air,
         '#' => TileKind::Wall,
         '.' => TileKind::Floor,
         '?' => TileKind::Any,
+        '-' => TileKind::HDoor,
+        '|' => TileKind::VDoor,
         _ => TileKind::Air
     }
 }
@@ -312,10 +318,14 @@ fn draw_wireframe_cross(position: Vec2, line_thickness: f32, line_colour: Color)
 }
 
 fn draw_wireframe_box(position: Vec2, line_thickness: f32, line_colour: Color) {
+    draw_wireframe_box_with_scale(position, line_thickness, line_colour, 1.0, 1.0);
+}
 
-    let top_right = position + vec2(TILE_SIZE, 0.0);
-    let bottom_right = position + vec2(TILE_SIZE, TILE_SIZE);
-    let bottom_left = position + vec2(0.0, TILE_SIZE);
+fn draw_wireframe_box_with_scale(position: Vec2, line_thickness: f32, line_colour: Color, h_scale: f32, v_scale: f32) {
+
+    let top_right = position + vec2(TILE_SIZE * h_scale, 0.0);
+    let bottom_right = position + vec2(TILE_SIZE * h_scale, TILE_SIZE * v_scale);
+    let bottom_left = position + vec2(0.0, TILE_SIZE * v_scale);
 
     draw_line(position.x, position.y, top_right.x, top_right.y, line_thickness, line_colour);
     draw_line(top_right.x, top_right.y, bottom_right.x, bottom_right.y, line_thickness, line_colour);
@@ -328,25 +338,41 @@ fn draw_wireframe_tile(position: Vec2, line_thickness: f32, line_colour: Color) 
     draw_wireframe_box(position, line_thickness, line_colour);
 }
 
+fn draw_wireframe_half_tile(position: Vec2, line_thickness: f32, line_colour: Color, vertical: bool) {
+
+    let v_scale = if vertical { 1.0 } else { 0.5 };
+    let h_scale = if vertical { 0.5 } else { 1.0 };
+    draw_wireframe_box_with_scale(position, line_thickness, line_colour, h_scale, v_scale);
+
+}
+
 fn draw_wall_tile(position: Vec2) {
 
     let line_thickness = 2.0;
-    draw_wireframe_tile(position, line_thickness, BLACK)
+    draw_wireframe_tile(position, line_thickness, BLACK);
 
 }
 
 fn draw_floor_tile(position: Vec2) {
 
     let line_thickness = 1.0;
-    draw_wireframe_cross(position, line_thickness, BLACK)
+    draw_wireframe_cross(position, line_thickness, BLACK);
 
 }
 
 fn draw_vertical_door_tile(position: Vec2) {
 
+    let is_vertical = true;
+    let line_thickness = 2.0;
+    draw_wireframe_half_tile(position + vec2(TILE_SIZE / 4.0, 0.0), line_thickness, BLACK, is_vertical);
+
 }
 
 fn draw_horizontal_door_tile(position: Vec2) {
+
+    let is_vertical = false;
+    let line_thickness = 2.0;
+    draw_wireframe_half_tile(position + vec2(0.0, TILE_SIZE / 4.0), line_thickness, BLACK, is_vertical);
 
 }
 
@@ -355,6 +381,8 @@ fn draw_tile(position: Vec2, tile_kind: &TileKind) {
     match tile_kind {
         TileKind::Wall => draw_wall_tile(position),
         TileKind::Floor => draw_floor_tile(position),
+        TileKind::HDoor => draw_horizontal_door_tile(position),
+        TileKind::VDoor => draw_vertical_door_tile(position),
         _ => {}
     };
 
