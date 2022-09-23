@@ -500,17 +500,20 @@ fn handle_camera_input(camera: &mut Camera2D, dt: f32) -> bool {
 
 }
 
-fn draw_debug_text(camera: &Camera2D) {
+fn draw_debug_text(camera: &Camera2D, debug_text: &mut DebugText) {
 
     let world_position_under_mouse = camera.screen_to_world(mouse_position().into());
     let tile_under_mouse = world_position_under_mouse.as_tile_position();
 
-    draw_text(format!("tile pos: {}", tile_under_mouse).as_str(), screen_width() - 128.0, 32.0, 16.0, BLACK);
+    debug_text.draw_text(format!("tile pos: {}", tile_under_mouse).as_str(), TextPosition::TopRight, BLACK);
+    debug_text.draw_text("press r to regenerate", TextPosition::TopLeft, BLACK);
 
 }
 
 #[macroquad::main("dungeons")]
 async fn main() {
+
+    let mut debug_text = DebugText::new();
 
     let mut camera = Camera2D::from_display_rect(
         Rect {
@@ -520,11 +523,16 @@ async fn main() {
         }
     );
 
-    let dungeon = generate_dungeon(12);
+    let mut dungeon = generate_dungeon(6);
 
     loop {
 
         let dt = get_frame_time();
+        debug_text.new_frame();
+
+        if is_key_pressed(KeyCode::R) {
+            dungeon = generate_dungeon(6);
+        }
 
         clear_background(WHITE);
         handle_camera_input(&mut camera, dt);
@@ -533,7 +541,7 @@ async fn main() {
         draw_dungeon(&dungeon);
 
         set_default_camera();
-        draw_debug_text(&camera);
+        draw_debug_text(&camera, &mut debug_text);
 
         next_frame().await;
 
