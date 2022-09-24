@@ -83,3 +83,23 @@ fn is_point_inside_screen(p: Vec2, padding: f32) -> bool {
     };
     is_point_inside_rect(&p, &screen_rect)
 }
+
+/// Returns the vector in the set of vectors that is most similar to the vector v.
+pub fn most_aligned(v: Vec2, mut vectors: impl Iterator::<Item=Vec2>) -> Option<Vec2> {
+
+    let first_vector = vectors.nth(0)?;
+
+    let mut min_vector = first_vector;
+    let mut min_d = first_vector.dot(v);
+
+    for s in vectors {
+        let d = s.dot(v);
+        if d > min_d {
+            min_vector = s;
+            min_d = d;
+        }
+    }
+
+    Some(min_vector)
+
+}

@@ -70,3 +70,13 @@ impl RotatedBy for Vec2 {
         )
     }
 }
+
+pub trait Step {
+    fn step(&self, step_size: Self) -> Self;
+}
+
+impl Step for f32 {
+    fn step(&self, step_size: Self) -> Self {
+        (self / step_size).floor() * step_size
+    }
+}

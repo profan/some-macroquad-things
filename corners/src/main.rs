@@ -2,26 +2,7 @@
 use std::f32::consts::PI;
 
 use macroquad::prelude::*;
-use utility::{RotatedBy, draw_arrow};
-
-fn discretize(direction: Vec2, mut sides: impl Iterator::<Item=Vec2>) -> Option<Vec2> {
-
-    let first_side = sides.nth(0)?;
-    
-    let mut min_side = first_side;
-    let mut min_d = first_side.dot(direction);
-
-    for s in sides {
-        let d = s.dot(direction);
-        if d > min_d {
-            min_side = s;
-            min_d = d;
-        }
-    }
-
-    Some(min_side)
-
-}
+use utility::{RotatedBy, Step, draw_arrow, most_aligned};
 
 #[macroquad::main("corners")]
 async fn main() {
@@ -49,13 +30,13 @@ async fn main() {
         let right = if is_key_down(KeyCode::D) { vec2(1.0, 0.0) } else { vec2(0.0, 0.0) };
 
         let screen_center: Vec2 = vec2(screen_width() / 2.0, screen_height() / 2.0);
-        let vector_to_mouse: Vec2 = (mouse_pos_vec - screen_center).normalize();
+        let vector_to_mouse: Vec2 = mouse_pos_vec - screen_center;
         let combined_inputs = top + bottom + left + right
-            + if mouse_btn_down { vector_to_mouse } else { vec2(0.0, 0.0) };
+            + if mouse_btn_down { vector_to_mouse.normalize() } else { vec2(0.0, 0.0) };
 
         let has_any_input = combined_inputs.x.abs() > 0.0 || combined_inputs.y.abs() > 0.0;
          
-        let current_corner_vector = discretize(
+        let current_corner_vector = most_aligned(
             combined_inputs,
             [
                 vec2(0.0, -1.0), // n
@@ -71,7 +52,7 @@ async fn main() {
 
         if let Some(current_vector) = current_corner_vector && has_any_input {
 
-            let vector_length = 32.0;
+            let vector_length = vector_to_mouse.length().step(32.0);
             let screen_vector = current_vector * vector_length;
 
             draw_arrow(
