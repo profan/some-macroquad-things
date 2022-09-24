@@ -1,55 +1,25 @@
+#![feature(let_chains)]
+use std::f32::consts::PI;
+
 use macroquad::prelude::*;
+use utility::{RotatedBy, draw_arrow};
 
-fn corner_vector(sides: impl Iterator::<Item=Vec2>) -> Option<Vec2> {
+fn discretize(direction: Vec2, mut sides: impl Iterator::<Item=Vec2>) -> Option<Vec2> {
 
-    let (result_vector, num_sides) = sides.fold((Vec2::ZERO, 0.0), |(acc_v, acc_i), v| (acc_v + v, acc_i + 1.0));
-    let result = (result_vector / num_sides).normalize();
+    let first_side = sides.nth(0)?;
+    
+    let mut min_side = first_side;
+    let mut min_d = first_side.dot(direction);
 
-    if !result.is_nan() {
-        Some(result)
-    } else {
-        None
+    for s in sides {
+        let d = s.dot(direction);
+        if d > min_d {
+            min_side = s;
+            min_d = d;
+        }
     }
 
-}
-
-fn draw_arrow(origin: Vec2, ray: Vec2, arrow_length: f32, thickness: f32) {
-
-    let line_end = origin + ray;
-
-    draw_line(
-        origin.x,
-        origin.y,
-        line_end.x,
-        line_end.y,
-        thickness,
-        WHITE
-    );
-
-    let p1 = vec2(-ray.y, ray.x);
-    let p2 = vec2(ray.y, -ray.x);
-    let left = -ray.lerp(p1, 0.5);
-    let right = -ray.lerp(p2, 0.5);
-    let left_end = line_end + left.normalize() * arrow_length;
-    let right_end = line_end + right.normalize() * arrow_length;
-
-    draw_line(
-        line_end.x,
-        line_end.y,
-        left_end.x,
-        left_end.y,
-        thickness,
-        WHITE
-    );
-
-    draw_line(
-        line_end.x,
-        line_end.y,
-        right_end.x,
-        right_end.y,
-        thickness,
-        WHITE
-    );
+    Some(min_side)
 
 }
 
@@ -64,52 +34,62 @@ async fn main() {
         );
     }
 
-    let mut top_set = false;
-    let mut bottom_set = false;
-    let mut left_set = false;
-    let mut right_set = false;
-
     loop {
 
         let _dt = get_frame_time();
 
         clear_background(BLUE);
 
-        top_set = is_key_down(KeyCode::W);
-        bottom_set = is_key_down(KeyCode::S);
-        left_set = is_key_down(KeyCode::A);
-        right_set = is_key_down(KeyCode::D);
+        let mouse_btn_down = is_mouse_button_down(MouseButton::Left);
+        let mouse_pos_vec : Vec2 = mouse_position().into();
 
-        let screen_center = vec2(screen_width() / 2.0,screen_height() / 2.0);
+        let top = if is_key_down(KeyCode::W) { vec2(0.0, -1.0) } else { vec2(0.0, 0.0) };
+        let bottom = if is_key_down(KeyCode::S) { vec2(0.0, 1.0) } else { vec2(0.0, 0.0) };
+        let left = if is_key_down(KeyCode::A) { vec2(-1.0, 0.0) } else { vec2(0.0, 0.0) };
+        let right = if is_key_down(KeyCode::D) { vec2(1.0, 0.0) } else { vec2(0.0, 0.0) };
 
-        let corners = [
-            top_set.then_some(vec2(0.0, -1.0)),
-            bottom_set.then_some(vec2(0.0, 1.0)),
-            left_set.then_some(vec2(-1.0, 0.0)),
-            right_set.then_some(vec2(1.0, 0.0))
-        ];
+        let screen_center: Vec2 = vec2(screen_width() / 2.0, screen_height() / 2.0);
+        let vector_to_mouse: Vec2 = (mouse_pos_vec - screen_center).normalize();
+        let combined_inputs = top + bottom + left + right
+            + if mouse_btn_down { vector_to_mouse } else { vec2(0.0, 0.0) };
 
-        let current_corners = corners.iter().filter_map(|v| *v);
-        let current_corner_vector = corner_vector(current_corners);
-        let vector_length = 32.0;
+        let has_any_input = combined_inputs.x.abs() > 0.0 || combined_inputs.y.abs() > 0.0;
+         
+        let current_corner_vector = discretize(
+            combined_inputs,
+            [
+                vec2(0.0, -1.0), // n
+                vec2(0.0, -1.0).rotated_by(PI / 4.0), // ne
+                vec2(0.0, 1.0), // s
+                vec2(0.0, 1.0).rotated_by(PI / 4.0), // sw
+                vec2(-1.0, 0.0), // w
+                vec2(-1.0, 0.0).rotated_by(PI / 4.0), // nw
+                vec2(1.0, 0.0), // e
+                vec2(1.0, 0.0).rotated_by(PI / 4.0) // se
+            ].into_iter()
+        );
 
-        if let Some(current_vector) = current_corner_vector {
+        if let Some(current_vector) = current_corner_vector && has_any_input {
 
+            let vector_length = 32.0;
             let screen_vector = current_vector * vector_length;
 
             draw_arrow(
-                screen_center,
-                screen_vector,
-                16.0, // arrow length
-                4.0
+                screen_center.x, screen_center.y,
+                screen_center.x + screen_vector.x,
+                screen_center.y + screen_vector.y,
+                4.0, // thickness
+                16.0, // head size
+                WHITE
             );
             
         }
 
-        draw_debug_text(format!("top set: {} (W)", top_set), 32.0, 32.0);
-        draw_debug_text(format!("bottom set: {} (S)", bottom_set), 32.0, 48.0);
-        draw_debug_text(format!("left set: {} (A)", left_set), 32.0, 64.0);
-        draw_debug_text(format!("right set: {} (D)", right_set), 32.0, 80.0);
+        draw_debug_text(format!("left mouse: {}", mouse_btn_down), 32.0, 32.0);
+        draw_debug_text(format!("up pressed: {} (W)", is_key_down(KeyCode::W)), 32.0, 48.0);
+        draw_debug_text(format!("down pressed: {} (S)", is_key_down(KeyCode::S)), 32.0, 64.0);
+        draw_debug_text(format!("left pressed: {} (A)", is_key_down(KeyCode::A)), 32.0, 80.0);
+        draw_debug_text(format!("right pressed: {} (D)", is_key_down(KeyCode::D)), 32.0, 96.0);
 
         next_frame().await
 

@@ -51,7 +51,7 @@ pub fn draw_arrow(x1: f32, y1: f32, x2: f32, y2: f32, thickness: f32, head_size:
 
     draw_line(x2, y2, l.x, l.y, thickness, colour);
     draw_line(x2, y2, r.x, r.y, thickness, colour);
-    draw_line(x1, y1, x2, y2, 2.0, colour);
+    draw_line(x1, y1, x2, y2, thickness, colour);
 
 }
 
