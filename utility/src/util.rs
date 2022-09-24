@@ -89,17 +89,17 @@ pub fn most_aligned(v: Vec2, mut vectors: impl Iterator::<Item=Vec2>) -> Option<
 
     let first_vector = vectors.nth(0)?;
 
-    let mut min_vector = first_vector;
-    let mut min_d = first_vector.dot(v);
+    let mut max_vector = first_vector;
+    let mut max_d = first_vector.dot(v);
 
     for s in vectors {
         let d = s.dot(v);
-        if d > min_d {
-            min_vector = s;
-            min_d = d;
+        if d > max_d {
+            max_vector = s;
+            max_d = d;
         }
     }
 
-    Some(min_vector)
+    Some(max_vector)
 
 }
