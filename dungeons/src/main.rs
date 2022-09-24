@@ -32,8 +32,8 @@ pub trait AsTilePosition {
 impl AsTilePosition for Vec2 {
     fn as_tile_position(&self) -> IVec2 {
         ivec2(
-            (self.x / TILE_SIZE) as i32,
-            (self.y / TILE_SIZE) as i32
+            (self.x / TILE_SIZE).floor() as i32,
+            (self.y / TILE_SIZE).floor() as i32
         )
     }
 }

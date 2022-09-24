@@ -80,3 +80,23 @@ impl Step for f32 {
         (self / step_size).floor() * step_size
     }
 }
+
+pub trait AsPolar {
+    fn as_polar(&self) -> (f32, f32);
+}
+
+impl AsPolar for Vec2 {
+    fn as_polar(&self) -> (f32, f32) {
+        cartesian_to_polar(*self).into()
+    }
+}
+
+pub trait AsCartesian {
+    fn as_cartesian(&self) -> Vec2;
+}
+
+impl AsCartesian for (f32, f32) {
+    fn as_cartesian(&self) -> Vec2 {
+        polar_to_cartesian(self.0, self.1)
+    }
+}
