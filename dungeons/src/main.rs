@@ -2,7 +2,7 @@
 #![feature(map_try_insert)]
 
 use std::{path::PathBuf, fs::read_to_string, collections::HashMap};
-use macroquad::{prelude::*, rand::{gen_range, ChooseRandom}};
+use macroquad::{prelude::*, rand::{ChooseRandom}};
 use utility::*;
 
 const TILE_SIZE: f32 = 32.0;

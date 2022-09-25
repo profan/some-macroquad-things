@@ -67,12 +67,12 @@ pub fn draw_rectangle_lines_centered(x: f32, y: f32, w: f32, h: f32, thickness: 
     draw_rectangle_lines(x - w/2.0, y - h/2.0, w, h, thickness, color);
 }
 
-fn is_point_inside_rect(p: &Vec2, r: &Rect) -> bool {
+pub fn is_point_inside_rect(p: &Vec2, r: &Rect) -> bool {
     let is_outside = p.x < r.x || p.x > r.x + r.w || p.y < r.y || p.y > r.y + r.h;
     !is_outside
 }
 
-fn is_point_inside_screen(p: Vec2, padding: f32) -> bool {
+pub fn is_point_inside_screen(p: Vec2, padding: f32) -> bool {
     let w = screen_width();
     let h = screen_height();
     let screen_rect = Rect {
