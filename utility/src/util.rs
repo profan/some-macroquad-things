@@ -59,6 +59,7 @@ pub fn random_binomial() -> f32 {
     rand::gen_range(0.0, 1.0) - rand::gen_range(0.0, 1.0)
 }
 
+/// Can be used to map the input value v in the range [[0.0, value_max]] to a range [[min, max]].
 pub fn normalize(v: f32, min: f32, max: f32, value_max: f32) -> f32 {
     (min + v) / (value_max / (max - min))
 }

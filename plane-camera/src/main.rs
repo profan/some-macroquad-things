@@ -1,3 +1,5 @@
+use std::cmp;
+
 use macroquad::prelude::*;
 use utility::WithAlpha;
 
@@ -88,12 +90,16 @@ fn calculate_current_camera_up_vector(camera: &Camera3D, planes: &[Plane], min_d
     let mut total_planes = 0.0;
     let mut total_sum = Vec3::ZERO;
 
+    // sort the planes by distance
+    // planes.sort_by(|p1, p2| p1.position.distance(camera.position).total_cmp(&p2.position.distance(camera.position)));
+
     for p in planes {
 
         let distance_to_plane = camera.position.distance(p.position);
+        let contribution_factor = 1.0 - utility::normalize(distance_to_plane, 0.0, 1.0, min_distance);
 
         if distance_to_plane < min_distance {
-            total_sum += p.normal;
+            total_sum += p.normal * contribution_factor;
             total_planes += 1.0;
         }
 
@@ -135,8 +141,8 @@ async fn main() {
         },
         Plane {
             position: ORIGIN + LEFT * 5.0,
-            normal: UP.lerp(LEFT, 0.5).normalize()
-        }
+            normal: FORWARD.lerp(LEFT, 0.5)
+        },
     ];
     
     loop {
@@ -153,7 +159,7 @@ async fn main() {
     
         // recalculate camera up if necessary
         let last_camera_up = camera.up;
-        camera.up = calculate_current_camera_up_vector(&camera, &planes, 10.0);
+        camera.up = calculate_current_camera_up_vector(&camera, &planes, 30.0);
         let arc_from_last_camera_up = Quat::from_rotation_arc(last_camera_up, camera.up);
         camera.target = arc_from_last_camera_up.mul_vec3(camera.target);
 
