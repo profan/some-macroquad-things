@@ -2,6 +2,7 @@ use macroquad::prelude::*;
 
 const TILE_SIZE: i32 = 32;
 
+/// Rasterizes a given tile for marching squares where i is in \[0, 16\], should be called with a render target active.
 fn rasterize_tile(offset: Vec2, i: i32, color: Color) {
 
     let line_thickness = 1.0;
@@ -166,7 +167,8 @@ fn rasterize_tile(offset: Vec2, i: i32, color: Color) {
 
 }
 
-fn rasterize_tile_atlas(color: Color) -> Texture2D {
+/// Rasterizes all the tiles for marching squares into a texture atlas (single row).
+fn rasterize_tile_atlas(color: Color) -> RenderTarget {
 
     // 16 is the number of tiles!
     let texture_width = TILE_SIZE * 16;
@@ -184,10 +186,11 @@ fn rasterize_tile_atlas(color: Color) -> Texture2D {
         rasterize_tile(current_offset, i, color);
     }
 
-    render_target.texture
+    render_target
 
 }
 
+/// Creates a camera given a render target.
 fn create_render_target_camera(render_target: RenderTarget) -> Camera2D {
 
     let size = vec2(render_target.texture.width(), render_target.texture.height());
@@ -195,6 +198,160 @@ fn create_render_target_camera(render_target: RenderTarget) -> Camera2D {
     render_target_camera.render_target = Some(render_target);
 
     render_target_camera
+
+}
+
+struct Heightmap {
+    data: Vec<u8>,
+    size: UVec2
+}
+
+impl Heightmap {
+
+    pub fn new(w: u32, h: u32) -> Heightmap {
+        Heightmap {
+            data: vec![0; (w * h) as usize],
+            size: uvec2(w, h)
+        }
+    }
+
+    pub fn get(&self, x: i32, y: i32) -> u8 {
+        let idx = x + y * self.size.x as i32;
+        if idx < 0 || idx >= self.data.len() as i32 { 0 } else { self.data[idx as usize] }
+    }
+
+    pub fn set(&mut self, x: u32, y: u32, v: u8) {
+        let idx = (x + y * self.size.x) as usize;
+        self.data[idx] = v;
+    }
+
+    pub fn width(&self) -> u32 {
+        self.size.x
+    }
+
+    pub fn height(&self) -> u32 {
+        self.size.y
+    }
+
+}
+
+fn create_height_field_buffer_texture(map: &Heightmap) -> Texture2D {
+
+    let bytes = map.data.as_slice();
+
+    let miniquad_texture = unsafe {
+        miniquad::Texture::from_data_and_format(
+            get_internal_gl().quad_context,
+            bytes,
+            miniquad::TextureParams {
+                format: miniquad::TextureFormat::Alpha,
+                wrap: miniquad::TextureWrap::Clamp,
+                filter: miniquad::FilterMode::Nearest,
+                width: map.size.x,
+                height: map.size.y
+            }
+        )
+    };
+
+    Texture2D::from_miniquad_texture(miniquad_texture)
+
+}
+
+fn create_height_field(w: u32, h: u32) -> Heightmap {
+
+    let mut new_heightmap = Heightmap::new(w, h);
+
+    let w = w as i32;
+    let h = h as i32;
+
+    for x in 0..w {
+        for y in 0..h {
+            if x <= 2 || x >= w - 2 || y <= 1 || y >= h - 3 {
+                //new_heightmap.set(x as u32, y as u32, 0);
+                continue;
+            }
+            new_heightmap.set(x as u32, y as u32, 3);
+        }
+    }
+
+    new_heightmap
+
+}
+
+fn height_map_position_to_index(map: &Heightmap, x: u32, y: u32) -> u8 {
+
+    let x = x as i32;
+    let y = y as i32;
+
+    let isovalue = 1;
+
+    let top_left_bit = ((map.get(x, y) > isovalue) as u8) << 0;
+    let top_right_bit = ((map.get(x + 1, y) > isovalue) as u8) << 1;
+    let bottom_right_bit = ((map.get(x + 1, y + 1) > isovalue) as u8) << 2;
+    let bottom_left_bit = ((map.get(x, y + 1) > isovalue) as u8) << 3;
+
+    let final_index = top_left_bit | top_right_bit | bottom_left_bit | bottom_right_bit;
+
+    final_index
+
+}
+
+fn draw_height_field(map: &Heightmap, atlas: Texture2D, render_debug_text: bool) {
+
+    for x in 0..map.width() {
+        for y in 0..map.height() {
+
+            let idx = height_map_position_to_index(map, x, y);
+            let offset_x = (TILE_SIZE * idx as i32) as f32;
+
+            let dest_size = vec2(
+                TILE_SIZE as f32,
+                TILE_SIZE as f32
+            );
+
+            let source_rect = Rect {
+                x: offset_x,
+                y: 0.0,
+                w: TILE_SIZE as f32,
+                h: TILE_SIZE as f32
+            };
+
+            if render_debug_text {
+
+                let text_x = (x * TILE_SIZE as u32) as f32 + (TILE_SIZE / 2) as f32;
+                let text_y = (y * TILE_SIZE as u32) as f32 + (TILE_SIZE / 2) as f32;
+                let v = map.get(x as i32, y as i32);
+
+                draw_text(
+                    v.to_string().as_str(),
+                    text_x, text_y + (TILE_SIZE as f32) / 2.0,
+                    12.0,
+                    if v > 0 { GREEN } else { RED }
+                );
+
+                draw_text(
+                    idx.to_string().as_str(),
+                    text_x, text_y,
+                    12.0,
+                    BLACK
+                );
+
+            }
+
+            draw_texture_ex(
+                atlas,
+                (x * TILE_SIZE as u32) as f32,
+                (y * TILE_SIZE as u32) as f32,
+                WHITE,
+                DrawTextureParams {
+                    dest_size: Some(dest_size),
+                    source: Some(source_rect),
+                    ..Default::default()
+                }
+            )
+
+        }
+    }
 
 }
 
@@ -208,7 +365,11 @@ async fn main() {
     // step 5. ???
 
     let mut has_rasterized_tile_atlas = false;
-    let mut rasterized_tile_atlas: Option<Texture2D> = None;
+    let mut rasterized_tile_atlas: Option<RenderTarget> = None;
+
+    let height_field = create_height_field(24, 18);
+    let height_field_texture = create_height_field_buffer_texture(&height_field);
+    let mut render_debug_text = false;
     
     loop {
 
@@ -226,15 +387,9 @@ async fn main() {
         }
 
         set_default_camera();
-
         clear_background(WHITE);
 
-        draw_texture(
-            rasterized_tile_atlas.unwrap(),
-            0.,
-            0.,
-            WHITE,
-        );
+        draw_height_field(&height_field, rasterized_tile_atlas.unwrap().texture, render_debug_text);
 
         if is_key_pressed(KeyCode::Escape) {
             break;
