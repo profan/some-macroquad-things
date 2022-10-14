@@ -187,10 +187,10 @@ fn rasterize_tile_atlas(color: Color, line_thickness: f32) -> RenderTarget {
 
     set_camera(&render_target_camera);
 
-    clear_background(WHITE.with_alpha(0.0));
+    // clear_background(WHITE.with_alpha(0.0));
 
     for i in 0..16 {
-        let current_offset = vec2((TILE_SIZE * i) as f32, 0.0);
+        let current_offset = vec2(((2 + TILE_SIZE) * i) as f32, 0.0);
         rasterize_tile(current_offset, i, color, line_thickness);
     }
 
@@ -333,7 +333,7 @@ fn draw_height_field_layer(map: &Heightmap, atlas: Texture2D, isovalue: u8) {
         for y in 0..map.height() {
 
             let idx = height_map_position_to_index(map, isovalue, x, y);
-            let offset_x = (TILE_SIZE * idx as i32) as f32;
+            let offset_x = ((2 + TILE_SIZE) * idx as i32) as f32;
             let tile_pos = height_field_offset + vec2((x as i32 * TILE_SIZE) as f32, (y as i32 * TILE_SIZE) as f32);
 
             if idx == 0 {
