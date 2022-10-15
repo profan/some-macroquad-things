@@ -6,7 +6,7 @@ use noise::{
     core::perlin::{perlin_2d, perlin_3d, perlin_4d},
     permutationtable::PermutationTable, utils::{PlaneMapBuilder, NoiseMapBuilder}
 };
-use utility::WithAlpha;
+use utility::{WithAlpha, screen_dimensions};
 
 const TILE_SIZE: i32 = 32;
 
@@ -434,16 +434,23 @@ impl GameCamera {
 
 }
 
-fn handle_camera_input(active: &mut GameCamera, dt: f32) {
+fn handle_camera_input(active: &mut GameCamera, dt: f32) -> bool {
 
-    let camera_speed = 256.0;
+    handle_camera_movement(active, dt);
+    let zoom_changed = handle_camera_zoom(active, dt);
+
+    zoom_changed
+
+}
+
+fn handle_camera_movement(active: &mut GameCamera, dt: f32) {
+
+    let camera_speed = 256.0 * active.camera_zoom;
 
     let is_up_pressed = is_key_down(KeyCode::Up) || is_key_down(KeyCode::W);
     let is_down_pressed = is_key_down(KeyCode::Down) || is_key_down(KeyCode::S);
     let is_left_pressed = is_key_down(KeyCode::Left) || is_key_down(KeyCode::A);
     let is_right_pressed = is_key_down(KeyCode::Right) || is_key_down(KeyCode::D);
-
-    let (_wheel_x, wheel_y) = mouse_wheel();
 
     let mut camera_delta = Vec2::ZERO;
 
@@ -474,7 +481,7 @@ fn handle_camera_zoom(active: &mut GameCamera, dt: f32) -> bool {
     let min_zoom = 0.5;
     let max_zoom = 2.0;
 
-    let new_zoom = (active.camera_zoom + mouse_wheel_delta.1 * 0.01 * dt).clamp(min_zoom, max_zoom);
+    let new_zoom = (active.camera_zoom - mouse_wheel_delta.1 * 0.01 * dt).clamp(min_zoom, max_zoom);
     let new_size = active.size * new_zoom;
 
     let new_camera = Camera2D::from_display_rect(
@@ -510,9 +517,8 @@ async fn main() {
     apply_noise_to_height_field(&mut height_field);
 
     let height_field_texture = create_height_field_buffer_texture(&height_field);
+    let mut active_camera = GameCamera::new(screen_dimensions());
     let mut render_debug_text = false;
-
-    let mut active_camera = GameCamera::new(vec2(screen_width(), screen_height()));
     
     loop {
 
@@ -532,14 +538,17 @@ async fn main() {
 
         }
 
-        handle_camera_input(&mut active_camera, dt);
-        let changed = handle_camera_zoom(&mut active_camera, dt);
+        let changed = handle_camera_input(&mut active_camera, dt);
         has_rasterized_tile_atlas = !changed;
 
         set_camera(&active_camera.camera);
         clear_background(WHITE);
 
-        draw_height_field(&height_field, rasterized_tile_atlas.unwrap().texture, render_debug_text);
+        draw_height_field(
+            &height_field,
+            rasterized_tile_atlas.unwrap().texture,
+            render_debug_text
+        );
 
         if is_key_pressed(KeyCode::Escape) {
             break;

@@ -104,3 +104,8 @@ pub fn most_aligned(v: Vec2, mut vectors: impl Iterator::<Item=Vec2>) -> Option<
     Some(max_vector)
 
 }
+
+/// Returns the current screen dimensions as a Vec2.
+pub fn screen_dimensions() -> Vec2 {
+    return vec2(screen_width(), screen_height())
+}
