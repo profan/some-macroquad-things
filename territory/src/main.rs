@@ -177,7 +177,7 @@ fn rasterize_tile(offset: Vec2, i: i32, color: Color, line_thickness: f32) {
 fn rasterize_tile_atlas(color: Color, line_thickness: f32) -> RenderTarget {
 
     // 16 is the number of tiles!
-    let texture_width = TILE_SIZE * 16;
+    let texture_width = (TILE_SIZE * 16) + (2 * 15);
     let texture_height = TILE_SIZE;
 
     let render_target = render_target(texture_width as u32, texture_height as u32);
@@ -467,7 +467,9 @@ fn handle_camera_input(active: &mut GameCamera, dt: f32) {
 
 }
 
-fn handle_camera_zoom(active: &mut GameCamera, mouse_wheel_delta: (f32, f32), dt: f32) -> bool {
+fn handle_camera_zoom(active: &mut GameCamera, dt: f32) -> bool {
+
+    let mouse_wheel_delta = mouse_wheel();
 
     let min_zoom = 0.5;
     let max_zoom = 2.0;
@@ -531,7 +533,7 @@ async fn main() {
         }
 
         handle_camera_input(&mut active_camera, dt);
-        let changed = handle_camera_zoom(&mut active_camera, mouse_wheel(), dt);
+        let changed = handle_camera_zoom(&mut active_camera, dt);
         has_rasterized_tile_atlas = !changed;
 
         set_camera(&active_camera.camera);
