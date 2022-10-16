@@ -738,9 +738,9 @@ fn draw_debug_text(active: &GameCamera, map: &Heightmap, debug: &mut DebugText) 
     let tile_pos = map.world_to_tile(world_pos.x, world_pos.y);
     let tile = map.get(tile_pos.0, tile_pos.1);
 
-    debug.draw_text(&format!("world position under mouse: {}", world_pos), TextPosition::TopLeft, WHITE);
-    debug.draw_text(&format!("tile position under mouse: {:?}", tile_pos), TextPosition::TopLeft, WHITE);
-    debug.draw_text(&format!("tile under mouse: {:?}", tile), TextPosition::TopLeft, WHITE);
+    debug.draw_text(format!("world position under mouse: {}", world_pos), TextPosition::TopLeft, WHITE);
+    debug.draw_text(format!("tile position under mouse: {:?}", tile_pos), TextPosition::TopLeft, WHITE);
+    debug.draw_text(format!("tile under mouse: {:?}", tile), TextPosition::TopLeft, WHITE);
 
 }
 
