@@ -56,8 +56,11 @@ impl DebugText {
         }
     }
 
-    pub fn draw_text(&mut self, text: &str, pos: TextPosition, color: Color) {
+    pub fn draw_text<S>(&mut self, text: S, pos: TextPosition, color: Color)
+        where S: Into<String>
+    {
 
+        let text = &text.into();
         let next_position = self.next_text_position(text, pos);
         draw_text(text, next_position.x, next_position.y, self.current_font_size, color);
 

@@ -533,7 +533,7 @@ fn draw_debug_text(camera: &Camera2D, debug_text: &mut DebugText) {
     let world_position_under_mouse = camera.screen_to_world(mouse_position().into());
     let tile_under_mouse = world_position_under_mouse.as_tile_position();
 
-    debug_text.draw_text(format!("tile pos: {}", tile_under_mouse).as_str(), TextPosition::TopRight, BLACK);
+    debug_text.draw_text(format!("tile pos: {}", tile_under_mouse), TextPosition::TopRight, BLACK);
     debug_text.draw_text("press r to regenerate", TextPosition::TopLeft, BLACK);
 
 }
