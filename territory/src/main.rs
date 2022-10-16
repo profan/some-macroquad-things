@@ -411,7 +411,7 @@ fn create_height_field_buffer_texture(map: &Heightmap) -> Texture2D {
 fn create_height_field(w: u32, h: u32) -> Heightmap {
 
     let num_isolevels = 4;
-    let isolevels = (0..num_isolevels).map(|i| ((256.0 / num_isolevels as f32) * i as f32) as u8).collect();
+    let isolevels = (0..num_isolevels).map(|i| ((255.0 / num_isolevels as f32) * i as f32) as u8).collect();
 
     let mut new_heightmap = Heightmap::new(w, h, isolevels);
 
@@ -445,13 +445,6 @@ fn apply_noise_to_height_field(map: &mut Heightmap) {
         .set_x_bounds(0.0, 64.0)
         .set_y_bounds(0.0, 64.0)
         .build();
-
-    // let hasher = PermutationTable::new(64);
-    // let noise_map = PlaneMapBuilder::new_fn(perlin_2d, &hasher)
-    //     .set_size(1024, 1024)
-    //     .set_x_bounds(0.0, 64.0)
-    //     .set_y_bounds(0.0, 64.0)
-    //     .build();
 
     for x in 1..map.width() - 1 {
         for y in 1..map.height() - 1 {
