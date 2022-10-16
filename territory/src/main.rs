@@ -5,7 +5,7 @@ use noise::{
     permutationtable::{PermutationTable, NoiseHasher}, utils::{PlaneMapBuilder, NoiseMapBuilder}, Add, Perlin, Worley, Fbm, Multiply, ScaleBias, Turbulence
 };
 
-use utility::{WithAlpha, screen_dimensions, AdjustHue};
+use utility::{WithAlpha, screen_dimensions, AdjustHue, DebugText, TextPosition};
 
 const TILE_PADDING: i32 = 2;
 const REAL_TILE_SIZE: i32 = 32;
@@ -333,8 +333,6 @@ fn rasterize_tile_atlas(line_color: Color, fill_color: Color, line_thickness: f3
         rasterize_tile(current_offset, i, line_color, fill_color, line_thickness, fill_tile);
     }
 
-    // add 1px edge to every single tile
-
     render_target
 
 }
@@ -366,14 +364,27 @@ impl Heightmap {
         }
     }
 
+    pub fn world_to_tile(&self, x: f32, y: f32) -> (i32, i32) {
+        (x as i32 / REAL_TILE_SIZE as i32, y as i32 / REAL_TILE_SIZE as i32)
+    }
+
+    pub fn tile_to_world(&self, x: i32, y: i32) -> Vec2 {
+        vec2(
+            (x * REAL_TILE_SIZE as i32) as f32,
+            (y * REAL_TILE_SIZE as i32) as f32
+        )
+    }
+
     pub fn get(&self, x: i32, y: i32) -> u8 {
         let idx = x + y * self.size.x as i32;
         if idx < 0 || idx >= self.data.len() as i32 { 0 } else { self.data[idx as usize] }
     }
 
-    pub fn set(&mut self, x: u32, y: u32, v: u8) {
-        let idx = (x + y * self.size.x) as usize;
-        self.data[idx] = v;
+    pub fn set(&mut self, x: i32, y: i32, v: u8) {
+        let idx = x + y * self.size.x as i32;
+        if (idx < 0 || idx >= self.data.len() as i32) == false {
+            self.data[idx as usize] = v;
+        }
     }
 
     pub fn width(&self) -> u32 {
@@ -423,7 +434,7 @@ fn create_height_field(w: u32, h: u32) -> Heightmap {
             if x <= 2 || x >= w - 2 || y <= 2 || y >= h - 2 {
                 continue;
             }
-            new_heightmap.set(x as u32, y as u32, 3);
+            new_heightmap.set(x, y, 3);
         }
     }
 
@@ -442,14 +453,14 @@ fn apply_noise_to_height_field(map: &mut Heightmap) {
 
     let noise_map = PlaneMapBuilder::<_, 2>::new(combined_noise)
         .set_size(1024, 1024)
-        .set_x_bounds(0.0, 64.0)
-        .set_y_bounds(0.0, 64.0)
+        .set_x_bounds(0.0, map.width() as f64 / 2.0)
+        .set_y_bounds(0.0, map.height() as f64 / 2.0)
         .build();
 
     for x in 1..map.width() - 1 {
         for y in 1..map.height() - 1 {
             let v: f64 = noise_map.get_value(x as usize, y as usize) * 255.0;
-            map.set(x, y, v as u8);
+            map.set(x as i32, y as i32, v as u8);
         }
     }
 
@@ -683,16 +694,31 @@ fn handle_game_input(active: &mut GameCamera, map: &mut Heightmap, dt: f32) -> b
     let is_mouse_right_down = is_mouse_button_down(MouseButton::Right);
 
     let Vec2 { x: mouse_x, y: mouse_y } = active.camera.screen_to_world(mouse_position().into());
+    let (mouse_tile_x, mouse_tile_y) = map.world_to_tile(mouse_x, mouse_y);
 
     if is_mouse_left_down {
-        
+        let new_value = map.get(mouse_tile_x, mouse_tile_y).saturating_add(1);
+        map.set(mouse_tile_x, mouse_tile_y, new_value);
     }
 
     if is_mouse_right_down {
-
+        let new_value = map.get(mouse_tile_x, mouse_tile_y).saturating_sub(1);
+        map.set(mouse_tile_x, mouse_tile_y, new_value);
     }
 
     is_mouse_left_down || is_mouse_right_down
+
+}
+
+fn draw_debug_text(active: &GameCamera, map: &Heightmap, debug: &mut DebugText) {
+
+    let world_pos = active.camera.screen_to_world(mouse_position().into());
+    let tile_pos = map.world_to_tile(world_pos.x, world_pos.y);
+    let tile = map.get(tile_pos.0, tile_pos.1);
+
+    debug.draw_text(format!("world position under mouse: {}", world_pos).as_str(), TextPosition::TopLeft, WHITE);
+    debug.draw_text(format!("tile position under mouse: {:?}", tile_pos).as_str(), TextPosition::TopLeft, WHITE);
+    debug.draw_text(format!("tile under mouse: {:?}", tile).as_str(), TextPosition::TopLeft, WHITE);
 
 }
 
@@ -704,6 +730,8 @@ async fn main() {
     // step 3. create a buffer that represents the map data.
     // step 4. upload a texture with the map data.
     // step 5. ???
+
+    let mut debug_text = DebugText::new();
 
     let mut should_rasterize_tile_atlas = true;
     let mut rasterized_tile_atlas: Option<RenderTarget> = None;
@@ -755,6 +783,13 @@ async fn main() {
             rasterized_tile_atlas.unwrap().texture,
             render_debug_text
         );
+
+        // now draw screen space stuff, debug text, etc
+
+        set_default_camera();
+
+        debug_text.new_frame();
+        draw_debug_text(&active_camera, &height_field, &mut debug_text);
 
         if is_key_pressed(KeyCode::Escape) {
             break;
