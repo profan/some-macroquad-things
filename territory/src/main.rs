@@ -477,6 +477,7 @@ fn apply_noise_to_height_field(map: &mut Heightmap) {
 
 }
 
+/// Given a tile position in the heightmap, returns the marching squares tile index to render.
 fn height_map_position_to_index(map: &Heightmap, isovalue: u8, x: u32, y: u32) -> u8 {
 
     let x = x as i32;
