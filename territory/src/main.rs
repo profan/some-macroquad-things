@@ -697,12 +697,12 @@ fn handle_game_input(active: &mut GameCamera, map: &mut Heightmap, dt: f32) -> b
     let (mouse_tile_x, mouse_tile_y) = map.world_to_tile(mouse_x, mouse_y);
 
     if is_mouse_left_down {
-        let new_value = map.get(mouse_tile_x, mouse_tile_y).saturating_add(1);
+        let new_value = map.get(mouse_tile_x, mouse_tile_y).saturating_add(16);
         map.set(mouse_tile_x, mouse_tile_y, new_value);
     }
 
     if is_mouse_right_down {
-        let new_value = map.get(mouse_tile_x, mouse_tile_y).saturating_sub(1);
+        let new_value = map.get(mouse_tile_x, mouse_tile_y).saturating_sub(16);
         map.set(mouse_tile_x, mouse_tile_y, new_value);
     }
 
