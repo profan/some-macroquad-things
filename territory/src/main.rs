@@ -1,4 +1,4 @@
-use macroquad::prelude::*;
+use macroquad::prelude::{*, camera::mouse};
 
 use noise::{
     core::{perlin::{perlin_2d, perlin_3d, perlin_4d}, simplex::simplex_2d, worley::worley_2d},
@@ -387,6 +387,17 @@ impl Heightmap {
         }
     }
 
+    pub fn add(&mut self, x: i32, y: i32, v: i8) {
+        let idx = x + y * self.size.x as i32;
+        if (idx < 0 || idx >= self.data.len() as i32) == false {
+            if v > 0 {
+                self.data[idx as usize] = self.data[idx as usize].saturating_add(v as u8);
+            } else if v < 0 {
+                self.data[idx as usize] = self.data[idx as usize].saturating_sub(v.abs() as u8);
+            }
+        }
+    }
+
     pub fn width(&self) -> u32 {
         self.size.x
     }
@@ -687,8 +698,24 @@ fn handle_camera_zoom(active: &mut GameCamera, dt: f32) -> bool {
 
 }
 
+fn modify_in_radius(map: &mut Heightmap, center_x: i32, center_y: i32, radius: i32, v: i8) {
+
+    for x in center_x - radius .. center_x + radius {
+        for y in center_y - radius .. center_y + radius {
+            let is_in_radius = Vec2::distance(vec2(center_x as f32, center_y as f32), vec2(x as f32, y as f32)) < radius as f32;
+            if is_in_radius {
+                map.add(x, y, v);
+            }
+        }
+    }
+
+}
+
 /// Handles the game input, if any change happened, this returns true.
 fn handle_game_input(active: &mut GameCamera, map: &mut Heightmap, dt: f32) -> bool {
+
+    let radius = 2;
+    let modification = 4;
 
     let is_mouse_left_down = is_mouse_button_down(MouseButton::Left);
     let is_mouse_right_down = is_mouse_button_down(MouseButton::Right);
@@ -697,13 +724,11 @@ fn handle_game_input(active: &mut GameCamera, map: &mut Heightmap, dt: f32) -> b
     let (mouse_tile_x, mouse_tile_y) = map.world_to_tile(mouse_x, mouse_y);
 
     if is_mouse_left_down {
-        let new_value = map.get(mouse_tile_x, mouse_tile_y).saturating_add(16);
-        map.set(mouse_tile_x, mouse_tile_y, new_value);
+        modify_in_radius(map, mouse_tile_x, mouse_tile_y, radius, modification);
     }
 
     if is_mouse_right_down {
-        let new_value = map.get(mouse_tile_x, mouse_tile_y).saturating_sub(16);
-        map.set(mouse_tile_x, mouse_tile_y, new_value);
+        modify_in_radius(map, mouse_tile_x, mouse_tile_y, radius, -modification);
     }
 
     is_mouse_left_down || is_mouse_right_down
