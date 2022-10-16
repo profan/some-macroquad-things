@@ -532,7 +532,7 @@ fn draw_height_field_layer(active: &GameCamera, map: &Heightmap, atlas: Texture2
                 atlas,
                 tile_pos.x,
                 tile_pos.y,
-                pleasant_earthy_green.darken(0.25 * (isovalue as f32 / 255.0)),
+                pleasant_earthy_green.lighten(0.25 * (isovalue as f32 / 255.0)),
                 DrawTextureParams {
                     dest_size: Some(dest_size),
                     source: Some(source_rect),
@@ -723,7 +723,7 @@ async fn main() {
             }
 
             let line_thickness = active_camera.camera_zoom.max(1.0) * 2.0;
-            rasterized_tile_atlas = Some(rasterize_tile_atlas(BLACK, WHITE, line_thickness));
+            rasterized_tile_atlas = Some(rasterize_tile_atlas(BLACK.lighten(0.75), WHITE, line_thickness));
 
         }
 
@@ -731,6 +731,7 @@ async fn main() {
         let game_changed = handle_game_input(&mut active_camera, &mut height_field, dt);
         should_rasterize_tile_atlas = camera_changed || game_changed;
 
+        // let pleasant_earthy_green = Color::from_rgba(104, 118, 53, 255);
         let murky_ocean_blue = Color::from_rgba(21, 119, 136, 255);
 
         // set_default_camera();
