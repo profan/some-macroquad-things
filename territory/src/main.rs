@@ -1,8 +1,8 @@
 use macroquad::prelude::*;
 
 use noise::{
-    core::perlin::{perlin_2d, perlin_3d, perlin_4d},
-    permutationtable::PermutationTable, utils::{PlaneMapBuilder, NoiseMapBuilder}
+    core::{perlin::{perlin_2d, perlin_3d, perlin_4d}, simplex::simplex_2d, worley::worley_2d},
+    permutationtable::{PermutationTable, NoiseHasher}, utils::{PlaneMapBuilder, NoiseMapBuilder}, Add, Perlin, Worley, Fbm, Multiply, ScaleBias, Turbulence
 };
 
 use utility::{WithAlpha, screen_dimensions, AdjustHue};
@@ -410,7 +410,7 @@ fn create_height_field_buffer_texture(map: &Heightmap) -> Texture2D {
 
 fn create_height_field(w: u32, h: u32) -> Heightmap {
 
-    let num_isolevels = 5;
+    let num_isolevels = 4;
     let isolevels = (0..num_isolevels).map(|i| ((256.0 / num_isolevels as f32) * i as f32) as u8).collect();
 
     let mut new_heightmap = Heightmap::new(w, h, isolevels);
@@ -433,17 +433,29 @@ fn create_height_field(w: u32, h: u32) -> Heightmap {
 
 fn apply_noise_to_height_field(map: &mut Heightmap) {
 
-    let hasher = PermutationTable::new(64);
-    let noise_map = PlaneMapBuilder::new_fn(perlin_2d, &hasher)
+    let perlin = Perlin::new(64);
+    let noise = ScaleBias::new(
+        Turbulence::<_, Perlin>::new(Perlin::new(256))
+    ).set_scale(0.125);
+
+    let combined_noise = Add::new(perlin, noise);
+
+    let noise_map = PlaneMapBuilder::<_, 2>::new(combined_noise)
         .set_size(1024, 1024)
         .set_x_bounds(0.0, 64.0)
         .set_y_bounds(0.0, 64.0)
         .build();
 
+    // let hasher = PermutationTable::new(64);
+    // let noise_map = PlaneMapBuilder::new_fn(perlin_2d, &hasher)
+    //     .set_size(1024, 1024)
+    //     .set_x_bounds(0.0, 64.0)
+    //     .set_y_bounds(0.0, 64.0)
+    //     .build();
+
     for x in 1..map.width() - 1 {
         for y in 1..map.height() - 1 {
             let v: f64 = noise_map.get_value(x as usize, y as usize) * 255.0;
-            // println!("v: {}", v);
             map.set(x, y, v as u8);
         }
     }
