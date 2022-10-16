@@ -521,7 +521,9 @@ fn draw_height_field_layer(active: &GameCamera, map: &Heightmap, atlas: Texture2
 
     for x in 0..map.width() {
 
-        let view_pos = active.camera.world_to_screen(height_field_offset + vec2(REAL_TILE_SIZE as f32 * x as f32, 0.0));
+        let view_pos = active.camera.world_to_screen(
+            height_field_offset + vec2(REAL_TILE_SIZE as f32 * x as f32, 0.0)
+        );
 
         if view_pos.x < -(REAL_TILE_SIZE as f32) || view_pos.x > screen_width() {
             continue;
@@ -533,13 +535,8 @@ fn draw_height_field_layer(active: &GameCamera, map: &Heightmap, atlas: Texture2
             let offset_x = ((TILE_PADDING + TILE_SIZE) * idx as i32) as f32;
             let tile_pos = height_field_offset + vec2((x as i32 * REAL_TILE_SIZE) as f32, (y as i32 * REAL_TILE_SIZE) as f32);
 
-            // let view_pos = active.camera.world_to_screen(tile_pos);
-            // if is_tile_in_view(view_pos.x, view_pos.y) == false {
-            //     continue;
-            // }
-
             if idx == 0 {
-                continue;
+                continue; // nothing to render for tile 0, which is empty
             }
 
             let dest_size = vec2(
@@ -579,9 +576,9 @@ fn draw_height_field(active: &GameCamera, map: &Heightmap, atlas: Texture2D, ren
         draw_height_field_layer(active, map, atlas, isolevel);
     }
 
-    for x in 0..map.width() {
-        for y in 0..map.height() {
-            if render_debug_text {
+    if render_debug_text {
+        for x in 0..map.width() {
+            for y in 0..map.height() {
 
                 let first_isolevel = *map.isolevels.first().unwrap();
                 let text_x = (x as i32 * TILE_SIZE) as f32 + (TILE_SIZE / 2) as f32;
@@ -594,13 +591,6 @@ fn draw_height_field(active: &GameCamera, map: &Heightmap, atlas: Texture2D, ren
                     12.0,
                     if v > first_isolevel { GREEN } else { RED }
                 );
-
-                // draw_text(
-                //     idx.to_string().as_str(),
-                //     text_x, text_y,
-                //     12.0,
-                //     BLACK
-                // );
 
             }
         }
