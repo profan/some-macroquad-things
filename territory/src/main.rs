@@ -1,27 +1,39 @@
-use core::num;
-
-use macroquad::prelude::{*, camera::mouse};
+use macroquad::prelude::*;
 
 use noise::{
     core::perlin::{perlin_2d, perlin_3d, perlin_4d},
     permutationtable::PermutationTable, utils::{PlaneMapBuilder, NoiseMapBuilder}
 };
-use utility::{WithAlpha, screen_dimensions};
 
-const TILE_SIZE: i32 = 32;
+use utility::{WithAlpha, screen_dimensions, AdjustHue};
+
+const TILE_PADDING: i32 = 2;
+const REAL_TILE_SIZE: i32 = 32;
+const TILE_SIZE: i32 = 32 + TILE_PADDING / 2;
 
 /// Rasterizes a given tile for marching squares where i is in \[0, 16\], should be called with a render target active.
-fn rasterize_tile(offset: Vec2, i: i32, color: Color, line_thickness: f32) {
+fn rasterize_tile(offset: Vec2, i: i32, line_color: Color, fill_color: Color, line_thickness: f32, fill: bool) {
 
-    let mut draw_line = |start_x: i32, start_y: i32, end_x: i32, end_y: i32, v: u8| {
+    let draw_line = |start_x: i32, start_y: i32, end_x: i32, end_y: i32| {
         draw_line(
             offset.x + start_x as f32,
             offset.y + start_y as f32,
             offset.x + end_x as f32,
             offset.y + end_y as f32,
             line_thickness,
-            color
+            line_color
         );
+    };
+
+    let draw_triangles = |triangles: &[[IVec2; 3]]| {
+        for &[a, b, c] in triangles {
+            draw_triangle(
+                offset + a.as_vec2(),
+                offset + b.as_vec2(),
+                offset + c.as_vec2(),
+                fill_color
+            );
+        }
     };
 
     match i {
@@ -30,36 +42,65 @@ fn rasterize_tile(offset: Vec2, i: i32, color: Color, line_thickness: f32) {
 
             let start = ivec2(0, TILE_SIZE / 2);
             let end = ivec2(TILE_SIZE / 2, TILE_SIZE);
-            draw_line(start.x, start.y, end.x, end.y, 1);
 
             // fill bottom left
+            draw_triangles(
+                &[
+                    [start, end, ivec2(0, TILE_SIZE)]
+                ]
+            );
+
+            // draw border
+            draw_line(start.x, start.y, end.x, end.y);
             
         },
         2 => {
             
             let start = ivec2(TILE_SIZE / 2, TILE_SIZE);
             let end = ivec2(TILE_SIZE, TILE_SIZE / 2);
-            draw_line(start.x, start.y, end.x, end.y, 1);
-            
-            // fill bottom right
 
+            // fill bottom right
+            draw_triangles(
+                &[
+                    [start, end, ivec2(TILE_SIZE, TILE_SIZE)]
+                ]
+            );
+
+            // draw border
+            draw_line(start.x, start.y, end.x, end.y);
+            
         },
         3 => {
 
             let start = ivec2(0, TILE_SIZE / 2);
             let end = ivec2(TILE_SIZE, TILE_SIZE / 2);
-            draw_line(start.x, start.y, end.x, end.y, 1);
 
             // fill below
+            draw_triangles(
+                &[
+                    [start, end, ivec2(TILE_SIZE, TILE_SIZE)],
+                    [ivec2(TILE_SIZE, TILE_SIZE), ivec2(0, TILE_SIZE), start],
+                ]
+            );
+
+            // draw border
+            draw_line(start.x, start.y, end.x, end.y);
 
         },
         4 => {
 
             let start = ivec2(TILE_SIZE / 2, 0);
             let end = ivec2(TILE_SIZE, TILE_SIZE / 2);
-            draw_line(start.x, start.y, end.x, end.y, 1);
 
             // fill top right
+            draw_triangles(
+                &[
+                    [start, ivec2(TILE_SIZE, 0), end]
+                ]
+            );
+
+            // draw border
+            draw_line(start.x, start.y, end.x, end.y);
 
         },
         5 => {
@@ -67,41 +108,73 @@ fn rasterize_tile(offset: Vec2, i: i32, color: Color, line_thickness: f32) {
             let start_top_left = ivec2(0, TILE_SIZE / 2);
             let end_top_left = ivec2(TILE_SIZE / 2, 0);
 
-            draw_line(start_top_left.x, start_top_left.y, end_top_left.x, end_top_left.y, 1);
-
             let start_bottom_right = ivec2(TILE_SIZE / 2, TILE_SIZE);
-            let end_bottom_right = ivec2(TILE_SIZE, TILE_SIZE / 2);
-
-            draw_line(start_bottom_right.x, start_bottom_right.y, end_bottom_right.x, end_bottom_right.y, 1);
+            let end_bottom_right = ivec2(TILE_SIZE, TILE_SIZE / 2);  
 
             // fill middle
+            draw_triangles(
+                &[
+                    [end_top_left, ivec2(TILE_SIZE, 0), end_bottom_right],
+                    [end_bottom_right, start_bottom_right, start_top_left],
+                    [start_top_left, end_top_left, end_bottom_right],
+                    [ivec2(0, TILE_SIZE), start_top_left, start_bottom_right]
+                ]
+            );
+
+            // draw border
+            draw_line(start_top_left.x, start_top_left.y, end_top_left.x, end_top_left.y);
+            draw_line(start_bottom_right.x, start_bottom_right.y, end_bottom_right.x, end_bottom_right.y);
 
         },
         6 => {
 
             let start = ivec2(TILE_SIZE / 2, 0);
             let end = ivec2(TILE_SIZE / 2, TILE_SIZE);
-            draw_line(start.x, start.y, end.x, end.y, 1);
 
             // fill right
+            draw_triangles(
+                &[
+                    [start, ivec2(TILE_SIZE, 0), ivec2(TILE_SIZE, TILE_SIZE)],
+                    [ivec2(TILE_SIZE, TILE_SIZE), end, start],
+                ]
+            );
+
+            // draw border
+            draw_line(start.x, start.y, end.x, end.y);
             
         },
         7 => {
 
             let start = ivec2(0, TILE_SIZE / 2);
             let end = ivec2(TILE_SIZE / 2, 0);
-            draw_line(start.x, start.y, end.x, end.y, 1);
 
             // fill bottom right
+            draw_triangles(
+                &[
+                    [start, end, ivec2(TILE_SIZE, 0)],
+                    [ivec2(TILE_SIZE, 0), ivec2(TILE_SIZE, TILE_SIZE), start],
+                    [start, ivec2(TILE_SIZE, TILE_SIZE), ivec2(0, TILE_SIZE)]
+                ]
+            );
+
+            // draw border
+            draw_line(start.x, start.y, end.x, end.y);
 
         },
         8 => {
 
             let start = ivec2(0, TILE_SIZE / 2);
             let end = ivec2(TILE_SIZE / 2, 0);
-            draw_line(start.x, start.y, end.x, end.y, 1);
 
             // fill top left
+            draw_triangles(
+                &[
+                    [start, ivec2(0, 0), end]
+                ]
+            );
+
+            // draw border
+            draw_line(start.x, start.y, end.x, end.y);
 
         },
         9 => {
@@ -109,9 +182,17 @@ fn rasterize_tile(offset: Vec2, i: i32, color: Color, line_thickness: f32) {
 
             let start = ivec2(TILE_SIZE / 2, 0);
             let end = ivec2(TILE_SIZE / 2, TILE_SIZE);
-            draw_line(start.x, start.y, end.x, end.y, 1);
 
             // fill left
+            draw_triangles(
+                &[
+                    [ivec2(0, 0), start, end],
+                    [end, ivec2(0, TILE_SIZE), ivec2(0, 0)],
+                ]
+            );
+
+            // draw border
+            draw_line(start.x, start.y, end.x, end.y);
 
         },
         10 => {
@@ -119,54 +200,111 @@ fn rasterize_tile(offset: Vec2, i: i32, color: Color, line_thickness: f32) {
             let start_bottom_left = ivec2(0, TILE_SIZE / 2);
             let end_bottom_left = ivec2(TILE_SIZE / 2, TILE_SIZE);
 
-            draw_line(start_bottom_left.x, start_bottom_left.y, end_bottom_left.x, end_bottom_left.y, 1);
-
             let start_top_right = ivec2(TILE_SIZE / 2, 0);
             let end_top_right = ivec2(TILE_SIZE, TILE_SIZE / 2);
 
-            draw_line(start_top_right.x, start_top_right.y, end_top_right.x, end_top_right.y, 1);
-
             // fill middle
+            draw_triangles(
+                &[
+                    [start_bottom_left, ivec2(0, 0), start_top_right],
+                    [start_bottom_left, start_top_right, end_top_right],
+                    [end_top_right, end_bottom_left, start_bottom_left],
+                    [end_top_right, ivec2(TILE_SIZE, TILE_SIZE), end_bottom_left]
+                ]
+            );
+
+            // draw border
+
+            draw_line(start_bottom_left.x, start_bottom_left.y, end_bottom_left.x, end_bottom_left.y);
+            draw_line(start_top_right.x, start_top_right.y, end_top_right.x, end_top_right.y);
 
         },
         11 => {
 
             let start = ivec2(TILE_SIZE / 2, 0);
             let end = ivec2(TILE_SIZE, TILE_SIZE / 2);
-            draw_line(start.x, start.y, end.x, end.y, 1);
 
             // fill bottom left
+            draw_triangles(
+                &[
+                    [start, end, ivec2(TILE_SIZE, TILE_SIZE)],
+                    [ivec2(TILE_SIZE, TILE_SIZE), ivec2(0, TILE_SIZE), start],
+                    [start, ivec2(0, TILE_SIZE), ivec2(0, 0)]
+                ]
+            );
             
+            // draw border
+            draw_line(start.x, start.y, end.x, end.y);
+
         },
         12 => {
 
             let start = ivec2(0, TILE_SIZE / 2);
             let end = ivec2(TILE_SIZE, TILE_SIZE / 2);
-            draw_line(start.x, start.y, end.x, end.y, 1);
 
             // fill above
+            draw_triangles(
+                &[
+                    [start, ivec2(0, 0), ivec2(TILE_SIZE, 0)],
+                    [ivec2(TILE_SIZE, 0), end, start],
+                ]
+            );
+
+            // draw border
+            draw_line(start.x, start.y, end.x, end.y);
 
         },
         13 => {
 
             let start = ivec2(TILE_SIZE / 2, TILE_SIZE);
             let end = ivec2(TILE_SIZE, TILE_SIZE / 2);
-            draw_line(start.x, start.y, end.x, end.y, 1);
 
             // fill top left
+            draw_triangles(
+                &[
+                    [start, end, ivec2(0, TILE_SIZE)],
+                    [ivec2(0, TILE_SIZE), ivec2(0, 0), end],
+                    [end, ivec2(0, 0), ivec2(TILE_SIZE, 0)]
+                ]
+            );
+
+            // draw border
+            draw_line(start.x, start.y, end.x, end.y);
 
         },
         14 => {
             
             let start = ivec2(0, TILE_SIZE / 2);
             let end = ivec2(TILE_SIZE / 2, TILE_SIZE);
-            draw_line(start.x, start.y, end.x, end.y, 1);
 
             // fill top right
+            draw_triangles(
+                &[
+                    [start, ivec2(0, 0), ivec2(TILE_SIZE, 0)],
+                    [ivec2(TILE_SIZE, 0), ivec2(TILE_SIZE, TILE_SIZE), start],
+                    [start, ivec2(TILE_SIZE, TILE_SIZE), end]
+                ]
+            );
+
+            // draw border
+            draw_line(start.x, start.y, end.x, end.y);
 
         },
         15 => {
-            // fill maybe?
+
+            let top_left = ivec2(0, 0);
+            let top_right = ivec2(TILE_SIZE, 0);
+            let bottom_left = ivec2(0, TILE_SIZE);
+            let bottom_right = ivec2(TILE_SIZE, TILE_SIZE);
+
+            // fill
+            draw_triangles(
+                &[
+                    [top_left, top_right, bottom_right],
+                    [bottom_right, bottom_left, top_left],
+                ]
+            );
+            
         },
         _ => {}
     }
@@ -174,10 +312,10 @@ fn rasterize_tile(offset: Vec2, i: i32, color: Color, line_thickness: f32) {
 }
 
 /// Rasterizes all the tiles for marching squares into a texture atlas (single row).
-fn rasterize_tile_atlas(color: Color, line_thickness: f32) -> RenderTarget {
+fn rasterize_tile_atlas(line_color: Color, fill_color: Color, line_thickness: f32) -> RenderTarget {
 
     // 16 is the number of tiles!
-    let texture_width = (TILE_SIZE * 16) + (2 * 15);
+    let texture_width = (TILE_SIZE * 16) + (TILE_PADDING * 15);
     let texture_height = TILE_SIZE;
 
     let render_target = render_target(texture_width as u32, texture_height as u32);
@@ -187,12 +325,15 @@ fn rasterize_tile_atlas(color: Color, line_thickness: f32) -> RenderTarget {
 
     set_camera(&render_target_camera);
 
-    // clear_background(WHITE.with_alpha(0.0));
+    clear_background(WHITE.with_alpha(0.0));
 
     for i in 0..16 {
-        let current_offset = vec2(((2 + TILE_SIZE) * i) as f32, 0.0);
-        rasterize_tile(current_offset, i, color, line_thickness);
+        let fill_tile = true;
+        let current_offset = vec2(((TILE_PADDING + TILE_SIZE) * i) as f32, 0.0);
+        rasterize_tile(current_offset, i, line_color, fill_color, line_thickness, fill_tile);
     }
+
+    // add 1px edge to every single tile
 
     render_target
 
@@ -269,8 +410,8 @@ fn create_height_field_buffer_texture(map: &Heightmap) -> Texture2D {
 
 fn create_height_field(w: u32, h: u32) -> Heightmap {
 
-    let num_levels = 4;
-    let isolevels = (0..num_levels).map(|i| ((256.0 / num_levels as f32) * i as f32) as u8).collect();
+    let num_isolevels = 5;
+    let isolevels = (0..num_isolevels).map(|i| ((256.0 / num_isolevels as f32) * i as f32) as u8).collect();
 
     let mut new_heightmap = Heightmap::new(w, h, isolevels);
 
@@ -325,38 +466,73 @@ fn height_map_position_to_index(map: &Heightmap, isovalue: u8, x: u32, y: u32) -
 
 }
 
-fn draw_height_field_layer(map: &Heightmap, atlas: Texture2D, isovalue: u8) {
+fn is_tile_in_view(x: f32, y: f32) -> bool {
 
-    let height_field_offset = vec2(TILE_SIZE as f32 / 2.0, TILE_SIZE as f32 / 2.0);
+    let tile_rect = Rect {
+        x: x, y: y,
+        w: REAL_TILE_SIZE as f32,
+        h: REAL_TILE_SIZE as f32
+    };
+
+    let screen_rect = Rect {
+        x: 0.0, y: 0.0,
+        w: screen_width(),
+        h: screen_height()
+    };
+
+    tile_rect.intersect(screen_rect).is_some()
+    
+}
+
+fn draw_height_field_layer(active: &GameCamera, map: &Heightmap, atlas: Texture2D, isovalue: u8) {
+
+    let height_field_offset = vec2(
+        REAL_TILE_SIZE as f32 / 2.0,
+        REAL_TILE_SIZE as f32 / 2.0
+    );
 
     for x in 0..map.width() {
+
+        let view_pos = active.camera.world_to_screen(height_field_offset + vec2(REAL_TILE_SIZE as f32 * x as f32, 0.0));
+
+        if view_pos.x < -(REAL_TILE_SIZE as f32) || view_pos.x > screen_width() {
+            continue;
+        }
+
         for y in 0..map.height() {
 
             let idx = height_map_position_to_index(map, isovalue, x, y);
-            let offset_x = ((2 + TILE_SIZE) * idx as i32) as f32;
-            let tile_pos = height_field_offset + vec2((x as i32 * TILE_SIZE) as f32, (y as i32 * TILE_SIZE) as f32);
+            let offset_x = ((TILE_PADDING + TILE_SIZE) * idx as i32) as f32;
+            let tile_pos = height_field_offset + vec2((x as i32 * REAL_TILE_SIZE) as f32, (y as i32 * REAL_TILE_SIZE) as f32);
+
+            // let view_pos = active.camera.world_to_screen(tile_pos);
+            // if is_tile_in_view(view_pos.x, view_pos.y) == false {
+            //     continue;
+            // }
 
             if idx == 0 {
                 continue;
             }
 
             let dest_size = vec2(
-                TILE_SIZE as f32,
-                TILE_SIZE as f32
+                REAL_TILE_SIZE as f32,
+                REAL_TILE_SIZE as f32
             );
 
             let source_rect = Rect {
-                x: offset_x,
-                y: 0.0,
-                w: TILE_SIZE as f32,
-                h: TILE_SIZE as f32
+                x: offset_x + (TILE_PADDING / 2) as f32 + 0.1,
+                y: 0.0 + 0.1,
+                w: REAL_TILE_SIZE as f32 - 0.2,
+                h: REAL_TILE_SIZE as f32 - 0.2
             };
+
+            let pleasant_earthy_green = Color::from_rgba(104, 118, 53, 255);
 
             draw_texture_ex(
                 atlas,
                 tile_pos.x,
                 tile_pos.y,
-                WHITE,
+                pleasant_earthy_green.darken(0.25 * (isovalue as f32 / 255.0)),
                 DrawTextureParams {
                     dest_size: Some(dest_size),
                     source: Some(source_rect),
@@ -369,10 +545,10 @@ fn draw_height_field_layer(map: &Heightmap, atlas: Texture2D, isovalue: u8) {
 
 }
 
-fn draw_height_field(map: &Heightmap, atlas: Texture2D, render_debug_text: bool) {
+fn draw_height_field(active: &GameCamera, map: &Heightmap, atlas: Texture2D, render_debug_text: bool) {
 
     for &isolevel in &map.isolevels {
-        draw_height_field_layer(map, atlas, isolevel);
+        draw_height_field_layer(active, map, atlas, isolevel);
     }
 
     for x in 0..map.width() {
@@ -405,15 +581,9 @@ fn draw_height_field(map: &Heightmap, atlas: Texture2D, render_debug_text: bool)
 }
 
 struct GameCamera {
-
     size: Vec2,
     camera_zoom: f32,
-
     camera: Camera2D,
-    // entity: Entity,
-    // follow_distance: f32,
-    // follow_speed: f32,
-
 }
 
 impl GameCamera {
@@ -479,7 +649,7 @@ fn handle_camera_zoom(active: &mut GameCamera, dt: f32) -> bool {
     let mouse_wheel_delta = mouse_wheel();
 
     let min_zoom = 0.5;
-    let max_zoom = 2.0;
+    let max_zoom = 4.0;
 
     let new_zoom = (active.camera_zoom - mouse_wheel_delta.1 * 0.01 * dt).clamp(min_zoom, max_zoom);
     let new_size = active.size * new_zoom;
@@ -501,6 +671,26 @@ fn handle_camera_zoom(active: &mut GameCamera, dt: f32) -> bool {
 
 }
 
+/// Handles the game input, if any change happened, this returns true.
+fn handle_game_input(active: &mut GameCamera, map: &mut Heightmap, dt: f32) -> bool {
+
+    let is_mouse_left_down = is_mouse_button_down(MouseButton::Left);
+    let is_mouse_right_down = is_mouse_button_down(MouseButton::Right);
+
+    let Vec2 { x: mouse_x, y: mouse_y } = active.camera.screen_to_world(mouse_position().into());
+
+    if is_mouse_left_down {
+        
+    }
+
+    if is_mouse_right_down {
+
+    }
+
+    is_mouse_left_down || is_mouse_right_down
+
+}
+
 #[macroquad::main("territory")]
 async fn main() {
 
@@ -510,15 +700,15 @@ async fn main() {
     // step 4. upload a texture with the map data.
     // step 5. ???
 
-    let mut has_rasterized_tile_atlas = false;
+    let mut should_rasterize_tile_atlas = true;
     let mut rasterized_tile_atlas: Option<RenderTarget> = None;
 
-    let mut height_field = create_height_field(64, 64);
+    let mut height_field = create_height_field(128, 128);
     apply_noise_to_height_field(&mut height_field);
 
     let height_field_texture = create_height_field_buffer_texture(&height_field);
     let mut active_camera = GameCamera::new(screen_dimensions());
-    let mut render_debug_text = false;
+    let render_debug_text = false;
     
     loop {
 
@@ -526,25 +716,35 @@ async fn main() {
 
         // re-rasterize atlas if necessary
 
-        if has_rasterized_tile_atlas == false {
+        if should_rasterize_tile_atlas {
 
             if let Some(atlas) = rasterized_tile_atlas {
                 atlas.delete();
             }
 
             let line_thickness = active_camera.camera_zoom.max(1.0) * 2.0;
-            rasterized_tile_atlas = Some(rasterize_tile_atlas(BLACK, line_thickness));
-            has_rasterized_tile_atlas = true;
+            rasterized_tile_atlas = Some(rasterize_tile_atlas(BLACK, WHITE, line_thickness));
 
         }
 
-        let changed = handle_camera_input(&mut active_camera, dt);
-        has_rasterized_tile_atlas = !changed;
+        let camera_changed = handle_camera_input(&mut active_camera, dt);
+        let game_changed = handle_game_input(&mut active_camera, &mut height_field, dt);
+        should_rasterize_tile_atlas = camera_changed || game_changed;
 
+        let murky_ocean_blue = Color::from_rgba(21, 119, 136, 255);
+
+        // set_default_camera();
         set_camera(&active_camera.camera);
-        clear_background(WHITE);
+        clear_background(murky_ocean_blue);
+
+        // draw_texture(
+        //     rasterized_tile_atlas.unwrap().texture,
+        //     0.0, 0.0,
+        //     WHITE
+        // );
 
         draw_height_field(
+            &active_camera,
             &height_field,
             rasterized_tile_atlas.unwrap().texture,
             render_debug_text

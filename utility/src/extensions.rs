@@ -19,6 +19,31 @@ impl WithAlpha for Color {
     }
 }
 
+pub trait AdjustHue {
+    fn darken(&self, v: f32) -> Self;
+    fn lighten(&self, v: f32) -> Self;
+}
+
+impl AdjustHue for Color {
+    fn darken(&self, v: f32) -> Self {
+        Color {
+            r: self.r - v,
+            g: self.g - v,
+            b: self.b - v,
+            a: self.a
+        }
+    }
+
+    fn lighten(&self, v: f32) -> Self {
+        Color {
+            r: self.r + v,
+            g: self.g + v,
+            b: self.b + v,
+            a: self.a
+        }
+    }
+}
+
 impl AsAngle for Vec2 {
     fn as_angle(&self) -> f32 {
         self.angle_between(vec2(0.0, -1.0))
