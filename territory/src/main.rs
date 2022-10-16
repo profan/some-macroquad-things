@@ -12,7 +12,7 @@ const REAL_TILE_SIZE: i32 = 32;
 const TILE_SIZE: i32 = 32 + TILE_PADDING / 2;
 
 /// Rasterizes a given tile for marching squares where i is in \[0, 16\], should be called with a render target active.
-fn rasterize_tile(offset: Vec2, i: i32, line_color: Color, fill_color: Color, line_thickness: f32, fill: bool) {
+fn rasterize_tile(offset: Vec2, i: i32, line_color: Color, fill_color: Color, line_thickness: f32, should_fill: bool) {
 
     let draw_line = |start_x: i32, start_y: i32, end_x: i32, end_y: i32| {
         draw_line(
@@ -26,6 +26,11 @@ fn rasterize_tile(offset: Vec2, i: i32, line_color: Color, fill_color: Color, li
     };
 
     let draw_triangles = |triangles: &[[IVec2; 3]]| {
+
+        if should_fill == false {
+            return;
+        }
+
         for &[a, b, c] in triangles {
             draw_triangle(
                 offset + a.as_vec2(),
@@ -34,6 +39,7 @@ fn rasterize_tile(offset: Vec2, i: i32, line_color: Color, fill_color: Color, li
                 fill_color
             );
         }
+
     };
 
     match i {
@@ -328,9 +334,9 @@ fn rasterize_tile_atlas(line_color: Color, fill_color: Color, line_thickness: f3
     clear_background(WHITE.with_alpha(0.0));
 
     for i in 0..16 {
-        let fill_tile = true;
+        let should_fill_tile = true;
         let current_offset = vec2(((TILE_PADDING + TILE_SIZE) * i) as f32, 0.0);
-        rasterize_tile(current_offset, i, line_color, fill_color, line_thickness, fill_tile);
+        rasterize_tile(current_offset, i, line_color, fill_color, line_thickness, should_fill_tile);
     }
 
     render_target
