@@ -469,7 +469,7 @@ fn apply_noise_to_height_field(map: &mut Heightmap, seed: u32) {
     let combined_noise = Add::new(perlin, noise);
 
     let noise_map = PlaneMapBuilder::<_, 2>::new(combined_noise)
-        .set_size(1024, 1024)
+        .set_size((map.width() * 8) as usize, (map.height() * 8) as usize)
         .set_x_bounds(0.0, map.width() as f64 / 2.0)
         .set_y_bounds(0.0, map.height() as f64 / 2.0)
         .build();
