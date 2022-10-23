@@ -93,24 +93,30 @@ fn calculate_current_camera_up_vector(camera: &Camera3D, planes: &[Plane], min_d
     // sort the planes by distance
     // planes.sort_by(|p1, p2| p1.position.distance(camera.position).total_cmp(&p2.position.distance(camera.position)));
 
-    for p in planes {
+    // for p in planes {
 
-        let distance_to_plane = camera.position.distance(p.position);
-        let contribution_factor = 1.0 - utility::normalize(distance_to_plane, 0.0, 1.0, min_distance);
+    //     let distance_to_plane = camera.position.distance(p.position);
+    //     let contribution_factor = 1.0 - utility::normalize(distance_to_plane, 0.0, 1.0, min_distance);
 
-        if distance_to_plane < min_distance {
-            total_sum += p.normal * contribution_factor;
-            total_planes += 1.0;
-        }
+    //     if distance_to_plane < min_distance {
+    //         total_sum += p.normal * contribution_factor;
+    //         total_planes += 1.0;
+    //     }
 
-    }
+    // }
 
-    if total_planes > 0.0 {
-        let average_normal = total_sum / total_planes;
-        average_normal
-    } else {
-        camera.up
-    }
+    // if total_planes > 0.0 {
+    //     let average_normal = total_sum / total_planes;
+    //     average_normal
+    // } else {
+    //     camera.up
+    // }
+
+    // find min plane
+    let min_plane = planes.into_iter().min_by(|p1, p2| p1.position.distance(camera.position).total_cmp(&p2.position.distance(camera.position)));
+
+    min_plane.up
+
 
 }
 
