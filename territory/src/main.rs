@@ -1,4 +1,4 @@
-use macroquad::prelude::{*, camera::mouse};
+use macroquad::{prelude::{*, camera::mouse}, rand::gen_range};
 
 use noise::{
     core::{perlin::{perlin_2d, perlin_3d, perlin_4d}, simplex::simplex_2d, worley::worley_2d},
@@ -459,11 +459,11 @@ fn create_height_field(w: u32, h: u32) -> Heightmap {
 
 }
 
-fn apply_noise_to_height_field(map: &mut Heightmap) {
+fn apply_noise_to_height_field(map: &mut Heightmap, seed: u32) {
 
-    let perlin = Perlin::new(64);
+    let perlin = Perlin::new(seed);
     let noise = ScaleBias::new(
-        Turbulence::<_, Perlin>::new(Perlin::new(256))
+        Turbulence::<_, Perlin>::new(Perlin::new(seed * 4))
     ).set_scale(0.125);
 
     let combined_noise = Add::new(perlin, noise);
@@ -721,8 +721,7 @@ fn modify_in_radius(map: &mut Heightmap, center_x: i32, center_y: i32, radius: i
 
 }
 
-/// Handles the game input, if any change happened, this returns true.
-fn handle_game_input(active: &mut GameCamera, map: &mut Heightmap, dt: f32) -> bool {
+fn handle_height_map_input(active: &mut GameCamera, map: &mut Heightmap, dt: f32) -> bool {
 
     let radius = 2;
     let modification = 4;
@@ -742,6 +741,22 @@ fn handle_game_input(active: &mut GameCamera, map: &mut Heightmap, dt: f32) -> b
     }
 
     is_mouse_left_down || is_mouse_right_down
+
+}
+
+/// Handles the game input, if any change happened, this returns true.
+fn handle_game_input(active: &mut GameCamera, map: &mut Heightmap, dt: f32) -> bool {
+
+    let was_reload_key_pressed = is_key_pressed(KeyCode::R);
+
+    if was_reload_key_pressed {
+        let new_random_seed = gen_range(0, u32::MAX / 4);
+        apply_noise_to_height_field(map, new_random_seed);
+    }
+
+    let height_map_changed = handle_height_map_input(active, map, dt);
+
+    height_map_changed
 
 }
 
@@ -766,13 +781,16 @@ async fn main() {
     // step 4. upload a texture with the map data.
     // step 5. ???
 
+    // highly scientific
+    let initial_seed = 64;
+
     let mut debug_text = DebugText::new();
 
     let mut should_rasterize_tile_atlas = true;
     let mut rasterized_tile_atlas: Option<RenderTarget> = None;
 
     let mut height_field = create_height_field(128, 128);
-    apply_noise_to_height_field(&mut height_field);
+    apply_noise_to_height_field(&mut height_field, initial_seed);
 
     let height_field_texture = create_height_field_buffer_texture(&height_field);
 
