@@ -628,10 +628,11 @@ impl GameCamera {
 
 }
 
-fn handle_camera_input(active: &mut GameCamera, dt: f32) -> bool {
+fn handle_camera_input(active: &mut GameCamera, last_mouse_position: Vec2, dt: f32) -> bool {
 
     handle_camera_movement(active, dt);
     let zoom_changed = handle_camera_zoom(active, dt);
+    handle_camera_panning(active, last_mouse_position, dt);
 
     zoom_changed
 
@@ -692,6 +693,18 @@ fn handle_camera_zoom(active: &mut GameCamera, dt: f32) -> bool {
 
     // so we can do things on change
     mouse_wheel_delta.1 != 0.0
+
+}
+
+fn handle_camera_panning(active: &mut GameCamera, last_mouse_position: Vec2, dt: f32) {
+
+    let is_middle_mouse_down = is_mouse_button_down(MouseButton::Middle);
+
+    if is_middle_mouse_down {
+        let mouse_position_v: Vec2 = mouse_position().into();
+        let mouse_position_delta: Vec2 = last_mouse_position - mouse_position_v;
+        active.camera.target += mouse_position_delta * active.camera_zoom;
+    }
 
 }
 
@@ -762,6 +775,8 @@ async fn main() {
     apply_noise_to_height_field(&mut height_field);
 
     let height_field_texture = create_height_field_buffer_texture(&height_field);
+
+    let mut last_mouse_position: Vec2 = mouse_position().into();
     let mut active_camera = GameCamera::new(screen_dimensions());
     let render_debug_text = false;
     
@@ -782,9 +797,12 @@ async fn main() {
 
         }
 
-        let camera_changed = handle_camera_input(&mut active_camera, dt);
+        let camera_changed = handle_camera_input(&mut active_camera, last_mouse_position, dt);
         let game_changed = handle_game_input(&mut active_camera, &mut height_field, dt);
         should_rasterize_tile_atlas = camera_changed || game_changed;
+
+        // update last mouse pos
+        last_mouse_position = mouse_position().into();
 
         // let pleasant_earthy_green = Color::from_rgba(104, 118, 53, 255);
         let murky_ocean_blue = Color::from_rgba(21, 119, 136, 255);
