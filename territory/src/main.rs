@@ -1,8 +1,7 @@
-use macroquad::{prelude::{*, camera::mouse}, rand::gen_range};
+use macroquad::{prelude::{*}, rand::gen_range};
 
 use noise::{
-    core::{perlin::{perlin_2d, perlin_3d, perlin_4d}, simplex::simplex_2d, worley::worley_2d},
-    permutationtable::{PermutationTable, NoiseHasher}, utils::{PlaneMapBuilder, NoiseMapBuilder}, Add, Perlin, Worley, Fbm, Multiply, ScaleBias, Turbulence
+    utils::{PlaneMapBuilder, NoiseMapBuilder}, Add, Perlin, ScaleBias, Turbulence
 };
 
 use utility::{WithAlpha, screen_dimensions, AdjustHue, DebugText, TextPosition};
