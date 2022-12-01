@@ -24,7 +24,7 @@ impl Game {
             }
         );
         
-        let mut debug_text = DebugText::new();
+        let debug_text = DebugText::new();
 
         let world = World::new();
 
@@ -162,8 +162,7 @@ fn draw_entities(game: &Game) {
 
         let distance_to_mouse_in_world = e.position.distance(world_mouse_pos);
 
-        if distance_to_mouse_in_world < mouse_push_threshold
-        {
+        if distance_to_mouse_in_world < mouse_push_threshold {
             let arrow_thickness = 2.0;
             let arrow_head_thickness = 2.0;
             let arrow_head_alpha = (mouse_push_threshold - distance_to_mouse_in_world) / mouse_push_threshold;
