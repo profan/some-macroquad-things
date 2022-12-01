@@ -1,7 +1,8 @@
-use std::vec;
+use std::{vec, collections::HashMap};
 
 use macroquad::{prelude::{*, camera::mouse}, rand::gen_range};
 use utility::{DebugText, draw_arrow, WithAlpha};
+use petgraph::graph::{NodeIndex, UnGraph};
 
 const PHYSICS_TIMESTEP: f32 = 1.0 / 60.0;
 
@@ -50,7 +51,8 @@ impl Game {
 }
 
 struct World {
-    entities: Vec<Entity>,
+    current_entity_idx: i32,
+    entities: HashMap<i32, Entity>,
     timestep: f32,
     damping: f32,
 }
@@ -59,14 +61,28 @@ impl World {
 
     pub fn new() -> World {
         World {
-            entities: Vec::new(),
+            current_entity_idx: 0,
+            entities: HashMap::new(),
             timestep: PHYSICS_TIMESTEP,
             damping: 0.985,
         }
     }
 
+    pub fn clear(&mut self) {
+        self.entities.clear()
+    }
+
     pub fn add_entity(&mut self, entity: Entity) {
-        self.entities.push(entity);
+        self.entities.insert(self.current_entity_idx, entity);
+        self.current_entity_idx += 1;;
+    }
+
+    pub fn get_entity_mut(&mut self, idx: i32) -> &mut Entity {
+        self.entities.get_mut(&idx).unwrap()
+    }
+
+    pub fn get_entity(&self, idx: i32) -> &Entity {
+        self.entities.get(&idx).unwrap()
     }
 
 }
@@ -111,7 +127,7 @@ fn push_entities_near_mouse(game: &mut Game) {
     let mouse_force_threshold = 32.0;
     let mouse_world_position = game.mouse_world_position();
 
-    for e in &mut game.world.entities {
+    for (_idx, e) in &mut game.world.entities {
 
         let vector_to_mouse = e.position - mouse_world_position;
         let clamped_vector_to_mouse = vector_to_mouse.clamp_length_max(mouse_force_threshold);
@@ -126,7 +142,7 @@ fn push_entities_near_mouse(game: &mut Game) {
 
 fn step_physics(world: &mut World) {
 
-    for e in &mut world.entities {
+    for (_idx, e) in &mut world.entities {
         e.position += e.velocity * world.timestep;
         e.velocity *= world.damping;
     }
@@ -142,7 +158,7 @@ fn draw_entities(game: &Game) {
 
     let world_mouse_pos = game.mouse_world_position();
 
-    for e in &game.world.entities {
+    for (idx, e) in &game.world.entities {
 
         let distance_to_mouse_in_world = e.position.distance(world_mouse_pos);
 
