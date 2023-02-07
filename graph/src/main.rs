@@ -1,4 +1,4 @@
-use std::{vec, collections::HashMap};
+use std::{vec, collections::HashMap, array};
 
 use macroquad::{prelude::{*, camera::mouse}, rand::gen_range};
 use utility::{DebugText, draw_arrow, WithAlpha, TextPosition};
@@ -182,6 +182,11 @@ fn connect_some_entities(world: &World, world_graph: &mut UnGraph::<i32, Spring>
 
             world_graph.add_edge((entity_id as u32).into(), (next_entity_id as u32).into(), create_default_spring());
 
+        } else {
+
+            // TODO: maybe connect the last ndoe to the beginning to form a loop instead of a line? nah for now
+            // world_graph.add_edge((entity_id as u32).into(), (next_entity_id as u32).into(), create_default_spring());
+
         }
 
     }
@@ -342,13 +347,16 @@ fn step_physics_for_entities(world: &mut World, spring_forces: &Vec<(i32, i32, V
 
         }
 
-        e.position = e.position.clamp(vec2(0.0, 0.0), vec2(w, h));
+        let clamp_offset = 4.0;
+        e.position = e.position.clamp(vec2(clamp_offset, clamp_offset), vec2(w - clamp_offset, h - clamp_offset));
 
     }
 
 }
 
 fn draw_entities(game: &Game) {
+
+    let is_shift_down = is_key_down(KeyCode::LeftShift);
 
     let mouse_push_threshold = 64.0;
 
@@ -363,10 +371,16 @@ fn draw_entities(game: &Game) {
 
         let distance_to_mouse_in_world = e.position.distance(world_mouse_pos);
 
+        let arrow_thickness = 2.0;
+        let arrow_head_thickness = 2.0;
+
         if distance_to_mouse_in_world < mouse_push_threshold {
-            let arrow_thickness = 2.0;
-            let arrow_head_thickness = 2.0;
             let arrow_head_alpha = (mouse_push_threshold - distance_to_mouse_in_world) / mouse_push_threshold;
+            draw_arrow(e.position.x, e.position.y, world_mouse_pos.x, world_mouse_pos.y, arrow_thickness, arrow_head_thickness, DARKGRAY.with_alpha(arrow_head_alpha));
+        }
+
+        if is_shift_down {
+            let arrow_head_alpha = 0.5;
             draw_arrow(e.position.x, e.position.y, world_mouse_pos.x, world_mouse_pos.y, arrow_thickness, arrow_head_thickness, DARKGRAY.with_alpha(arrow_head_alpha));
         }
 
@@ -399,7 +413,7 @@ fn draw_entities(game: &Game) {
 async fn main() {
 
     let mut game = Game::new();
-    let number_of_entities = 16;
+    let number_of_entities = 32;
 
     spawn_some_entities(&mut game.world, number_of_entities);
     connect_some_entities(&game.world, &mut game.world_graph);
