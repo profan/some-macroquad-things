@@ -147,10 +147,10 @@ fn spawn_some_entities(world: &mut World, number_of_entities: i32) {
 
     let buffer = 100.0;
 
-    let start_x = 100.0;
+    let start_x = buffer;
     let end_x = screen_width() - buffer;
 
-    let start_y = 100.0;
+    let start_y = buffer;
     let end_y = screen_height() - buffer;
 
     for _i in 0..number_of_entities {
