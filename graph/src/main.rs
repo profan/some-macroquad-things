@@ -1,14 +1,44 @@
 use std::{vec, collections::HashMap};
 
 use macroquad::{prelude::{*, camera::mouse}, rand::gen_range};
-use utility::{DebugText, draw_arrow, WithAlpha};
-use petgraph::graph::{NodeIndex, UnGraph};
+use utility::{DebugText, draw_arrow, WithAlpha, TextPosition};
+use petgraph::{graph::{NodeIndex, UnGraph}, visit::EdgeRef};
 
 const PHYSICS_TIMESTEP: f32 = 1.0 / 60.0;
+
+/// Spring-Damper system per Hooke's Law, F = -kx - bv
+/// where:
+/// x = vector displacement of the end of the spring from it’s equilibrium position
+/// k = tightness of the spring
+/// b = coefficient of damping
+/// v = relative velocity between the two points connected by the spring
+struct Spring {
+    damping: f32,
+    tightness: f32,
+    rest_length: f32
+}
+
+impl Spring {
+
+    pub fn evaluate_spring_force(&self, entity_a: &Entity, entity_b: &Entity) -> Vec2 {
+
+        let clamped_vector_displacement = (entity_b.position - entity_a.position).clamp_length(0.0, self.rest_length);
+        let x = (entity_b.position - entity_a.position) - clamped_vector_displacement;
+        let k = self.tightness;
+        let b = self.damping;
+        let v = entity_b.velocity - entity_a.velocity;
+        let f = -k*x - b*v;
+
+        -f
+
+    }
+
+}
 
 struct Game {
     camera: Camera2D,
     debug_text: DebugText,
+    world_graph: UnGraph::<i32, Spring>,
     world: World
 }
 
@@ -23,14 +53,15 @@ impl Game {
                 h: screen_height()
             }
         );
-        
-        let debug_text = DebugText::new();
 
+        let debug_text = DebugText::new();
+        let world_graph = UnGraph::new_undirected();
         let world = World::new();
 
         Game {
             camera,
             debug_text,
+            world_graph,
             world
         }
 
@@ -85,12 +116,24 @@ impl World {
         self.entities.get(&idx).unwrap()
     }
 
+    pub fn get_entity_maybe(&self, idx: i32) -> Option<&Entity> {
+        self.entities.get(&idx)
+    }
+
 }
 
 #[derive(PartialEq)]
 struct Entity {
     position: Vec2,
     velocity: Vec2
+}
+
+fn create_default_spring() -> Spring {
+    Spring {
+        damping: 0.25,
+        tightness: 1.25,
+        rest_length: 128.0
+    }
 }
 
 fn spawn_some_entities(world: &mut World, number_of_entities: i32) {
@@ -107,7 +150,7 @@ fn spawn_some_entities(world: &mut World, number_of_entities: i32) {
 
         let rand_x = gen_range(start_x, end_x);
         let rand_y = gen_range(start_y, end_y);
-        
+ 
         let rand_vx = gen_range(-32.0, 32.0);
         let rand_vy = gen_range(-32.0, 32.0);
 
@@ -120,31 +163,187 @@ fn spawn_some_entities(world: &mut World, number_of_entities: i32) {
 
 }
 
-fn push_entities_near_mouse(game: &mut Game) {
+/// for each entity in the world, connect it to the next entity, forming a long chain!
+fn connect_some_entities(world: &World, world_graph: &mut UnGraph::<i32, Spring>) {
 
-    let mouse_push_threshold = 64.0;
+    // add all the nodes to the graph first
 
-    let mouse_force_threshold = 32.0;
-    let mouse_world_position = game.mouse_world_position();
+    for (&entity_id, _entity) in &world.entities {
+        world_graph.add_node(entity_id);
+    }
 
-    for (_idx, e) in &mut game.world.entities {
+    // then connect things
 
-        let vector_to_mouse = e.position - mouse_world_position;
-        let clamped_vector_to_mouse = vector_to_mouse.clamp_length_max(mouse_force_threshold);
+    for (&entity_id, _entity) in &world.entities {
 
-        if e.position.distance(mouse_world_position) < mouse_push_threshold {
-            e.velocity += (clamped_vector_to_mouse.normalize() * mouse_force_threshold) - clamped_vector_to_mouse;
+        let next_entity_id = entity_id + 1;
+
+        if let Some(_next_entity) = world.get_entity_maybe(next_entity_id) {
+
+            world_graph.add_edge((entity_id as u32).into(), (next_entity_id as u32).into(), create_default_spring());
+
         }
 
     }
 
 }
 
-fn step_physics(world: &mut World) {
+fn push_entities_near_mouse(game: &mut Game) {
 
-    for (_idx, e) in &mut world.entities {
+    let is_left_mouse_down = is_mouse_button_down(MouseButton::Left);
+    let is_right_mouse_down = is_mouse_button_down(MouseButton::Right);
+    let is_shift_down = is_key_down(KeyCode::LeftShift);
+
+    let mouse_push_threshold = 64.0;
+
+    let mouse_force_threshold = 32.0;
+    let mouse_world_position = game.mouse_world_position();
+
+    for (_entity_id, e) in &mut game.world.entities {
+
+        let vector_to_mouse = e.position - mouse_world_position;
+        let clamped_vector_to_mouse = vector_to_mouse.clamp_length_max(mouse_force_threshold);
+
+        if e.position.distance(mouse_world_position) < mouse_push_threshold || is_shift_down {
+
+            let force_vector = if is_shift_down == false {
+                (clamped_vector_to_mouse.normalize() * mouse_force_threshold) - clamped_vector_to_mouse
+            } else {
+                (clamped_vector_to_mouse.normalize() * mouse_force_threshold)
+            };
+
+            // when right mouse is down, push
+            if is_right_mouse_down {
+                e.velocity += force_vector;
+            }
+
+            // when left mouse is down, pull
+            if is_left_mouse_down {
+                e.velocity -= force_vector;
+            }
+
+        }
+
+    }
+
+}
+
+fn push_entities_near_eachother(game: &mut Game) {
+
+    let entity_push_threshold = 64.0;
+    let entity_push_force = 32.0;
+
+    let mut forces_to_apply = Vec::new();
+
+    for (entity_id, entity) in &game.world.entities {
+        for (other_entity_id, other_entity) in &game.world.entities {
+
+            if entity_id == other_entity_id { continue }
+
+            if entity.position.distance(other_entity.position) < entity_push_threshold {
+                let force_vector = (other_entity.position - entity.position).normalize() * entity_push_force;
+                forces_to_apply.push((*entity_id, *other_entity_id, force_vector));
+            }
+
+        }
+    }
+
+    for (source_entity_id, target_entity_id, force_vector) in &forces_to_apply {
+
+        let source_entity = game.world.get_entity_mut(*source_entity_id);
+        source_entity.velocity += -(*force_vector / 2.0);
+
+        let target_entity = game.world.get_entity_mut(*target_entity_id);
+        target_entity.velocity += *force_vector / 2.0;
+        
+    }
+
+}
+
+fn step_physics(world: &mut World, world_graph: &UnGraph::<i32, Spring>) {
+
+    let w = screen_width();
+    let h = screen_height();
+
+    let spring_forces = calculate_physics_for_springs(world, world_graph);
+    step_physics_for_entities(world, &spring_forces, w, h);
+
+}
+
+fn calculate_physics_for_springs(world: &mut World, world_graph: &UnGraph::<i32, Spring>) -> Vec<(i32, i32, Vec2)> {
+
+    let mut accumulated_forces = Vec::new();
+
+    for node_idx in world_graph.node_indices() {
+
+        let current_entity_id = *world_graph.node_weight(node_idx).unwrap();
+
+        for edge in world_graph.edges(node_idx) {
+
+            let source_entity_id = *world_graph.node_weight(edge.source()).unwrap();
+            let target_entity_id = *world_graph.node_weight(edge.target()).unwrap();
+            let data = edge.weight();
+
+            // only evaluate springs using the source to avoid evaluating spring forces twice
+            if current_entity_id == source_entity_id {
+                let source_entity = world.get_entity(source_entity_id);
+                let target_entity = world.get_entity(target_entity_id);
+                let v = data.evaluate_spring_force(source_entity, target_entity);
+                accumulated_forces.push((source_entity_id, target_entity_id, v));
+            }
+
+        }
+    }
+
+    accumulated_forces
+    
+}
+
+fn step_physics_for_entities(world: &mut World, spring_forces: &Vec<(i32, i32, Vec2)>, w: f32, h: f32) {
+
+    for (entity_id, e) in &mut world.entities {
+
+        // main physics integration step
+
         e.position += e.velocity * world.timestep;
         e.velocity *= world.damping;
+
+        // apply spring forces, if any for this entity
+
+        if let Some((src_id, target_id, v)) = spring_forces.into_iter().find(|(src_id, target_id, _v)| src_id == entity_id || target_id == entity_id) {
+
+            // force and counter-force
+
+            if src_id == entity_id {
+                e.velocity += *v / 2.0;
+            }
+
+            if target_id == entity_id {
+                e.velocity += -(*v / 2.0);
+            }
+
+        }
+
+        // keep our little objects inside the box
+
+        if e.position.x < 0.0 || e.position.x > w {
+
+            if (e.velocity.x < 0.0 && e.position.x < 0.0) || (e.velocity.x > 0.0 && e.position.x > w) {
+                e.velocity.x *= -1.0;
+            }
+
+        }
+
+        if e.position.y < 0.0 || e.position.y > h {
+
+            if (e.velocity.y < 0.0 && e.position.y < 0.0) || (e.velocity.y > 0.0 && e.position.y > h) {
+                e.velocity.y *= -1.0;
+            }
+
+        }
+
+        e.position = e.position.clamp(vec2(0.0, 0.0), vec2(w, h));
+
     }
 
 }
@@ -158,7 +357,9 @@ fn draw_entities(game: &Game) {
 
     let world_mouse_pos = game.mouse_world_position();
 
-    for (idx, e) in &game.world.entities {
+    // draw all the entities
+
+    for (_entity_id, e) in &game.world.entities {
 
         let distance_to_mouse_in_world = e.position.distance(world_mouse_pos);
 
@@ -173,15 +374,36 @@ fn draw_entities(game: &Game) {
 
     }
 
+    // draw all the entities each entity is connected to
+
+    for node_idx in game.world_graph.node_indices() {
+
+        for edge in game.world_graph.edges(node_idx) {
+
+            let source_entity_id = *game.world_graph.node_weight(edge.source()).unwrap();
+            let target_entity_id = *game.world_graph.node_weight(edge.target()).unwrap();
+
+            let source_entity = game.world.get_entity(source_entity_id);
+            let target_entity = game.world.get_entity(target_entity_id);
+
+            draw_line(source_entity.position.x, source_entity.position.y, target_entity.position.x, target_entity.position.y, entity_thickness, DARKGRAY);
+
+        }
+
+    }
+    
+
 }
 
 #[macroquad::main("graph")]
 async fn main() {
 
     let mut game = Game::new();
-    let number_of_entities = 100;
+    let number_of_entities = 16;
 
     spawn_some_entities(&mut game.world, number_of_entities);
+    connect_some_entities(&game.world, &mut game.world_graph);
+
     let mut current_physics_time = 0.0;
 
     loop {
@@ -191,13 +413,16 @@ async fn main() {
 
         clear_background(WHITE);
 
+        game.debug_text.draw_text("left mouse to pull objects towards the mouse", TextPosition::TopLeft, BLACK);
+        game.debug_text.draw_text(".. or right mouse to push them away", TextPosition::TopLeft, BLACK);
+        game.debug_text.draw_text("(+ shift to do it for everything)", TextPosition::TopLeft, BLACK);
+
         if current_physics_time > game.world.timestep {
             current_physics_time = 0.0;
             push_entities_near_mouse(&mut game);
-            step_physics(&mut game.world);
-        }
-        else
-        {
+            push_entities_near_eachother(&mut game);
+            step_physics(&mut game.world, &mut game.world_graph);
+        } else {
             current_physics_time += dt;
         }
 
