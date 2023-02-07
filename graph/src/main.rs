@@ -1,8 +1,8 @@
-use std::{vec, collections::HashMap, array};
+use std::{collections::HashMap};
 
-use macroquad::{prelude::{*, camera::mouse}, rand::gen_range};
+use macroquad::{prelude::{*}, rand::gen_range};
 use utility::{DebugText, draw_arrow, WithAlpha, TextPosition};
-use petgraph::{graph::{NodeIndex, UnGraph}, visit::EdgeRef};
+use petgraph::{graph::{UnGraph}, visit::EdgeRef};
 
 const PHYSICS_TIMESTEP: f32 = 1.0 / 60.0;
 
@@ -29,7 +29,7 @@ impl Spring {
         let v = entity_b.velocity - entity_a.velocity;
         let f = -k*x - b*v;
 
-        -f
+        f
 
     }
 
@@ -131,8 +131,15 @@ struct Entity {
 fn create_default_spring() -> Spring {
     Spring {
         damping: 0.25,
-        tightness: 1.25,
-        rest_length: 128.0
+        tightness: 2.25,
+        rest_length: 64.0
+    }
+}
+
+fn create_default_spring_with_length(rest_length: f32) -> Spring {
+    return Spring {
+        rest_length: rest_length,
+        ..create_default_spring()
     }
 }
 
@@ -163,8 +170,8 @@ fn spawn_some_entities(world: &mut World, number_of_entities: i32) {
 
 }
 
-/// for each entity in the world, connect it to the next entity, forming a long chain!
-fn connect_some_entities(world: &World, world_graph: &mut UnGraph::<i32, Spring>) {
+/// for each entity in the world, connect it to the next entity (unless it is the last entity), forming a long chain!
+fn connect_some_entities_in_a_chain(world: &World, world_graph: &mut UnGraph::<i32, Spring>) {
 
     // add all the nodes to the graph first
 
@@ -188,6 +195,43 @@ fn connect_some_entities(world: &World, world_graph: &mut UnGraph::<i32, Spring>
             // world_graph.add_edge((entity_id as u32).into(), (next_entity_id as u32).into(), create_default_spring());
 
         }
+
+    }
+
+}
+
+/// for every entity, connect the next three entities to this first entity, then continue and connect the next entity to the first entity and repeat.
+fn connect_some_entities_to_hubs(world: &World, world_graph: &mut UnGraph::<i32, Spring>) {
+
+    // add all the nodes to the graph first
+
+    for (&entity_id, _entity) in &world.entities {
+        world_graph.add_node(entity_id);
+    }
+
+    // then connect things
+
+    let mut current_entity_idx = 0;
+    let mut last_hub_entity_idx = 0;
+
+    while current_entity_idx < world.current_entity_idx {
+        
+        let hub_entity_idx = current_entity_idx;
+
+        // connect the spokes
+        for spoke_entity_idx in (current_entity_idx + 1)..(current_entity_idx + 4) {
+            world_graph.add_edge((hub_entity_idx as u32).into(), (spoke_entity_idx as u32).into(), create_default_spring());
+            current_entity_idx += 1;
+        }
+
+        // connect to our last hub
+        if hub_entity_idx != last_hub_entity_idx
+        {
+            world_graph.add_edge((hub_entity_idx as u32).into(), (last_hub_entity_idx as u32).into(), create_default_spring_with_length(256.0));
+        }
+
+        last_hub_entity_idx = hub_entity_idx;
+        current_entity_idx += 1;
 
     }
 
@@ -236,7 +280,7 @@ fn push_entities_near_mouse(game: &mut Game) {
 fn push_entities_near_eachother(game: &mut Game) {
 
     let entity_push_threshold = 64.0;
-    let entity_push_force = 32.0;
+    let entity_push_force = 8.0;
 
     let mut forces_to_apply = Vec::new();
 
@@ -320,11 +364,11 @@ fn step_physics_for_entities(world: &mut World, spring_forces: &Vec<(i32, i32, V
             // force and counter-force
 
             if src_id == entity_id {
-                e.velocity += *v / 2.0;
+                e.velocity += -(*v / 2.0);
             }
 
             if target_id == entity_id {
-                e.velocity += -(*v / 2.0);
+                e.velocity += *v / 2.0;
             }
 
         }
@@ -413,10 +457,11 @@ fn draw_entities(game: &Game) {
 async fn main() {
 
     let mut game = Game::new();
-    let number_of_entities = 32;
+    let number_of_entities = 24;
 
     spawn_some_entities(&mut game.world, number_of_entities);
-    connect_some_entities(&game.world, &mut game.world_graph);
+    // connect_some_entities(&game.world, &mut game.world_graph);
+    connect_some_entities_to_hubs(&game.world, &mut game.world_graph);
 
     let mut current_physics_time = 0.0;
 
