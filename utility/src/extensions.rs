@@ -105,12 +105,15 @@ pub trait RotatedBy {
 }
 
 impl RotatedBy for Vec2 {
+
+    /// Returns the vector rotated by the specified angle in radians.
     fn rotated_by(&self, angle: f32) -> Vec2 {
         vec2(
             self.x * angle.cos() - self.y * angle.sin(),
             self.x * angle.sin() + self.y * angle.cos()
         )
     }
+
 }
 
 pub trait Step {

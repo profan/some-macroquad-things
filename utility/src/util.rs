@@ -113,3 +113,28 @@ pub fn most_aligned(v: Vec2, mut vectors: impl Iterator::<Item=Vec2>) -> Option<
 pub fn screen_dimensions() -> Vec2 {
     return vec2(screen_width(), screen_height())
 }
+
+/// Returns the intersection point of the ray defined by origin and direction and the line which is defined as passing through p1 and p2.
+fn ray_line_intersection(origin: Vec2, direction: Vec2, p1: Vec2, p2: Vec2) -> Option<Vec2> {
+
+    let dp = direction.dot((p2 - p1).normalize());
+    if dp < 0.0 {
+        return None;
+    }
+
+    let (x1, y1) = origin.into();
+    let (x2, y2) = (origin + direction).into();
+    let (x3, y3) = p1.into();
+    let (x4, y4) = p2.into();
+
+    let d = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+
+    if d != 0.0 {
+        let p_x = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / d;
+        let p_y = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / d;
+        return Some(vec2(p_x, p_y));
+    }
+
+    return None;
+
+}
