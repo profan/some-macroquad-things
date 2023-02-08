@@ -136,7 +136,7 @@ struct Entity {
 
 fn create_default_spring() -> Spring {
     Spring {
-        damping: 0.25,
+        damping: 0.35,
         tightness: 2.25,
         rest_length: 64.0
     }
@@ -311,6 +311,45 @@ fn push_entities_near_eachother(game: &mut Game) {
         let target_entity = game.world.get_entity_mut(*target_entity_id);
         target_entity.velocity += *force_vector / 2.0;
         
+    }
+
+}
+
+fn push_entities_away_from_sides(game: &mut Game) {
+
+    let w = screen_width();
+    let h = screen_height();
+
+    let entity_push_threshold = 32.0;
+    let entity_push_force = 8.0;
+
+    for (_entity_id, entity) in &mut game.world.entities {
+
+        let distance_to_left = entity.position.x;
+        let distance_to_right = w - entity.position.x;
+        let distance_to_top = entity.position.y;
+        let distance_to_bottom = h - entity.position.y;
+
+        let mut entity_force_vector = vec2(0.0, 0.0);
+
+        if distance_to_left < entity_push_threshold {
+            entity_force_vector.x += entity_push_force;
+        }
+
+        if distance_to_right < entity_push_threshold {
+            entity_force_vector.x -= entity_push_force;
+        }
+
+        if distance_to_top < entity_push_threshold {
+            entity_force_vector.y += entity_push_force;
+        }
+
+        if distance_to_bottom < entity_push_threshold {
+            entity_force_vector.y -= entity_push_force;
+        }
+
+        entity.velocity += entity_force_vector;
+
     }
 
 }
@@ -520,6 +559,7 @@ async fn main() {
             game.current_physics_time = 0.0;
             push_entities_near_mouse(&mut game);
             push_entities_near_eachother(&mut game);
+            push_entities_away_from_sides(&mut game);
             step_physics(&mut game.world, &mut game.world_graph);
         } else {
             game.current_physics_time += dt;
