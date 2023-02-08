@@ -36,10 +36,14 @@ impl Spring {
 }
 
 struct Game {
+
+    current_physics_time: f32,
+
     camera: Camera2D,
     debug_text: DebugText,
     world_graph: UnGraph::<i32, Spring>,
     world: World
+
 }
 
 impl Game {
@@ -54,11 +58,13 @@ impl Game {
             }
         );
 
+        let current_physics_time = 0.0;
         let debug_text = DebugText::new();
         let world_graph = UnGraph::new_undirected();
         let world = World::new();
 
         Game {
+            current_physics_time,
             camera,
             debug_text,
             world_graph,
@@ -456,16 +462,28 @@ fn draw_entities(game: &Game) {
 #[macroquad::main("graph")]
 async fn main() {
 
+    let number_of_entities = 32;
+    let mut has_game_state_been_created = false;
     let mut game = Game::new();
-    let number_of_entities = 24;
-
-    spawn_some_entities(&mut game.world, number_of_entities);
-    // connect_some_entities(&game.world, &mut game.world_graph);
-    connect_some_entities_to_hubs(&game.world, &mut game.world_graph);
-
-    let mut current_physics_time = 0.0;
 
     loop {
+
+        let was_reset_pressed = is_key_pressed(KeyCode::R);
+        if was_reset_pressed {
+            has_game_state_been_created = false;
+        }
+
+        if has_game_state_been_created == false {
+
+            game = Game::new();
+
+            spawn_some_entities(&mut game.world, number_of_entities);
+            // connect_some_entities(&game.world, &mut game.world_graph);
+            connect_some_entities_to_hubs(&game.world, &mut game.world_graph);
+
+            has_game_state_been_created = true;
+
+        }
 
         let dt = get_frame_time();
         game.debug_text.new_frame();
@@ -475,14 +493,15 @@ async fn main() {
         game.debug_text.draw_text("left mouse to pull objects towards the mouse", TextPosition::TopLeft, BLACK);
         game.debug_text.draw_text(".. or right mouse to push them away", TextPosition::TopLeft, BLACK);
         game.debug_text.draw_text("(+ shift to do it for everything)", TextPosition::TopLeft, BLACK);
+        game.debug_text.draw_text("press r to reset the game state", TextPosition::TopLeft, BLACK);
 
-        if current_physics_time > game.world.timestep {
-            current_physics_time = 0.0;
+        if game.current_physics_time > game.world.timestep {
+            game.current_physics_time = 0.0;
             push_entities_near_mouse(&mut game);
             push_entities_near_eachother(&mut game);
             step_physics(&mut game.world, &mut game.world_graph);
         } else {
-            current_physics_time += dt;
+            game.current_physics_time += dt;
         }
 
         draw_entities(&game);
