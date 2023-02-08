@@ -356,12 +356,18 @@ fn calculate_physics_for_springs(world: &mut World, world_graph: &UnGraph::<i32,
 
 fn step_physics_for_entities(world: &mut World, spring_forces: &Vec<(i32, i32, Vec2)>, w: f32, h: f32) {
 
+    let with_gravity = false;
+
     for (entity_id, e) in &mut world.entities {
 
         // main physics integration step
 
         e.position += e.velocity * world.timestep;
         e.velocity *= world.damping;
+
+        if with_gravity {
+            e.velocity += vec2(0.0, 9.82);
+        }
 
         // apply spring forces, if any for this entity
 
@@ -381,10 +387,20 @@ fn step_physics_for_entities(world: &mut World, spring_forces: &Vec<(i32, i32, V
 
         // keep our little objects inside the box
 
+        let clamp_offset = 0.5;
+
         if e.position.x < 0.0 || e.position.x > w {
 
             if (e.velocity.x < 0.0 && e.position.x < 0.0) || (e.velocity.x > 0.0 && e.position.x > w) {
                 e.velocity.x *= -1.0;
+            }
+
+            if e.position.x < 0.0 {
+                e.position.x = clamp_offset;
+            }
+
+            if e.position.x > h {
+                e.position.x = w - clamp_offset;
             }
 
         }
@@ -395,10 +411,15 @@ fn step_physics_for_entities(world: &mut World, spring_forces: &Vec<(i32, i32, V
                 e.velocity.y *= -1.0;
             }
 
-        }
+            if e.position.y < 0.0 {
+                e.position.y = clamp_offset;
+            }
 
-        let clamp_offset = 4.0;
-        e.position = e.position.clamp(vec2(clamp_offset, clamp_offset), vec2(w - clamp_offset, h - clamp_offset));
+            if e.position.y > h {
+                e.position.y = h - clamp_offset;
+            }
+
+        }
 
     }
 
