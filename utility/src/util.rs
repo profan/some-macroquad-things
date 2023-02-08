@@ -64,6 +64,10 @@ pub fn normalize(v: f32, min: f32, max: f32, value_max: f32) -> f32 {
     (min + v) / (value_max / (max - min))
 }
 
+pub fn lerp(a: f32, b: f32, v: f32) -> f32 {
+    a * (1.0 - v) + b * v
+}
+
 pub fn draw_rectangle_lines_centered(x: f32, y: f32, w: f32, h: f32, thickness: f32, color: Color) {
     draw_rectangle_lines(x - w/2.0, y - h/2.0, w, h, thickness, color);
 }

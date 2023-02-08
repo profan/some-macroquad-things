@@ -1,6 +1,8 @@
 use macroquad::prelude::*;
 use std::f32::consts::*;
 
+use crate::lerp;
+
 pub trait AsAngle {
     fn as_angle(&self) -> f32;
 }
@@ -40,6 +42,21 @@ impl AdjustHue for Color {
             g: self.g + v,
             b: self.b + v,
             a: self.a
+        }
+    }
+}
+
+pub trait LerpColor {
+    fn lerp(&self, other: &Self, v: f32) -> Self;
+}
+
+impl LerpColor for Color {
+    fn lerp(&self, other: &Color, v: f32) -> Color {
+        Color {
+            r: lerp(self.r, other.r, v),
+            g: lerp(self.g, other.g, v),
+            b: lerp(self.b, other.b, v),
+            a: lerp(self.a, other.a, v)
         }
     }
 }
