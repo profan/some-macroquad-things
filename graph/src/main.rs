@@ -220,12 +220,15 @@ fn connect_some_entities_to_hubs(world: &World, world_graph: &mut UnGraph::<i32,
     let mut current_entity_idx = 0;
     let mut last_hub_entity_idx = 0;
 
+    // define cluster size
+    let cluster_size = 3;
+
     while current_entity_idx < world.current_entity_idx {
         
         let hub_entity_idx = current_entity_idx;
 
         // connect the spokes
-        for spoke_entity_idx in (current_entity_idx + 1)..(current_entity_idx + 4) {
+        for spoke_entity_idx in (current_entity_idx + 1)..(current_entity_idx + (cluster_size + 1)) {
             world_graph.add_edge((hub_entity_idx as u32).into(), (spoke_entity_idx as u32).into(), create_default_spring());
             current_entity_idx += 1;
         }
