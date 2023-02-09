@@ -139,7 +139,7 @@ fn ray_line_intersection(origin: Vec2, direction: Vec2, p1: Vec2, p2: Vec2) -> O
 
 }
 
-// Returns true if the point c is on the line segment between a and b.
+// Returns true if the point c is on the line segment between a and b (through abuse of the triangle inequality).
 fn is_between(a: Vec2, b: Vec2, c: Vec2) -> bool {
     a.distance(c) + c.distance(b) == a.distance(b)
 }
