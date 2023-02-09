@@ -4,6 +4,7 @@ use macroquad::{prelude::{*}, rand::gen_range};
 use utility::{DebugText, draw_arrow, WithAlpha, TextPosition};
 use petgraph::{graph::{UnGraph}, visit::EdgeRef};
 
+const PHYSICS_STEPS_PER_TIMESTEP: i32 = 4;
 const PHYSICS_TIMESTEP: f32 = 1.0 / 60.0;
 
 /// Spring-Damper system per Hooke's Law, F = -kx - bv
@@ -37,8 +38,6 @@ impl Spring {
 
 struct Game {
 
-    current_physics_time: f32,
-
     camera: Camera2D,
     debug_text: DebugText,
     world_graph: UnGraph::<i32, Spring>,
@@ -64,7 +63,6 @@ impl Game {
         let world = World::new();
 
         Game {
-            current_physics_time,
             camera,
             debug_text,
             world_graph,
@@ -89,6 +87,7 @@ impl Game {
 
 struct World {
     current_entity_idx: i32,
+    current_physics_time: f32,
     entities: HashMap<i32, Entity>,
     timestep: f32,
     damping: f32,
@@ -99,6 +98,7 @@ impl World {
     pub fn new() -> World {
         World {
             current_entity_idx: 0,
+            current_physics_time: 0.0,
             entities: HashMap::new(),
             timestep: PHYSICS_TIMESTEP,
             damping: 0.985,
@@ -288,7 +288,7 @@ fn push_entities_near_mouse(game: &mut Game) {
 
 fn push_entities_near_eachother(game: &mut Game) {
 
-    let entity_push_threshold = 64.0;
+    let entity_push_threshold = 63.0;
     let entity_push_force = 8.0;
 
     let mut forces_to_apply = Vec::new();
@@ -541,8 +541,8 @@ async fn main() {
             game = Game::new();
 
             spawn_some_entities(&mut game.world, number_of_entities);
-            // connect_some_entities(&game.world, &mut game.world_graph);
-            connect_some_entities_to_hubs(&game.world, &mut game.world_graph);
+            connect_some_entities_in_a_chain(&game.world, &mut game.world_graph);
+            // connect_some_entities_to_hubs(&game.world, &mut game.world_graph);
 
             has_game_state_been_created = true;
 
@@ -558,14 +558,16 @@ async fn main() {
         game.debug_text.draw_text("(+ shift to do it for everything)", TextPosition::TopLeft, BLACK);
         game.debug_text.draw_text("press r to reset the game state", TextPosition::TopLeft, BLACK);
 
-        if game.current_physics_time > game.world.timestep {
-            game.current_physics_time = 0.0;
-            push_entities_near_mouse(&mut game);
-            push_entities_near_eachother(&mut game);
-            push_entities_away_from_sides(&mut game);
-            step_physics(&mut game.world, &mut game.world_graph);
+        if game.world.current_physics_time > game.world.timestep {
+            for _i in 0..PHYSICS_STEPS_PER_TIMESTEP {
+                game.world.current_physics_time = 0.0;
+                push_entities_near_mouse(&mut game);
+                push_entities_near_eachother(&mut game);
+                push_entities_away_from_sides(&mut game);
+                step_physics(&mut game.world, &mut game.world_graph);
+            }
         } else {
-            game.current_physics_time += dt;
+            game.world.current_physics_time += dt;
         }
 
         draw_entities(&game);

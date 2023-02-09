@@ -114,7 +114,7 @@ pub fn screen_dimensions() -> Vec2 {
     return vec2(screen_width(), screen_height())
 }
 
-/// Returns the intersection point of the ray defined by origin and direction and the line which is defined as passing through p1 and p2.
+/// Returns the intersection point of the ray defined by origin and direction and the line which is defined as passing through p1 and p2, if any.
 fn ray_line_intersection(origin: Vec2, direction: Vec2, p1: Vec2, p2: Vec2) -> Option<Vec2> {
 
     let dp = direction.dot((p2 - p1).normalize());
@@ -136,5 +136,92 @@ fn ray_line_intersection(origin: Vec2, direction: Vec2, p1: Vec2, p2: Vec2) -> O
     }
 
     return None;
+
+}
+
+// Returns true if the point c is on the line segment between a and b.
+fn is_between(a: Vec2, b: Vec2, c: Vec2) -> bool {
+    a.distance(c) + c.distance(b) == a.distance(b)
+}
+
+/// Returns the intersection point of the ray defined by origin_a and direction_a and the ray defined by origin_b and direction_b, if any.
+fn ray_ray_intersection(origin_a: Vec2, direction_a: Vec2, origin_b: Vec2, direction_b: Vec2) -> Option<Vec2> {
+
+    if origin_a == origin_b
+    {
+        return Some(origin_a);
+    }
+
+    let d = origin_b - origin_a;
+    let determinant = direction_b.perp_dot(direction_a);
+    if determinant != 0.0 {
+        let u = (d.y * direction_b.x - d.x * direction_b.y) / determinant;
+        let v = (d.y * direction_a.x - d.x * direction_a.y) / determinant;
+        if u >= 0.0 && v >= 0.0 {
+            let result = origin_a + direction_a * u;
+            return Some(result);
+        }
+    }
+
+    return None;
+
+}
+
+
+#[cfg(test)]
+mod tests {
+
+    // Note this useful idiom: importing names from outer (for mod tests) scope.
+    use super::*;
+
+    #[test]
+    fn test_is_between_simple() {
+
+        let a = vec2(0.0, 0.0);
+        let b = vec2(1.0, 0.0);
+        let c = vec2(0.5, 0.0);
+        
+        assert!(is_between(a, b, c));
+
+    }
+
+    #[test]
+    fn test_is_between_simple_false() {
+
+        let a = vec2(0.0, 0.0);
+        let b = vec2(1.0, 0.0);
+        let c = vec2(-0.5, 0.0);
+        
+        assert!(is_between(a, b, c) == false);
+
+    }
+
+    #[test]
+    fn test_ray_ray_intersection_simple() {
+
+        let ray_origin_a = vec2(0.0, 0.0);
+        let ray_dir_a = vec2(1.0, 0.0);
+
+        let ray_origin_b = vec2(0.5, 0.5);
+        let ray_dir_b = vec2(0.0, -1.0); // ray_origin_a + ray_dir_b = [0.5, -0.5]
+
+        let expected_intersection = Some(vec2(0.5, 0.0));
+
+        assert_eq!(expected_intersection, ray_ray_intersection(ray_origin_a, ray_dir_a, ray_origin_b, ray_dir_b));
+
+    }
+
+    #[test]
+    fn test_ray_ray_intersection_non_overlap() {
+
+        let ray_origin_a = vec2(0.0, 0.0);
+        let ray_dir_a = vec2(1.0, 0.0);
+
+        let ray_origin_b = vec2(0.5, 0.5);
+        let ray_dir_b = vec2(0.0, 1.0);
+
+        assert_eq!(None, ray_ray_intersection(ray_origin_a, ray_dir_a, ray_origin_b, ray_dir_b));
+
+    }
 
 }
