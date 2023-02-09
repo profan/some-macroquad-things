@@ -1,7 +1,7 @@
 #![feature(let_chains)]
 #![feature(map_try_insert)]
 
-use std::{path::PathBuf, fs::read_to_string, collections::HashMap};
+use std::{path::PathBuf, fs::read_to_string, collections::HashMap, time::Instant};
 use macroquad::{prelude::*, rand::{ChooseRandom}};
 use utility::*;
 
@@ -559,7 +559,10 @@ async fn main() {
         debug_text.new_frame();
 
         if is_key_pressed(KeyCode::R) {
+            let start_time = Instant::now();
             dungeon = generate_dungeon(6);
+            let elapsed_time = Instant::now() - start_time;
+            println!("generate_dungeon: took: {} ms to generate!", elapsed_time.as_millis())
         }
 
         clear_background(WHITE);
