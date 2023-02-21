@@ -4,7 +4,7 @@ use macroquad::{prelude::{*}, rand::gen_range};
 use utility::{DebugText, draw_arrow, WithAlpha, TextPosition};
 use petgraph::{graph::{UnGraph}, visit::EdgeRef};
 
-const PHYSICS_STEPS_PER_TIMESTEP: i32 = 4;
+const PHYSICS_STEPS_PER_TIMESTEP: i32 = 2;
 const PHYSICS_TIMESTEP: f32 = 1.0 / 60.0;
 
 /// Spring-Damper system per Hooke's Law, F = -kx - bv
@@ -111,7 +111,7 @@ impl World {
 
     pub fn add_entity(&mut self, entity: Entity) {
         self.entities.insert(self.current_entity_idx, entity);
-        self.current_entity_idx += 1;;
+        self.current_entity_idx += 1;
     }
 
     pub fn get_entity_mut(&mut self, idx: i32) -> &mut Entity {
@@ -136,7 +136,7 @@ struct Entity {
 
 fn create_default_spring() -> Spring {
     Spring {
-        damping: 0.35,
+        damping: 0.25,
         tightness: 2.25,
         rest_length: 64.0
     }
@@ -170,6 +170,47 @@ fn spawn_some_entities(world: &mut World, number_of_entities: i32) {
         world.add_entity(Entity {
             position: vec2(rand_x, rand_y),
             velocity: vec2(rand_vx, rand_vy)
+        });
+
+    }
+
+}
+
+fn spawn_some_entities_in_a_grid(world: &mut World, number_of_entities: i32) {
+
+    fn index_to_position(columns: i32, idx: i32) -> IVec2 {
+        ivec2(
+            idx % columns,
+            idx / columns
+        )
+    }
+
+    let buffer = 100.0;
+
+    let start_x = buffer;
+    let end_x = screen_width() - buffer;
+    let width = end_x - start_x;
+
+    let start_y = buffer;
+    let end_y = screen_height() - buffer;
+    let height = end_y - start_y;
+
+    let square_of_entities = (number_of_entities as f32).sqrt() as i32;
+    let number_of_columns = square_of_entities;
+    let number_of_rows = square_of_entities;
+
+    for i in 0..number_of_entities {
+
+        let pos = index_to_position(number_of_columns, i);
+        let x = pos.x;
+        let y = pos.y;
+
+        let entity_x = start_x + x as f32 * (width / number_of_columns as f32);
+        let entity_y = start_y + y as f32 * (height / number_of_rows as f32);
+
+        world.add_entity(Entity {
+            position: vec2(entity_x, entity_y),
+            velocity: vec2(0.0, 0.0)
         });
 
     }
@@ -246,6 +287,82 @@ fn connect_some_entities_to_hubs(world: &World, world_graph: &mut UnGraph::<i32,
 
 }
 
+fn connect_some_entities_as_grid(world: &World, world_graph: &mut UnGraph::<i32, Spring>) {
+
+    let square_of_entities = (world.entities.len() as f32).sqrt() as i32;
+
+    let number_of_rows = square_of_entities;
+    let number_of_columns = square_of_entities;
+
+    fn position_to_grid_index(columns: i32, x: i32, y: i32) -> i32 {
+        x + y * columns
+    }
+
+    // add all the nodes to the graph first
+
+    let mut collected_entities: Vec<i32> = world.entities.iter().map(|e| *e.0).collect();
+    collected_entities.sort();
+
+    for entity_id in collected_entities {
+        world_graph.add_node(entity_id);
+    }
+
+    for x in 0..number_of_columns {
+        for y in 0..number_of_rows {
+
+            let current_idx = position_to_grid_index(number_of_columns, x, y);
+
+            let top_left_index = position_to_grid_index(number_of_columns, x - 1, y - 1);
+            let top_right_index = position_to_grid_index(number_of_columns, x + 1, y - 1);
+            let bottom_left_index = position_to_grid_index(number_of_columns, x - 1, y + 1);
+            let bottom_right_index = position_to_grid_index(number_of_columns, x + 1, y + 1);
+
+            let top_index = position_to_grid_index(number_of_columns, x, y - 1);
+            let bottom_index = position_to_grid_index(number_of_columns, x, y + 1);
+            let left_index = position_to_grid_index(number_of_columns, x - 1, y);
+            let right_index = position_to_grid_index(number_of_columns, x + 1, y);
+
+            // tl, tr, bl, br
+
+            if (x - 1) >= 0 && (y - 1) >= 0 {
+                world_graph.add_edge((current_idx as u32).into(), (top_left_index as u32).into(), create_default_spring());
+            }
+
+            if (x + 1) < number_of_columns && (y - 1) >= 0 {
+                world_graph.add_edge((current_idx as u32).into(), (top_right_index as u32).into(), create_default_spring());
+            }
+
+            if (x - 1) >= 0 && (y + 1) < number_of_rows {
+                world_graph.add_edge((current_idx as u32).into(), (bottom_left_index as u32).into(), create_default_spring());
+            }
+
+            if (x + 1) < number_of_columns && (y + 1) < number_of_rows {
+                world_graph.add_edge((current_idx as u32).into(), (bottom_right_index as u32).into(), create_default_spring());
+            }
+
+            // t, b, l, r
+
+            if (y - 1) >= 0 {
+                world_graph.add_edge((current_idx as u32).into(), (top_index as u32).into(), create_default_spring());
+            }
+
+            if (y + 1) < number_of_rows {
+                world_graph.add_edge((current_idx as u32).into(), (bottom_index as u32).into(), create_default_spring());
+            }
+
+            if (x - 1) >= 0 {
+                world_graph.add_edge((current_idx as u32).into(), (left_index as u32).into(), create_default_spring());
+            }
+
+            if (x + 1) < number_of_columns {
+                world_graph.add_edge((current_idx as u32).into(), (right_index as u32).into(), create_default_spring());
+            }
+
+        }
+    }
+        
+}
+
 fn push_entities_near_mouse(game: &mut Game) {
 
     let is_left_mouse_down = is_mouse_button_down(MouseButton::Left);
@@ -289,7 +406,7 @@ fn push_entities_near_mouse(game: &mut Game) {
 fn push_entities_near_eachother(game: &mut Game) {
 
     let entity_push_threshold = 63.0;
-    let entity_push_force = 8.0;
+    let entity_push_force = 16.0;
 
     let mut forces_to_apply = Vec::new();
 
@@ -540,10 +657,13 @@ async fn main() {
 
             game = Game::new();
 
-            spawn_some_entities(&mut game.world, number_of_entities);
-            connect_some_entities_in_a_chain(&game.world, &mut game.world_graph);
-            // connect_some_entities_to_hubs(&game.world, &mut game.world_graph);
+            // spawn_some_entities_in_a_grid(&mut game.world, number_of_entities);
+            // connect_some_entities_as_grid(&game.world, &mut game.world_graph);
 
+            spawn_some_entities(&mut game.world, number_of_entities);
+
+            // connect_some_entities_in_a_chain(&game.world, &mut game.world_graph);
+            connect_some_entities_to_hubs(&game.world, &mut game.world_graph);
             has_game_state_been_created = true;
 
         }
