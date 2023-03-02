@@ -110,15 +110,15 @@ async fn main() {
         let w = screen_width();
         let h = screen_height();
 
-        let a = vec2((w / 2.0), padding);
+        let a = vec2(w / 2.0, padding);
         let b = vec2(padding, h - padding);
         let c = vec2(w - padding, h - padding);
         let t = 4.0;
 
         let mouse_pos: Vec2 = mouse_position().into();
-        let our_triangle = Triangle { a: a, b: b, c: c };
+        let our_triangle = Triangle { a, b, c };
 
-        if (is_point_inside_triangle(mouse_pos, our_triangle)) {
+        if is_point_inside_triangle(mouse_pos, our_triangle) {
 
             // let b_c = barycentric_coordinate(mouse_pos, our_triangle);
             let v_c = calculate_contribution(mouse_pos, our_triangle);
