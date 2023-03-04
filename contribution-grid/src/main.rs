@@ -1,7 +1,7 @@
 use std::f32::consts::PI;
 
 use macroquad::{prelude::*, rand::gen_range};
-use utility::{DebugText, TextPosition};
+use utility::{DebugText, TextPosition, RotatedBy};
 
 const WORLD_UP: Vec3 = vec3(0.0, 1.0, 0.0);
 
@@ -308,6 +308,7 @@ fn draw_debug_ui(game: &mut Game) {
     game.debug_text.draw_text(format!("camera position: {}", game.camera.position), TextPosition::TopLeft, BLACK);
     game.debug_text.draw_text("w/a/s/d to move the camera in the plane", TextPosition::TopLeft, BLACK);
     game.debug_text.draw_text("space/ctrl to move the camera up/down", TextPosition::TopLeft, BLACK);
+    game.debug_text.draw_text("alt to toggle rotation", TextPosition::TopLeft, BLACK);
     game.debug_text.draw_text("press r to regenerate", TextPosition::TopLeft, BLACK);
 
 }
@@ -334,12 +335,32 @@ fn add_initial_orbs(game: &mut Game, number_of_orbs: i32) {
 
 }
 
+fn rotate_orbs_around_center_of_grid(game: &mut Game, dt: f32) {
+
+    let (grid_start, grid_end) = game.world_bounds;
+    let center_of_grid = (grid_start + grid_end) / 2.0;
+    let radians_per_second = PI/4.0;
+
+    for orb in &mut game.orbs {
+
+        let rotation_delta = radians_per_second * dt;
+        let rotated_position_in_plane = orb.position.xz().rotated_by_around_origin(rotation_delta, center_of_grid.xz());
+        
+        orb.position.x = rotated_position_in_plane.x;
+        orb.position.z= rotated_position_in_plane.y;
+
+    }
+
+}
+
 #[macroquad::main("contribution-grid")]
 async fn main() {
 
     let mut game = Game::new();
     let mut last_mouse_position: Vec2 = mouse_position().into();
+
     let mut should_generate_the_world = true;
+    let mut should_be_rotating_the_grid = false;
 
     // set initial world bounds
     let world_bounds_half = vec3(WORLD_SIZE as f32 / 2.0, 0.0, WORLD_SIZE as f32 / 2.0);
@@ -356,6 +377,11 @@ async fn main() {
         let was_reset_key_pressed = is_key_pressed(KeyCode::R);
         if was_reset_key_pressed {
             should_generate_the_world = true;
+        }
+
+        let was_toggle_grid_rotation_pressed = is_key_pressed(KeyCode::LeftAlt);
+        if was_toggle_grid_rotation_pressed {
+            should_be_rotating_the_grid = !should_be_rotating_the_grid;
         }
 
         if should_generate_the_world {
@@ -380,6 +406,11 @@ async fn main() {
 
         handle_camera_input(&mut game.camera, last_mouse_position, dt);
         last_mouse_position = mouse_position().into();
+
+        // update scene
+        if should_be_rotating_the_grid {
+            rotate_orbs_around_center_of_grid(&mut game, dt);
+        }
 
         // draw scene, etc
         draw_world_grid(&game);

@@ -102,6 +102,7 @@ impl DistanceBetween for Vec2 {
 
 pub trait RotatedBy {
     fn rotated_by(&self, angle: f32) -> Vec2;
+    fn rotated_by_around_origin(&self, angle: f32, origin: Vec2) -> Vec2;
 }
 
 impl RotatedBy for Vec2 {
@@ -112,6 +113,22 @@ impl RotatedBy for Vec2 {
             self.x * angle.cos() - self.y * angle.sin(),
             self.x * angle.sin() + self.y * angle.cos()
         )
+    }
+
+    /// Returns the vector rotated by the specific angle in radians, around a specific pivot point.
+    fn rotated_by_around_origin(&self, angle: f32, origin: Vec2) -> Vec2 {
+
+        // translate to origin
+        let o_p = *self - origin;
+
+        // rotate
+        let r_p = o_p.rotated_by(angle);
+
+        // translate back
+        let f_p = r_p + origin;
+
+        return f_p;
+        
     }
 
 }
