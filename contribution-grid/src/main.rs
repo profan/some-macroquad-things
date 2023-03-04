@@ -171,13 +171,6 @@ fn draw_orbs(game: &Game) {
 
     for orb in &game.orbs {
 
-        // draw_sphere_wires(
-        //     orb.position,
-        //     ORB_SIZE,
-        //     None,
-        //     RED
-        // );
-
         draw_cube_wires(
             orb.position,
             vec3(ORB_SIZE, ORB_SIZE, ORB_SIZE),
@@ -245,10 +238,6 @@ fn find_current_average_for_position(game: &Game, position: Vec3) -> Vec3 {
         draw_line_3d(orb_c_position, orb_a_position, PURPLE);
         
     }
-
-    // draw_cube_wires(orb_a_position, vec3(2.0, 2.0, 2.0), PURPLE);
-    // draw_cube_wires(orb_b_position, vec3(2.0, 2.0, 2.0), PURPLE);
-    // draw_cube_wires(orb_c_position, vec3(2.0, 2.0, 2.0), PURPLE);
 
     let triangle = Triangle { a: orb_a_position, b: orb_b_position, c: orb_c_position };
     let contribution = calculate_contribution(position, triangle);
@@ -357,8 +346,10 @@ async fn main() {
     game.world_bounds = (-world_bounds_half, world_bounds_half);
 
     // set initial camera target and position
-    game.camera.position += vec3(0.0, 8.0, 16.0);
-    game.camera.target += vec3(0.0, 0.0, 8.0);
+    let initial_camera_position = vec3(0.0, 56.0, 56.0);
+
+    game.camera.position += vec3(0.0, 8.0, 16.0) + initial_camera_position;
+    game.camera.target += vec3(0.0, 0.0, 8.0) + initial_camera_position;
     
     loop {
 
