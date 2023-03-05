@@ -335,6 +335,56 @@ fn add_initial_orbs(game: &mut Game, number_of_orbs: i32) {
 
 }
 
+fn add_initial_orbs_for_triangle_scene(game: &mut Game) {
+
+    // center
+
+    game.orbs.push(
+        Orb {
+            position: vec3(4.0, -20.0, 0.0),
+            normal: WORLD_UP
+        },
+    );
+
+    game.orbs.push(
+        Orb {
+            position: vec3(-4.0, -20.0, 0.0),
+            normal: WORLD_UP
+        },
+    );
+
+    game.orbs.push(
+        Orb {
+            position: vec3(0.0, -20.0, 4.0),
+            normal: WORLD_UP
+        },
+    );
+
+    // corners
+
+    game.orbs.push(
+        Orb {
+            position: vec3(50.0, 0.0, -50.0),
+            normal: WORLD_UP
+        },
+    );
+
+    game.orbs.push(
+        Orb {
+            position: vec3(-50.0, 0.0, -50.0),
+            normal: WORLD_UP
+        },
+    );
+
+    game.orbs.push(
+        Orb {
+            position: vec3(0.0, 0.0, 50.0),
+            normal: WORLD_UP
+        },
+    );
+
+}
+
 fn rotate_orbs_around_center_of_grid(game: &mut Game, dt: f32) {
 
     let (grid_start, grid_end) = game.world_bounds;
@@ -391,7 +441,9 @@ async fn main() {
 
             // cweate the initial set of owbs to pwace
             let number_of_orbs = 12;
+
             add_initial_orbs(&mut game, number_of_orbs);
+            // add_initial_orbs_for_triangle_scene(&mut game);
 
             // unset flag
             should_generate_the_world = false;
