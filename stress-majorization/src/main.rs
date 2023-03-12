@@ -381,7 +381,7 @@ fn calculate_neighbour_stress(world: &World, entity: &Entity) -> f32 {
 
     let mut total_neighbour_stress = 0.0;
 
-    for (other_entity_id, other_entity) in &world.entities {
+    for (_other_entity_id, other_entity) in &world.entities {
 
         if entity == other_entity { continue }
 
@@ -390,7 +390,7 @@ fn calculate_neighbour_stress(world: &World, entity: &Entity) -> f32 {
             let d_ij = (other_entity.position - entity.position).length();
             let t_ij = entity_push_threshold;
 
-            let s_num = d_ij * d_ij;
+            let s_num = (d_ij  - t_ij) * (d_ij - t_ij);
             let s_denom = t_ij.powi(k);
 
             total_neighbour_stress += s_num / s_denom;
@@ -619,7 +619,7 @@ async fn main() {
 
         }
 
-        let needs_to_step = calculate_stress(&game.world, &game.world_graph) > 10.0;
+        let needs_to_step = calculate_stress(&game.world, &game.world_graph) > 1.0;
 
         if needs_to_step {
             for _i in 0..iterations_per_tick {
