@@ -1,4 +1,4 @@
-use std::{collections::HashMap, thread::current};
+use std::{collections::HashMap};
 
 use macroquad::{prelude::{*}, rand::gen_range};
 use utility::{DebugText, draw_arrow, WithAlpha, TextPosition};
@@ -33,7 +33,6 @@ impl Game {
             }
         );
 
-        let current_physics_time = 0.0;
         let debug_text = DebugText::new();
         let world_graph = UnGraph::new_undirected();
         let world = World::new();
@@ -259,7 +258,7 @@ fn connect_some_entities_in_a_chain(world: &World, world_graph: &mut UnGraph::<i
 }
 
 /// for every entity, connect the next three entities to this first entity, then continue and connect the next entity to the first entity and repeat.
-fn connect_some_entities_to_hubs(world: &World, world_graph: &mut UnGraph::<i32, GraphEdge>) {
+fn connect_some_entities_to_hubs(world: &World, world_graph: &mut UnGraph::<i32, GraphEdge>, should_form_loop: bool) {
 
     // add all the nodes to the graph first
 
@@ -294,6 +293,10 @@ fn connect_some_entities_to_hubs(world: &World, world_graph: &mut UnGraph::<i32,
         last_hub_entity_idx = hub_entity_idx;
         current_entity_idx += 1;
 
+    }
+
+    if should_form_loop {
+        world_graph.add_edge((0 as u32).into(), (last_hub_entity_idx as u32).into(), create_graph_edge(256.0));
     }
 
 }
@@ -406,7 +409,7 @@ fn calculate_neighbour_stress(world: &World, entity: &Entity) -> f32 {
 fn calculate_neighbour_contribution(world: &World, entity: &Entity) -> Vec2 {
 
     let k = 2;
-    let entity_push_threshold= 63.0;
+    let entity_push_threshold = 63.0;
 
     let u_d = 2.0;
     let u = 1.0 / (2.0 * u_d);
@@ -454,7 +457,6 @@ fn calculate_stress(world: &World, world_graph: &UnGraph::<i32, GraphEdge>) -> f
             let target_entity_id = *world_graph.node_weight(edge.target()).unwrap();
             let edge_data = edge.weight();
 
-            // only evaluate springs using the source to avoid evaluating spring forces twice
             if current_entity_id == source_entity_id {
 
                 let source_entity = world.get_entity(source_entity_id);
@@ -498,9 +500,6 @@ fn minimize_stress_step(world: &mut World, world_graph: &mut UnGraph::<i32, Grap
     let u_d = 2.0;
     let u = 1.0 / (2.0 * u_d);
 
-    // also a suggested constant from the paper
-    let theta = 2;
-
     // possible methods:
     // s_0 = direct minimization of absolute stress (0)
     // s_1 = direct minimization of semiproportional stress (1)
@@ -517,7 +516,6 @@ fn minimize_stress_step(world: &mut World, world_graph: &mut UnGraph::<i32, Grap
             let target_entity_id = *world_graph.node_weight(edge.target()).unwrap();
             let edge_data = edge.weight();
 
-            // only evaluate springs using the source to avoid evaluating spring forces twice
             if current_entity_id == source_entity_id {
 
                 let source_entity = world.get_entity(source_entity_id);
@@ -613,7 +611,7 @@ async fn main() {
 
             spawn_some_entities(&mut game.world, number_of_entities);
             // connect_some_entities_in_a_chain(&game.world, &mut game.world_graph);
-            connect_some_entities_to_hubs(&game.world, &mut game.world_graph);
+            connect_some_entities_to_hubs(&game.world, &mut game.world_graph, false);
             has_game_state_been_created = true;
             current_iterations = 0;
 
