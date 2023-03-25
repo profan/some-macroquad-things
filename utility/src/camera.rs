@@ -1,4 +1,4 @@
-use macroquad::{math::Vec3, prelude::Camera3D};
+use macroquad::{math::Vec3, prelude::{Camera3D, Vec2, Mat4, Camera, vec2, vec3, draw_line_3d, BLACK}, window::{screen_width, screen_height}};
 
 pub struct GameCameraParameters {
 
@@ -45,6 +45,38 @@ impl GameCamera {
 
     pub fn left(&self) -> Vec3 {
         self.up.cross(self.forward()).normalize()
+    }
+
+    pub fn screen_to_world(&self, screen_pos: Vec2, depth: f32) -> Vec3 {
+
+        let projection_matrix = self.projection_matrix();
+        let viewport_size = vec2(screen_width(), screen_height());
+
+        let point_on_near_plane = vec2(
+            (screen_pos.x / viewport_size.x) * 2.0 - 1.0,
+            1.0 - (screen_pos.y / viewport_size.y) * 2.0
+        );
+
+        let point_on_near_plane_to_transform = vec3(
+            point_on_near_plane.x,
+            point_on_near_plane.y,
+            0.0
+        );
+
+        let projected_point_on_near_plane = projection_matrix.inverse().project_point3(point_on_near_plane_to_transform);
+        let projected_point_in_world_space = projected_point_on_near_plane + (projected_point_on_near_plane - self.position).normalize_or_zero() * depth;
+
+        projected_point_in_world_space
+        
+    }
+
+    pub fn world_to_screen(&self, pos: Vec3) -> Vec2 {
+        Vec2::ZERO
+    }
+
+    pub fn projection_matrix(&self) -> Mat4 {
+        let camera = create_camera_from_game_camera(self);
+        camera.matrix()
     }
 
 }
