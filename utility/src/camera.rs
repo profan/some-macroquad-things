@@ -47,6 +47,10 @@ impl GameCamera {
         self.up.cross(self.forward()).normalize()
     }
 
+    pub fn screen_to_world_ray(&self, screen_pos: Vec2) -> Vec3 {
+        (self.screen_to_world(screen_pos, 1000.0) - self.screen_to_world(screen_pos, 0.0)).normalize()
+    }
+
     pub fn screen_to_world(&self, screen_pos: Vec2, depth: f32) -> Vec3 {
 
         let projection_matrix = self.projection_matrix();
