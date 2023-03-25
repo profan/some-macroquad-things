@@ -167,6 +167,77 @@ fn ray_ray_intersection(origin_a: Vec2, direction_a: Vec2, origin_b: Vec2, direc
 
 }
 
+pub fn clamp<T : PartialOrd>(v: T, min: T, max: T) -> T {
+    if v < min {
+        min
+    } else if v > max {
+        max
+    } else {
+        v
+    }
+}
+
+pub fn intersect_ray_with_plane(ray_origin: Vec3, ray_direction: Vec3, plane_normal: Vec3, plane_origin: Vec3) -> Option<Vec3> {
+
+    let denom = plane_normal.dot(ray_direction);
+    let intersection = if denom > std::f32::EPSILON {
+        let v = plane_origin - ray_origin;
+        let d = v.dot(plane_normal) / denom;
+        Some(ray_origin + ray_direction * d)
+    } else {
+        None
+    };
+
+    intersection
+
+}
+
+pub fn project_point_on_plane(point: Vec3, normal: Vec3, d: f32) -> Vec3 {
+
+    let proj_point = point - (normal.dot(point) + d);
+
+    proj_point
+
+}
+
+pub fn project_point_on_sphere(point: Vec3, sphere_pos: Vec3, r: f32) -> Vec3 {
+
+    let p = point - sphere_pos;
+    let p_mag = p.length();
+    let q = (r / p_mag) * p;
+    let p_s = q + sphere_pos;
+
+    p_s
+
+}
+
+pub fn rotate_relative_to_origin(origin: Vec3, point: Vec3, rotation: Quat) -> Vec3 {
+
+    let t1 = point - origin;
+    let t2 = rotation * t1;
+    let t3 = t2 + origin;
+
+    t3
+
+}
+
+pub fn sign(x: f32) -> f32 {
+    if x > 0.0 {
+        1.0 
+    } else if x < 0.0 {
+        -1.0
+    } else {
+        0.0
+    }
+}
+
+pub fn frac0(x: f32) -> f32 {
+    x - x.floor()
+}
+
+pub fn frac1(x: f32) -> f32 {
+    1.0 - x + x.floor()
+}
 
 #[cfg(test)]
 mod tests {
