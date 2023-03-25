@@ -1,7 +1,7 @@
 use std::f32::consts::PI;
 
 use macroquad::{prelude::*, rand::gen_range};
-use utility::{DebugText, TextPosition, RotatedBy};
+use utility::{DebugText, TextPosition, RotatedBy, GameCamera, GameCameraParameters, create_camera_from_game_camera};
 
 const WORLD_UP: Vec3 = vec3(0.0, 1.0, 0.0);
 
@@ -18,39 +18,6 @@ struct Triangle {
     a: Vec3,
     b: Vec3,
     c: Vec3
-}
-
-struct GameCameraParameters {
-
-    /// movement speed in world units per second
-    movement_speed: f32,
-
-    /// rotation speed in radians per second
-    rotation_speed: f32,
-
-    /// zoom speed in world units per second?
-    zoom_speed: f32
-
-}
-
-struct GameCamera {
-
-    parameters: GameCameraParameters,
-
-    position: Vec3,
-    target: Vec3,
-    up: Vec3,
-
-}
-
-impl GameCamera {
-    pub fn forward(&self) -> Vec3 {
-        (self.target - self.position).normalize()
-    }
-
-    pub fn left(&self) -> Vec3 {
-        self.up.cross(self.forward()).normalize()
-    }
 }
 
 #[derive(Clone, Copy)]
@@ -87,19 +54,6 @@ impl Game {
             orbs: Vec::new()
         }
     }
-}
-
-fn create_camera(position: Vec3, up: Vec3, target: Vec3) -> Camera3D {
-    Camera3D {
-        position: position,
-        up: up,
-        target: target,
-        ..Default::default()
-    }
-}
-
-fn create_camera_from_game_camera(camera: &GameCamera) -> Camera3D {
-    create_camera(camera.position, camera.up, camera.target)
 }
 
 fn calculate_contribution(p: Vec3, t: Triangle) -> Vec3 {

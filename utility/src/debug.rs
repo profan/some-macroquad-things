@@ -60,9 +60,14 @@ impl DebugText {
         where S: Into<String>
     {
 
+        push_camera_state();
+        set_default_camera();
+
         let text = &text.into();
         let next_position = self.next_text_position(text, pos);
         draw_text(text, next_position.x, next_position.y, self.current_font_size, color);
+
+        pop_camera_state();
 
     }
     
@@ -75,4 +80,24 @@ impl DebugText {
 
     }
 
+}
+
+pub trait BenchmarkWithDebugText {
+    fn benchmark_execution<F>(&mut self, f: F, text: &str, pos: TextPosition, color: Color)
+        where F: FnMut();
+}
+
+impl BenchmarkWithDebugText for DebugText {
+    fn benchmark_execution<F>(&mut self, mut f: F, text: &str, pos: TextPosition, color: Color) 
+        where F: FnMut()
+    {
+
+        let start_time = get_time();
+        f();
+        let end_time = get_time();
+
+        let elapsed_time_ms = (end_time - start_time) * 1000.0;
+        self.draw_text(format!("{} - {:.2} ms", text, elapsed_time_ms), pos, color);
+        
+    }
 }
