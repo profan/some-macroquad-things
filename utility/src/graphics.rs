@@ -68,3 +68,151 @@ pub fn draw_quads_3d(vertices: &[Vec3], texture: Option<Texture2D>, color: Color
     }
 
 }
+
+pub fn draw_cube_ex(position: Vec3, size: Vec3, rotation: Quat, texture: Option<Texture2D>, color: Color) {
+
+    unsafe {
+
+        let context = get_internal_gl().quad_gl;
+        context.texture(texture.into());
+
+        // because we're applying the rotation and translation here now, use x, y, z as if the cube was at the origin now.
+        context.push_model_matrix(Mat4::from_rotation_translation(rotation, position));
+
+    }
+
+    let (x, y, z) = (0.0, 0.0, 0.0);
+    let (width, height, length) = (size.x, size.y, size.z);
+
+    // Front face
+    let bl_pos = vec3(x - width / 2., y - height / 2., z + length / 2.);
+    let bl_uv = vec2(0., 0.);
+    let br_pos = vec3(x + width / 2., y - height / 2., z + length / 2.);
+    let br_uv = vec2(1., 0.);
+
+    let tr_pos = vec3(x + width / 2., y + height / 2., z + length / 2.);
+    let tr_uv = vec2(1., 1.);
+
+    let tl_pos = vec3(x - width / 2., y + height / 2., z + length / 2.);
+    let tl_uv = vec2(0., 1.);
+
+    unsafe {
+        draw_quad([
+            (bl_pos, bl_uv, color),
+            (br_pos, br_uv, color),
+            (tr_pos, tr_uv, color),
+            (tl_pos, tl_uv, color),
+        ]);
+    }
+
+    // Back face
+    let bl_pos = vec3(x - width / 2., y - height / 2., z - length / 2.);
+    let bl_uv = vec2(0., 0.);
+    let br_pos = vec3(x + width / 2., y - height / 2., z - length / 2.);
+    let br_uv = vec2(1., 0.);
+
+    let tr_pos = vec3(x + width / 2., y + height / 2., z - length / 2.);
+    let tr_uv = vec2(1., 1.);
+
+    let tl_pos = vec3(x - width / 2., y + height / 2., z - length / 2.);
+    let tl_uv = vec2(0., 1.);
+
+    unsafe {
+        draw_quad([
+            (bl_pos, bl_uv, color),
+            (br_pos, br_uv, color),
+            (tr_pos, tr_uv, color),
+            (tl_pos, tl_uv, color),
+        ]);
+    }
+
+    // Top face
+    let bl_pos = vec3(x - width / 2., y + height / 2., z - length / 2.);
+    let bl_uv = vec2(0., 1.);
+    let br_pos = vec3(x - width / 2., y + height / 2., z + length / 2.);
+    let br_uv = vec2(0., 0.);
+
+    let tr_pos = vec3(x + width / 2., y + height / 2., z + length / 2.);
+    let tr_uv = vec2(1., 0.);
+
+    let tl_pos = vec3(x + width / 2., y + height / 2., z - length / 2.);
+    let tl_uv = vec2(1., 1.);
+
+    unsafe {
+        draw_quad([
+            (bl_pos, bl_uv, color),
+            (br_pos, br_uv, color),
+            (tr_pos, tr_uv, color),
+            (tl_pos, tl_uv, color),
+        ]);
+    }
+
+    // Bottom face
+    let bl_pos = vec3(x - width / 2., y - height / 2., z - length / 2.);
+    let bl_uv = vec2(0., 1.);
+    let br_pos = vec3(x - width / 2., y - height / 2., z + length / 2.);
+    let br_uv = vec2(0., 0.);
+
+    let tr_pos = vec3(x + width / 2., y - height / 2., z + length / 2.);
+    let tr_uv = vec2(1., 0.);
+
+    let tl_pos = vec3(x + width / 2., y - height / 2., z - length / 2.);
+    let tl_uv = vec2(1., 1.);
+
+    unsafe {
+        draw_quad([
+            (bl_pos, bl_uv, color),
+            (br_pos, br_uv, color),
+            (tr_pos, tr_uv, color),
+            (tl_pos, tl_uv, color),
+        ]);
+    }
+
+    // Right face
+    let bl_pos = vec3(x + width / 2., y - height / 2., z - length / 2.);
+    let bl_uv = vec2(0., 1.);
+    let br_pos = vec3(x + width / 2., y + height / 2., z - length / 2.);
+    let br_uv = vec2(0., 0.);
+
+    let tr_pos = vec3(x + width / 2., y + height / 2., z + length / 2.);
+    let tr_uv = vec2(1., 0.);
+
+    let tl_pos = vec3(x + width / 2., y - height / 2., z + length / 2.);
+    let tl_uv = vec2(1., 1.);
+
+    unsafe {
+        draw_quad([
+            (bl_pos, bl_uv, color),
+            (br_pos, br_uv, color),
+            (tr_pos, tr_uv, color),
+            (tl_pos, tl_uv, color),
+        ]);
+    }
+
+    // Left face
+    let bl_pos = vec3(x - width / 2., y - height / 2., z - length / 2.);
+    let bl_uv = vec2(0., 1.);
+    let br_pos = vec3(x - width / 2., y + height / 2., z - length / 2.);
+    let br_uv = vec2(0., 0.);
+
+    let tr_pos = vec3(x - width / 2., y + height / 2., z + length / 2.);
+    let tr_uv = vec2(1., 0.);
+
+    let tl_pos = vec3(x - width / 2., y - height / 2., z + length / 2.);
+    let tl_uv = vec2(1., 1.);
+
+    unsafe {
+        draw_quad([
+            (bl_pos, bl_uv, color),
+            (br_pos, br_uv, color),
+            (tr_pos, tr_uv, color),
+            (tl_pos, tl_uv, color),
+        ]);
+    }
+
+    unsafe {
+        let context = get_internal_gl().quad_gl;
+        context.pop_model_matrix();
+    }
+
+}
