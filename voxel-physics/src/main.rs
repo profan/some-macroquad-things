@@ -1,11 +1,11 @@
 #![feature(associated_type_defaults)]
 
 use std::{collections::{HashMap, hash_map}, rc::Rc, sync::Arc};
-use macroquad::prelude::{*, camera::mouse};
+use macroquad::{prelude::{*}, rand::gen_range};
 
 use rapier3d::{prelude::{CCDSolver, MultibodyJointSet, ImpulseJointSet, ColliderSet, RigidBodySet, BroadPhase, IslandManager, PhysicsPipeline, IntegrationParameters, Vector, Real, NarrowPhase, vector, Aabb, Shape, MassProperties, ShapeType, TypedShape, RayIntersection, Ray, PointProjection, FeatureId, Point, Cuboid, Isometry, TOI, SimdCompositeShape, RigidBodyBuilder, ColliderBuilder, RigidBodyHandle, SharedShape}, parry::{bounding_volume::{BoundingSphere, BoundingVolume}, query::{PointQuery, RayCast, DefaultQueryDispatcher, QueryDispatcher, ClosestPoints, Unsupported, Contact, NonlinearRigidMotion, ContactManifoldsWorkspace, PersistentQueryDispatcher, TypedWorkspaceData, WorkspaceData, visitors::BoundingVolumeIntersectionsVisitor, ContactManifold}, utils::IsometryOpt}};
 use nalgebra::{self, Point3};
-use utility::{GameCamera, create_camera_from_game_camera, DebugText, TextPosition, BenchmarkWithDebugText, voxel_traversal_3d};
+use utility::{GameCamera, create_camera_from_game_camera, DebugText, TextPosition, BenchmarkWithDebugText, voxel_traversal_3d, AdjustHue};
 
 const WORLD_UP: Vec3 = Vec3::Y;
 
@@ -51,8 +51,15 @@ impl VoxelWorldSimple {
         for x in 0..width {
             for y in 0..height {
                 for z in 0..depth {
-                    let current_voxel_kind = if y > height / 2 { VoxelKind::Grass } else { VoxelKind::Rock };
-                    self.set_block(ivec3(x, y, z), current_voxel_kind);
+
+                    let rand_value = gen_range(0, 100);
+                    let should_create_voxel = rand_value > 50;
+
+                    if should_create_voxel {
+                        let current_voxel_kind = if y > height / 2 { VoxelKind::Grass } else { VoxelKind::Rock };
+                        self.set_block(ivec3(x, y, z), current_voxel_kind);
+                    }
+
                 }
             }
         }
@@ -391,7 +398,7 @@ fn with_translation_for_voxel(pos: &Isometry<Real>, coords: IVec3) -> Isometry<R
 {
 
     let half_offset = VOXEL_SIZE * 0.5;
-    let half_offset_v = Vector::new(0.0, half_offset, 0.0);
+    let half_offset_v = Vector::new(0.0, 0.0, 0.0);
 
     let block_offset = Vector::new(
         coords.x as f32 * VOXEL_SIZE,
@@ -420,6 +427,7 @@ fn intersects(pos12: &Isometry<Real>, world: &VoxelWorldShape, other: &dyn Shape
     let bounds = other.compute_bounding_sphere(pos12);
     let mut intersects = false;
     world.map_elements_in_local_sphere(&bounds, |coords, _, cuboid| {
+        let pos12 = &with_translation_for_voxel(pos12, *coords);
         intersects = dispatcher
             .intersection_test(&pos12, cuboid, other)
             .unwrap_or(false);
@@ -696,8 +704,11 @@ fn compute_manifolds<ManifoldData, ContactData>(
 
             if manifold.points.len() > 0 {
                 for p in &mut manifold.points {
-                    p.local_p1 -= with_translation_for_voxel_as_vector(pos12, coords);
-                    p.local_p2 += with_translation_for_voxel_as_vector(pos12, coords);
+
+                    // #FIXME: these transformations are in the local spaces of the other shape, so this is all kinds of fucked up
+                    p.local_p1 -= with_translation_for_voxel_as_vector(pos12, coords) + Vector::new(0.0, VOXEL_SIZE * 0.5, 0.0);
+                    p.local_p2 += with_translation_for_voxel_as_vector(pos12, coords) + Vector::new(0.0, VOXEL_SIZE * 0.5, 0.0);
+
                 }
             }
 
@@ -714,8 +725,11 @@ fn compute_manifolds<ManifoldData, ContactData>(
 
             if manifold.points.len() > 0 {
                 for p in &mut manifold.points {
-                    p.local_p1 -= with_translation_for_voxel_as_vector(pos12, coords);
-                    p.local_p2 += with_translation_for_voxel_as_vector(pos12, coords);
+
+                    // #FIXME: these transformations are in the local spaces of the other shape, so this is all kinds of fucked up
+                    p.local_p1 -= with_translation_for_voxel_as_vector(&pos12.inverse(), coords) + Vector::new(0.0, VOXEL_SIZE * 0.5, 0.0);
+                    p.local_p2 += with_translation_for_voxel_as_vector(&pos12.inverse(), coords) + Vector::new(0.0, VOXEL_SIZE * 0.5, 0.0);
+
                 }
             }
 
@@ -1161,19 +1175,40 @@ pub struct GameWorld {
 }
 
 pub struct Game {
+
     camera: GameCamera,
     debug_text: DebugText,
     voxel_world: Arc<dyn VoxelWorld>,
-    physics_world: PhysicsWorld
+    physics_world: PhysicsWorld,
+
+    debug_parameters: GameDebugParameters
+
+}
+
+pub struct GameDebugParameters {
+    should_show_contacts: bool
+}
+
+impl GameDebugParameters {
+    pub fn new() -> GameDebugParameters {
+        GameDebugParameters {
+            should_show_contacts: true
+        }
+    }
 }
 
 impl Game {
     pub fn new() -> Game {
         Game {
+
             camera: GameCamera::new(),
             debug_text: DebugText::new(),
             voxel_world: Arc::new(VoxelWorldSimple::new()),
-            physics_world: PhysicsWorld::new()
+            physics_world: PhysicsWorld::new(),
+
+            // purely debug specific stuff
+            debug_parameters: GameDebugParameters::new()
+
         }
     }
 }
@@ -1239,10 +1274,12 @@ fn is_voxel_occluded(voxel_world: &dyn VoxelWorld, position: IVec3) -> bool {
 
 fn render_grass_block(render_pos: Vec3) {
     draw_cube(render_pos, VOXEL_DIMENSIONS, None, GREEN);
+    draw_cube_wires(render_pos, VOXEL_DIMENSIONS, GREEN.darken(0.25));
 }
 
 fn render_stone_block(render_pos: Vec3) {
     draw_cube(render_pos, VOXEL_DIMENSIONS, None, GRAY);
+    draw_cube_wires(render_pos, VOXEL_DIMENSIONS, GRAY.darken(0.25));
 }
 
 fn render_voxel_world(voxel_world: &dyn VoxelWorld) {
@@ -1344,17 +1381,57 @@ fn handle_spawn_ball_on_click(game: &mut Game) {
 
 }
 
-#[macroquad::main("voxel-physics")]
-async fn main() {
+fn handle_toggle_debug_parameters(game: &mut Game) {
 
-    let voxel_world_size = 16;
+    let should_reset_simulation = is_key_pressed(KeyCode::R);
 
-    let mut game = Game::new();
-    let mut last_mouse_position = mouse_position().into();
+    if should_reset_simulation {
+        initialize_world(game);
+    }
+
+    game.debug_text.draw_text("press r to reset the world state", TextPosition::TopLeft, BLACK);
+
+    let should_toggle_debug_parameters = is_key_pressed(KeyCode::T);
+
+    if should_toggle_debug_parameters {
+        game.debug_parameters.should_show_contacts = !game.debug_parameters.should_show_contacts;
+    }
+
+    game.debug_text.draw_text(
+        format!("press t to toggle showing contacts (currently: {})", game.debug_parameters.should_show_contacts),
+        TextPosition::TopLeft,
+        BLACK
+    );
+
+}
+
+/// Draws all current physics contacts, contacts are in world space.
+fn render_physics_contacts(game: &mut Game) {
+
+    let contacts = game.physics_world.contact_points();
+
+    for contact_world_position in contacts {
+        let contact_sphere_size = 0.1;
+        draw_sphere(
+            vec3(contact_world_position.x, contact_world_position.y, contact_world_position.z),
+            contact_sphere_size,
+            None,
+            RED
+        );
+    }
+
+}
+
+fn initialize_world(game: &mut Game) {
+
+    let voxel_world_size = 8;
+
+    // recreate the physics world
+    game.physics_world = PhysicsWorld::new();
 
     // calculate the center of the voxel world?
     let voxel_world_center = vec3(voxel_world_size as f32, voxel_world_size as f32, voxel_world_size as f32) / 2.0;
-    
+
     // generate a very basic world
     let mut basic_voxel_world = VoxelWorldSimple::new();
     basic_voxel_world.generate_world(voxel_world_size, voxel_world_size, voxel_world_size);
@@ -1370,7 +1447,15 @@ async fn main() {
     // set camera speed
     game.camera.parameters.movement_speed = 8.0;
 
-    let mut should_show_contacts = true;
+}
+
+#[macroquad::main("voxel-physics")]
+async fn main() {
+
+    let mut game = Game::new();
+    let mut last_mouse_position = mouse_position().into();
+
+    initialize_world(&mut game);
 
     loop {
 
@@ -1382,7 +1467,7 @@ async fn main() {
         // render voxel world (and its bounds)
         game.debug_text.benchmark_execution(
             || {
-                // render_voxel_world(game.voxel_world.as_ref());
+                render_voxel_world(game.voxel_world.as_ref());
                 render_voxel_world_bounds(game.voxel_world.as_ref());
             },
             "render_voxel_world",
@@ -1399,14 +1484,10 @@ async fn main() {
             BLACK
         );
 
-        if should_show_contacts {
+        handle_toggle_debug_parameters(&mut game);
 
-            let contacts = game.physics_world.contact_points();
-            for contact_world_position in contacts {
-                let contact_sphere_size = 0.5;
-                draw_sphere(vec3(contact_world_position.x, contact_world_position.y, contact_world_position.z), contact_sphere_size, None, RED);
-            }
-
+        if game.debug_parameters.should_show_contacts {
+            render_physics_contacts(&mut game);
         }
 
         // render current picked block, if any
