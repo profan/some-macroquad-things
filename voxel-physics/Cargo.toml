@@ -1,0 +1,16 @@
+[package]
+name = "voxel-physics"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+nalgebra = "0.32.2"
+utility = { path = "../utility" }
+macroquad = "0.3.24"
+rapier3d = "0.17.2"
+
+[profile.dev]
+incremental = true
+# opt-level = 2
