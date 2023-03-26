@@ -5,7 +5,7 @@ use macroquad::{prelude::{*}, rand::gen_range};
 
 use rapier3d::{prelude::{CCDSolver, MultibodyJointSet, ImpulseJointSet, ColliderSet, RigidBodySet, BroadPhase, IslandManager, PhysicsPipeline, IntegrationParameters, Vector, Real, NarrowPhase, vector, Aabb, Shape, MassProperties, ShapeType, TypedShape, RayIntersection, Ray, PointProjection, FeatureId, Point, Cuboid, Isometry, TOI, SimdCompositeShape, RigidBodyBuilder, ColliderBuilder, RigidBodyHandle, SharedShape}, parry::{bounding_volume::{BoundingSphere, BoundingVolume}, query::{PointQuery, RayCast, DefaultQueryDispatcher, QueryDispatcher, ClosestPoints, Unsupported, Contact, NonlinearRigidMotion, ContactManifoldsWorkspace, PersistentQueryDispatcher, TypedWorkspaceData, WorkspaceData, visitors::BoundingVolumeIntersectionsVisitor, ContactManifold}, utils::IsometryOpt}};
 use nalgebra::{self, Point3};
-use utility::{GameCamera, create_camera_from_game_camera, DebugText, TextPosition, BenchmarkWithDebugText, voxel_traversal_3d, AdjustHue};
+use utility::{GameCamera, create_camera_from_game_camera, DebugText, TextPosition, BenchmarkWithDebugText, voxel_traversal_3d, AdjustHue, draw_cube_ex};
 
 const WORLD_UP: Vec3 = Vec3::Y;
 
@@ -995,6 +995,26 @@ impl PhysicsWorld {
 
     }
 
+    pub fn add_box(&mut self, position: Vec3) -> RigidBodyHandle {
+
+        let box_half_size = 0.5;
+        let box_restitution = 0.7;
+
+        let rigid_body = RigidBodyBuilder::dynamic()
+            .ccd_enabled(true)
+            .can_sleep(false)
+            .translation(Vector::new(position.x, position.y, position.z))
+            .build();
+
+        let collider = ColliderBuilder::cuboid(box_half_size, box_half_size,box_half_size).restitution(box_restitution).build();
+        let ball_body_handle = self.state.rigid_body_set.insert(rigid_body);
+
+        self.state.collider_set.insert_with_parent(collider, ball_body_handle, &mut self.state.rigid_body_set);
+
+        ball_body_handle
+
+    }
+
     pub fn add_ball(&mut self, position: Vec3) -> RigidBodyHandle {
 
         let ball_radius = 0.5;
@@ -1015,6 +1035,7 @@ impl PhysicsWorld {
 
     }
 
+    /// Returns a vec of all the current contact points, contact points are in world space.
     pub fn contact_points(&self) -> Vec<Vector<Real>> {
         self.state.narrow_phase.contact_pairs()
             .map(|c| &c.manifolds).flatten()
@@ -1311,19 +1332,31 @@ fn render_physics_objects(physics_world: &PhysicsWorld) {
 
     for (_rigid_body_handle, rigid_body) in physics_world.state.rigid_body_set.iter() {
 
-        let is_ball = physics_world.state.collider_set.get(rigid_body.colliders()[0]).unwrap().shape().as_ball().is_some();
+        let physics_shape = physics_world.state.collider_set.get(rigid_body.colliders()[0]).unwrap().shape();
+        let is_ball = physics_shape.as_ball().is_some();
+        let is_box = physics_shape.as_cuboid().is_some();
+
+        let body_isometry = rigid_body.position();
+        let body_rotation = rigid_body.rotation();
+        let body_quat = body_rotation.coords;
 
         if is_ball {
-
-            let body_isometry = rigid_body.position();
-
             draw_sphere(
                 vec3(body_isometry.translation.x, body_isometry.translation.y, body_isometry.translation.z),
                 0.5,
                 None,
                 BLACK
             ); 
+        }
 
+        if is_box {
+            draw_cube_ex(
+                vec3(body_isometry.translation.x, body_isometry.translation.y, body_isometry.translation.z),
+                vec3(1.0, 1.0, 1.0),
+                quat(body_quat.x, body_quat.y, body_quat.z, body_quat.w),
+                None,
+                BLACK
+            );
         }
 
     }
@@ -1368,17 +1401,28 @@ fn render_current_block_under_mouse(game: &mut Game) {
 
 }
 
-fn handle_spawn_ball_on_click(game: &mut Game) {
+fn handle_spawn_object_on_click(game: &mut Game) {
 
     let was_left_mouse_pressed = is_mouse_button_pressed(MouseButton::Left);
+    let was_right_mouse_pressed = is_mouse_button_pressed(MouseButton::Right);
 
-    if was_left_mouse_pressed {
+    if was_left_mouse_pressed || was_right_mouse_pressed {
+
+        let should_spawn_ball = was_left_mouse_pressed;
+        let should_spawn_box = was_right_mouse_pressed;
 
         if let Some((pos, _kind)) = try_pick_block_in_world(game) {
 
             let height_to_spawn_at = 4.0;
             let position_above_current_world_position = pos + WORLD_UP * height_to_spawn_at;
-            game.physics_world.add_ball(position_above_current_world_position);
+
+            if should_spawn_ball {
+                game.physics_world.add_ball(position_above_current_world_position);
+            }
+            
+            if should_spawn_box {
+                game.physics_world.add_box(position_above_current_world_position);
+            }
 
         }
 
@@ -1503,7 +1547,7 @@ async fn main() {
         handle_camera_input(&mut game.camera, last_mouse_position, dt);
 
         // handle spawning shit
-        handle_spawn_ball_on_click(&mut game);
+        handle_spawn_object_on_click(&mut game);
         
         // step physics world
         game.debug_text.benchmark_execution(
