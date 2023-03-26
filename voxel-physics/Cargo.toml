@@ -13,4 +13,4 @@ rapier3d = "0.17.2"
 
 [profile.dev]
 incremental = true
-# opt-level = 2
+opt-level = 2

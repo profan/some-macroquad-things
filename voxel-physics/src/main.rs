@@ -387,16 +387,16 @@ impl RayCast for VoxelWorldShape {
 
 }
 
-fn with_translation_for_voxel(pos: &Isometry<Real>, offset: IVec3) -> Isometry<Real>
+fn with_translation_for_voxel(pos: &Isometry<Real>, coords: IVec3) -> Isometry<Real>
 {
 
     let half_offset = VOXEL_SIZE * 0.5;
     let half_offset_v = Vector::new(0.0, half_offset, 0.0);
 
     let block_offset = Vector::new(
-        offset.x as f32 * VOXEL_SIZE,
-        offset.y as f32 * VOXEL_SIZE,
-        offset.z as f32 * VOXEL_SIZE
+        coords.x as f32 * VOXEL_SIZE,
+        coords.y as f32 * VOXEL_SIZE,
+        coords.z as f32 * VOXEL_SIZE
     );
 
     let relative_offset = pos.translation.vector - block_offset;
@@ -407,6 +407,11 @@ fn with_translation_for_voxel(pos: &Isometry<Real>, offset: IVec3) -> Isometry<R
         pos.rotation
     )
 
+}
+
+fn with_translation_for_voxel_as_vector(pos: &Isometry<Real>, coords: IVec3) -> Vector<f32> {
+    let t = with_translation_for_voxel(pos, coords);
+    Vector::new(t.translation.x, t.translation.y, t.translation.z)
 }
 
 fn intersects(pos12: &Isometry<Real>, world: &VoxelWorldShape, other: &dyn Shape) -> bool {
@@ -676,9 +681,11 @@ fn compute_manifolds<ManifoldData, ContactData>(
         };
 
         let manifold = &mut manifolds[voxel_state.manifold_index];
+        let pos12 = &with_translation_for_voxel(pos12, coords);
 
         // TODO: Nonconvex, postprocess contact `fid`s once parry's feature ID story is worked out
         if flipped {
+
             let _ = dispatcher.contact_manifold_convex_convex(
                 &pos12.inverse(),
                 other,
@@ -686,7 +693,16 @@ fn compute_manifolds<ManifoldData, ContactData>(
                 prediction,
                 manifold,
             );
+
+            if manifold.points.len() > 0 {
+                for p in &mut manifold.points {
+                    p.local_p1 -= with_translation_for_voxel_as_vector(pos12, coords);
+                    p.local_p2 += with_translation_for_voxel_as_vector(pos12, coords);
+                }
+            }
+
         } else {
+
             let _ = dispatcher
                 .contact_manifold_convex_convex(
                     pos12,
@@ -695,6 +711,14 @@ fn compute_manifolds<ManifoldData, ContactData>(
                     prediction,
                     manifold
                 );
+
+            if manifold.points.len() > 0 {
+                for p in &mut manifold.points {
+                    p.local_p1 -= with_translation_for_voxel_as_vector(pos12, coords);
+                    p.local_p2 += with_translation_for_voxel_as_vector(pos12, coords);
+                }
+            }
+
         }
         true
     });
@@ -811,6 +835,8 @@ fn compute_manifolds_vs_composite<ManifoldData, ContactData>(
                     };
 
                     let manifold = &mut manifolds[voxel_state.manifold_index];
+                    // let pos12 = &with_translation_for_voxel(pos12, coords);
+                    // let pos21 = &with_translation_for_voxel(pos21, coords);
 
                     if flipped {
                         let _ = dispatcher.contact_manifold_convex_convex(
@@ -965,6 +991,14 @@ impl PhysicsWorld {
 
         ball_body_handle
 
+    }
+
+    pub fn contact_points(&self) -> Vec<Vector<Real>> {
+        self.state.narrow_phase.contact_pairs()
+            .map(|c| &c.manifolds).flatten()
+            .map(|m| &m.data.solver_contacts).flatten()
+            .map(|s| s.point.coords)
+            .collect()
     }
 
 }
@@ -1336,6 +1370,8 @@ async fn main() {
     // set camera speed
     game.camera.parameters.movement_speed = 8.0;
 
+    let mut should_show_contacts = true;
+
     loop {
 
         let dt = get_frame_time();
@@ -1362,6 +1398,16 @@ async fn main() {
             TextPosition::TopRight,
             BLACK
         );
+
+        if should_show_contacts {
+
+            let contacts = game.physics_world.contact_points();
+            for contact_world_position in contacts {
+                let contact_sphere_size = 0.5;
+                draw_sphere(vec3(contact_world_position.x, contact_world_position.y, contact_world_position.z), contact_sphere_size, None, RED);
+            }
+
+        }
 
         // render current picked block, if any
         render_current_block_under_mouse(&mut game);
