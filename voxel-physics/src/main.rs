@@ -1,6 +1,6 @@
 #![feature(associated_type_defaults)]
 
-use std::{collections::{HashMap, hash_map}, rc::Rc, sync::Arc};
+use std::{collections::{HashMap, hash_map}, sync::Arc};
 use macroquad::{prelude::{*}, rand::gen_range};
 
 use rapier3d::{prelude::{CCDSolver, MultibodyJointSet, ImpulseJointSet, ColliderSet, RigidBodySet, BroadPhase, IslandManager, PhysicsPipeline, IntegrationParameters, Vector, Real, NarrowPhase, vector, Aabb, Shape, MassProperties, ShapeType, TypedShape, RayIntersection, Ray, PointProjection, FeatureId, Point, Cuboid, Isometry, TOI, SimdCompositeShape, RigidBodyBuilder, ColliderBuilder, RigidBodyHandle, SharedShape}, parry::{bounding_volume::{BoundingSphere, BoundingVolume}, query::{PointQuery, RayCast, DefaultQueryDispatcher, QueryDispatcher, ClosestPoints, Unsupported, Contact, NonlinearRigidMotion, ContactManifoldsWorkspace, PersistentQueryDispatcher, TypedWorkspaceData, WorkspaceData, visitors::BoundingVolumeIntersectionsVisitor, ContactManifold}, utils::IsometryOpt}};
@@ -125,6 +125,13 @@ impl VoxelWorld for VoxelWorldSimple {
         self.bounds
     }
 
+    fn get_world_bounds(&self) -> (Vec3, Vec3) {
+        let (min, max) = self.bounds;
+        let min_world = vec3(min.x as f32, min.y as f32, min.z as f32) * VOXEL_SIZE;
+        let max_world = vec3(max.x as f32, max.y as f32, max.z as f32) * VOXEL_SIZE;
+        (min_world, max_world)
+    }
+
     fn try_pick_block_in_world(&self, ray_origin: Vec3, ray_direction: Vec3) -> Option<(Vec3, VoxelKind)> {
 
         // #FIXME: this hardcoding is kinda funky but lol
@@ -160,6 +167,7 @@ trait VoxelWorld : Send + Sync + 'static {
     fn try_pick_block_in_world(&self, ray_origin: Vec3, ray_direction: Vec3) -> Option<(Vec3, VoxelKind)>;
     fn blocks<'a>(&'a self) -> Box<dyn Iterator<Item=(&IVec3, &Voxel)> + 'a>;
     fn get_block(&self, position: IVec3) -> VoxelKind;
+    fn get_world_bounds(&self) -> (Vec3, Vec3);
     fn get_block_bounds(&self) -> (IVec3, IVec3);
     fn get_bounds(&self) -> Aabb;
 
@@ -223,7 +231,7 @@ impl VoxelWorldShape {
                         // #FIXME: fill me in!
                         let feature_id = 0u32;
                         
-                        let result = f(&world_block_pos, feature_id, &self.cube(world_block_pos));
+                        let result = f(&world_block_pos, feature_id, &self.cube());
                         if !result {
                             return;
                         }
@@ -253,7 +261,7 @@ impl VoxelWorldShape {
         (self.coords_to_index(coords) * feature_id as i32) as u32
     }
 
-    pub fn cube(&self, coords: IVec3) -> Cuboid {
+    pub fn cube(&self) -> Cuboid {
         Cuboid::new(
             Vector::new(
                 VOXEL_SIZE * 0.5,
@@ -1286,7 +1294,7 @@ fn render_voxel_world(voxel_world: &dyn VoxelWorld) {
 
     for (&pos, &voxel) in voxel_world.blocks() {
 
-        let render_position = vec3(pos.x as f32, pos.y as f32, pos.z as f32);
+        let render_position = vec3(pos.x as f32, pos.y as f32, pos.z as f32) * VOXEL_SIZE;
         if is_voxel_occluded(voxel_world, pos) { continue; }
 
         match voxel.kind {
@@ -1324,12 +1332,9 @@ fn render_physics_objects(physics_world: &PhysicsWorld) {
 
 fn render_voxel_world_bounds(voxel_world: &dyn VoxelWorld) {
 
-    let (voxel_world_bounds_min, voxel_world_bounds_max) = voxel_world.get_block_bounds();
-    let voxel_world_render_bounds_min = vec3(voxel_world_bounds_min.x as f32, voxel_world_bounds_min.y as f32, voxel_world_bounds_min.z as f32);
-    let voxel_world_render_bounds_max = vec3(voxel_world_bounds_max.x as f32, voxel_world_bounds_max.y as f32, voxel_world_bounds_max.z as f32);
-
-    let voxel_world_render_bounds_center = ((voxel_world_render_bounds_min + voxel_world_render_bounds_max) / 2.0) - Vec3::splat(VOXEL_SIZE) / 2.0;
-    let voxel_world_render_bounds_size = voxel_world_render_bounds_max - voxel_world_render_bounds_min;
+    let (voxel_world_bounds_min, voxel_world_bounds_max) = voxel_world.get_world_bounds();
+    let voxel_world_render_bounds_center = ((voxel_world_bounds_min + voxel_world_bounds_max) / 2.0) - Vec3::splat(VOXEL_SIZE) / 2.0;
+    let voxel_world_render_bounds_size = voxel_world_bounds_max - voxel_world_bounds_min;
 
     draw_cube_wires(voxel_world_render_bounds_center, voxel_world_render_bounds_size, BLACK);
 
@@ -1425,12 +1430,13 @@ fn render_physics_contacts(game: &mut Game) {
 fn initialize_world(game: &mut Game) {
 
     let voxel_world_size = 8;
+    let voxel_world_render_size = voxel_world_size as f32 * VOXEL_SIZE;
 
     // recreate the physics world
     game.physics_world = PhysicsWorld::new();
 
     // calculate the center of the voxel world?
-    let voxel_world_center = vec3(voxel_world_size as f32, voxel_world_size as f32, voxel_world_size as f32) / 2.0;
+    let voxel_world_center = vec3(voxel_world_render_size, voxel_world_render_size, voxel_world_render_size) / 2.0;
 
     // generate a very basic world
     let mut basic_voxel_world = VoxelWorldSimple::new();
@@ -1441,7 +1447,7 @@ fn initialize_world(game: &mut Game) {
     game.physics_world.add_voxel_world(VoxelWorldShape { world: game.voxel_world.clone() });
 
     // set the camera position and target
-    game.camera.position = vec3(0.0, (voxel_world_size * 2) as f32, -(voxel_world_size as f32 * 0.75));
+    game.camera.position = vec3(0.0, (voxel_world_render_size * 2.0) as f32, -(voxel_world_render_size as f32 * 0.75));
     game.camera.target = voxel_world_center;
 
     // set camera speed
