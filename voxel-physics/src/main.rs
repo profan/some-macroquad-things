@@ -1462,9 +1462,9 @@ fn handle_toggle_debug_parameters(game: &mut Game) {
 }
 
 /// Draws all current physics contacts, contacts are in world space.
-fn render_physics_contacts(game: &mut Game) {
+fn render_physics_contacts(physics_world: &PhysicsWorld) {
 
-    let contacts = game.physics_world.contact_points();
+    let contacts = physics_world.contact_points();
 
     for contact_world_position in contacts {
         let contact_sphere_size = 0.1;
@@ -1545,7 +1545,14 @@ async fn main() {
         handle_toggle_debug_parameters(&mut game);
 
         if game.debug_parameters.should_show_contacts {
-            render_physics_contacts(&mut game);
+            game.debug_text.benchmark_execution(
+                || {
+                    render_physics_contacts(&mut game.physics_world);
+                },
+                "render_physics_contacts",
+                TextPosition::TopRight,
+                BLACK
+            );
         }
 
         // render current picked block, if any
