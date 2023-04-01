@@ -109,7 +109,7 @@ pub fn draw_cube_wires_ex(position: Vec3, rotation: Quat, size: Vec3, color: Col
 
 }
 
-pub fn draw_sphere_ex_with_rotation(center: Vec3, rotation: Quat, radius: f32, texture: Option<Texture2D>, color: Color) {
+pub fn draw_sphere_ex_with_rotation(center: Vec3, rotation: Quat, radius: f32, texture: Option<Texture2D>, color: Color, params: DrawSphereParams) {
 
     unsafe {
 
@@ -121,7 +121,7 @@ pub fn draw_sphere_ex_with_rotation(center: Vec3, rotation: Quat, radius: f32, t
 
     }
 
-    draw_sphere(vec3(0.0, 0.0, 0.0), radius, texture, color);
+    draw_sphere_ex(vec3(0.0, 0.0, 0.0), radius, texture, color, params);
 
     unsafe {
         let context = get_internal_gl().quad_gl;
@@ -130,7 +130,7 @@ pub fn draw_sphere_ex_with_rotation(center: Vec3, rotation: Quat, radius: f32, t
 
 }
 
-pub fn draw_sphere_wires_ex(center: Vec3, rotation: Quat, radius: f32, color: Color) {
+pub fn draw_sphere_wires_ex(center: Vec3, rotation: Quat, radius: f32, color: Color, params: DrawSphereParams) {
 
     unsafe {
 
@@ -142,7 +142,7 @@ pub fn draw_sphere_wires_ex(center: Vec3, rotation: Quat, radius: f32, color: Co
 
     }
 
-    draw_sphere_wires(vec3(0.0, 0.0, 0.0), radius, None, color);
+    draw_sphere_ex(vec3(0.0, 0.0, 0.0), radius, None, color, DrawSphereParams { rings: params.rings, slices: params.slices, draw_mode: DrawMode::Lines });
 
     unsafe {
         let context = get_internal_gl().quad_gl;

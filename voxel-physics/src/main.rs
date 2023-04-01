@@ -1340,8 +1340,9 @@ fn render_physics_object(rigid_body: &RigidBody, shape: &dyn Shape) {
             vec3(body_isometry.translation.x, body_isometry.translation.y, body_isometry.translation.z),
             quat(body_quat.x, body_quat.y, body_quat.z, body_quat.w),
             ball.radius,
-            BLACK.lighten(0.25)
-        ); 
+            BLACK.lighten(0.25),
+            DrawSphereParams { rings: 8, slices: 8, ..Default::default() }
+        );
     }
 
     if let Some(cuboid) = shape.as_cuboid() {
