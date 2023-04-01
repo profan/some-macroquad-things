@@ -1201,9 +1201,6 @@ impl PhysicsWorld {
 
 }
 
-pub struct GameWorld {
-}
-
 pub struct Game {
 
     camera: GameCamera,
@@ -1243,7 +1240,7 @@ impl Game {
     }
 }
 
-fn handle_camera_input(active: &mut GameCamera, last_mouse_position: Vec2, dt: f32) {
+fn handle_camera_input(active: &mut GameCamera, dt: f32) {
 
     let is_forwards_pressed = is_key_down(KeyCode::W);
     let is_backwards_pressed = is_key_down(KeyCode::S);
@@ -1511,7 +1508,6 @@ fn initialize_world(game: &mut Game) {
 async fn main() {
 
     let mut game = Game::new();
-    let mut last_mouse_position = mouse_position().into();
 
     initialize_world(&mut game);
 
@@ -1559,7 +1555,7 @@ async fn main() {
         render_current_block_under_mouse(&mut game);
 
         // update camera position etc
-        handle_camera_input(&mut game.camera, last_mouse_position, dt);
+        handle_camera_input(&mut game.camera, dt);
 
         // handle spawning shit
         handle_spawn_object_on_click(&mut game);
