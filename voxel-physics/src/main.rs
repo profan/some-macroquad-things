@@ -1462,11 +1462,12 @@ fn render_physics_contacts(game: &mut Game) {
 
     for contact_world_position in contacts {
         let contact_sphere_size = 0.1;
-        draw_sphere(
+        draw_sphere_ex(
             vec3(contact_world_position.x, contact_world_position.y, contact_world_position.z),
             contact_sphere_size,
             None,
-            RED
+            RED,
+            DrawSphereParams { rings: 8, slices: 8, draw_mode: DrawMode::Triangles }
         );
     }
 
