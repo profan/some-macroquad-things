@@ -1,11 +1,11 @@
 #![feature(associated_type_defaults)]
 
-use std::{collections::{HashMap, hash_map}, sync::Arc};
+use std::{collections::{HashMap, hash_map}, sync::Arc, f32::consts::PI, ops::Neg};
 use macroquad::{prelude::{*}, rand::gen_range};
 
-use rapier3d::{prelude::{CCDSolver, MultibodyJointSet, ImpulseJointSet, ColliderSet, RigidBodySet, BroadPhase, IslandManager, PhysicsPipeline, IntegrationParameters, Vector, Real, NarrowPhase, vector, Aabb, Shape, MassProperties, ShapeType, TypedShape, RayIntersection, Ray, PointProjection, FeatureId, Point, Cuboid, Isometry, TOI, SimdCompositeShape, RigidBodyBuilder, ColliderBuilder, RigidBodyHandle, SharedShape}, parry::{bounding_volume::{BoundingSphere, BoundingVolume}, query::{PointQuery, RayCast, DefaultQueryDispatcher, QueryDispatcher, ClosestPoints, Unsupported, Contact, NonlinearRigidMotion, ContactManifoldsWorkspace, PersistentQueryDispatcher, TypedWorkspaceData, WorkspaceData, visitors::BoundingVolumeIntersectionsVisitor, ContactManifold}, utils::IsometryOpt}};
-use nalgebra::{self, Point3};
-use utility::{GameCamera, create_camera_from_game_camera, DebugText, TextPosition, BenchmarkWithDebugText, voxel_traversal_3d, AdjustHue, draw_cube_ex, WithAlpha};
+use rapier3d::{prelude::{CCDSolver, MultibodyJointSet, ImpulseJointSet, ColliderSet, RigidBodySet, BroadPhase, IslandManager, PhysicsPipeline, IntegrationParameters, Vector, Real, NarrowPhase, vector, Aabb, Shape, MassProperties, ShapeType, TypedShape, RayIntersection, Ray, PointProjection, FeatureId, Point, Cuboid, Isometry, TOI, SimdCompositeShape, RigidBodyBuilder, ColliderBuilder, RigidBodyHandle, SharedShape, Translation}, parry::{bounding_volume::{BoundingSphere, BoundingVolume}, query::{PointQuery, RayCast, DefaultQueryDispatcher, QueryDispatcher, ClosestPoints, Unsupported, Contact, NonlinearRigidMotion, ContactManifoldsWorkspace, PersistentQueryDispatcher, TypedWorkspaceData, WorkspaceData, visitors::BoundingVolumeIntersectionsVisitor, ContactManifold}, utils::IsometryOpt}};
+use nalgebra::{self, Point3, Quaternion, UnitQuaternion};
+use utility::{GameCamera, create_camera_from_game_camera, DebugText, TextPosition, BenchmarkWithDebugText, voxel_traversal_3d, AdjustHue, draw_cube_ex, WithAlpha, draw_sphere_wires_ex};
 
 const WORLD_UP: Vec3 = Vec3::Y;
 
@@ -402,11 +402,8 @@ impl RayCast for VoxelWorldShape {
 
 }
 
-fn with_translation_for_voxel(pos: &Isometry<Real>, coords: IVec3) -> Isometry<Real>
+fn voxel_translation(coords: IVec3) -> Translation<Real>
 {
-
-    let half_offset = VOXEL_SIZE * 0.5;
-    let half_offset_v = Vector::new(0.0, 0.0, 0.0);
 
     let block_offset = Vector::new(
         coords.x as f32 * VOXEL_SIZE,
@@ -414,19 +411,9 @@ fn with_translation_for_voxel(pos: &Isometry<Real>, coords: IVec3) -> Isometry<R
         coords.z as f32 * VOXEL_SIZE
     );
 
-    let relative_offset = pos.translation.vector - block_offset;
-    let final_offset = relative_offset - half_offset_v;
+    let final_offset = block_offset;
+    final_offset.into()
 
-    Isometry::from_parts(
-        final_offset.into(),
-        pos.rotation
-    )
-
-}
-
-fn with_translation_for_voxel_as_vector(pos: &Isometry<Real>, coords: IVec3) -> Vector<f32> {
-    let t = with_translation_for_voxel(pos, coords);
-    Vector::new(t.translation.x, t.translation.y, t.translation.z)
 }
 
 fn intersects(pos12: &Isometry<Real>, world: &VoxelWorldShape, other: &dyn Shape) -> bool {
@@ -435,11 +422,15 @@ fn intersects(pos12: &Isometry<Real>, world: &VoxelWorldShape, other: &dyn Shape
     let bounds = other.compute_bounding_sphere(pos12);
     let mut intersects = false;
     world.map_elements_in_local_sphere(&bounds, |coords, _, cuboid| {
-        let pos12 = &with_translation_for_voxel(pos12, *coords);
+        
+        let relative_pos12 = voxel_translation(*coords).inverse() * pos12;
+
         intersects = dispatcher
-            .intersection_test(&pos12, cuboid, other)
+            .intersection_test(&relative_pos12, cuboid, other)
             .unwrap_or(false);
+
         !intersects
+
     });
     intersects
 }
@@ -697,7 +688,11 @@ fn compute_manifolds<ManifoldData, ContactData>(
         };
 
         let manifold = &mut manifolds[voxel_state.manifold_index];
-        let pos12 = &with_translation_for_voxel(pos12, coords);
+    
+        // translate current position to one accurate for local space given our current voxel being tested against
+
+        let mut pos12 = *pos12;
+        pos12.append_translation_mut(&voxel_translation(coords).inverse());
 
         // TODO: Nonconvex, postprocess contact `fid`s once parry's feature ID story is worked out
         if flipped {
@@ -710,35 +705,39 @@ fn compute_manifolds<ManifoldData, ContactData>(
                 manifold,
             );
 
-            if manifold.points.len() > 0 {
-                for p in &mut manifold.points {
+            // translate contacts back to positions accurate in world space to the shape
 
-                    // #FIXME: these transformations are in the local spaces of the other shape, so this is all kinds of fucked up
-                    p.local_p1 -= with_translation_for_voxel_as_vector(pos12, coords) + Vector::new(0.0, VOXEL_SIZE * 0.5, 0.0);
-                    p.local_p2 += with_translation_for_voxel_as_vector(pos12, coords) + Vector::new(0.0, VOXEL_SIZE * 0.5, 0.0);
+            for p in &mut manifold.points {
 
-                }
+                let local_p1_adjusted = voxel_translation(coords).inverse() * p.local_p1;
+                let local_p2_adjusted = voxel_translation(coords) * p.local_p2;
+
+                p.local_p1 = local_p1_adjusted;
+                p.local_p2 = local_p2_adjusted;
+
             }
 
         } else {
 
             let _ = dispatcher
                 .contact_manifold_convex_convex(
-                    pos12,
+                    &pos12,
                     cuboid,
                     other,
                     prediction,
                     manifold
                 );
 
-            if manifold.points.len() > 0 {
-                for p in &mut manifold.points {
+            // translate contacts back to positions accurate in world space to the shape
 
-                    // #FIXME: these transformations are in the local spaces of the other shape, so this is all kinds of fucked up
-                    p.local_p1 -= with_translation_for_voxel_as_vector(&pos12.inverse(), coords) + Vector::new(0.0, VOXEL_SIZE * 0.5, 0.0);
-                    p.local_p2 += with_translation_for_voxel_as_vector(&pos12.inverse(), coords) + Vector::new(0.0, VOXEL_SIZE * 0.5, 0.0);
+            for p in &mut manifold.points {
 
-                }
+                let local_p1_adjusted = voxel_translation(coords) * p.local_p1;
+                let local_p2_adjusted = voxel_translation(coords).inverse() * p.local_p2;
+
+                p.local_p1 = local_p1_adjusted;
+                p.local_p2 = local_p2_adjusted;
+
             }
 
         }
@@ -1004,6 +1003,7 @@ impl PhysicsWorld {
             .ccd_enabled(true)
             .can_sleep(false)
             .translation(Vector::new(position.x, position.y, position.z))
+            .rotation(Vector::new(0.0, PI, 0.0))
             .build();
 
         let collider = ColliderBuilder::cuboid(box_half_size, box_half_size,box_half_size).restitution(box_restitution).build();
@@ -1024,6 +1024,7 @@ impl PhysicsWorld {
             .ccd_enabled(true)
             .can_sleep(false)
             .translation(Vector::new(position.x, position.y, position.z))
+            .rotation(Vector::new(0.0, PI, 0.0))
             .build();
 
         let collider = ColliderBuilder::ball(ball_radius).restitution(ball_restitution).build();
@@ -1341,10 +1342,10 @@ fn render_physics_objects(physics_world: &PhysicsWorld) {
         let body_quat = body_rotation.coords;
 
         if is_ball {
-            draw_sphere(
+            draw_sphere_wires_ex(
                 vec3(body_isometry.translation.x, body_isometry.translation.y, body_isometry.translation.z),
+                quat(body_quat.x, body_quat.y, body_quat.z, body_quat.w),
                 0.5,
-                None,
                 BLACK.lighten(0.25)
             ); 
         }

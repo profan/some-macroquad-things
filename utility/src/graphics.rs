@@ -216,3 +216,45 @@ pub fn draw_cube_ex(position: Vec3, size: Vec3, rotation: Quat, texture: Option<
     }
 
 }
+
+pub fn draw_sphere_ex_with_rotation(center: Vec3, rotation: Quat, radius: f32, texture: Option<Texture2D>, color: Color) {
+
+    unsafe {
+
+        let context = get_internal_gl().quad_gl;
+        context.texture(None);
+
+        // because we're applying the rotation and translation here now, use x, y, z as if the sphere was at the origin now.
+        context.push_model_matrix(Mat4::from_rotation_translation(rotation, center));
+
+    }
+
+    draw_sphere(vec3(0.0, 0.0, 0.0), radius, texture, color);
+
+    unsafe {
+        let context = get_internal_gl().quad_gl;
+        context.pop_model_matrix();
+    }
+
+}
+
+pub fn draw_sphere_wires_ex(center: Vec3, rotation: Quat, radius: f32, color: Color) {
+
+    unsafe {
+
+        let context = get_internal_gl().quad_gl;
+        context.texture(None);
+
+        // because we're applying the rotation and translation here now, use x, y, z as if the sphere was at the origin now.
+        context.push_model_matrix(Mat4::from_rotation_translation(rotation, center));
+
+    }
+
+    draw_sphere_wires(vec3(0.0, 0.0, 0.0), radius, None, color);
+
+    unsafe {
+        let context = get_internal_gl().quad_gl;
+        context.pop_model_matrix();
+    }
+
+}
