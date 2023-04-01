@@ -3,7 +3,7 @@
 use std::{collections::{HashMap, hash_map}, sync::Arc, f32::consts::PI, ops::Neg};
 use macroquad::{prelude::{*}, rand::gen_range};
 
-use rapier3d::{prelude::{CCDSolver, MultibodyJointSet, ImpulseJointSet, ColliderSet, RigidBodySet, BroadPhase, IslandManager, PhysicsPipeline, IntegrationParameters, Vector, Real, NarrowPhase, vector, Aabb, Shape, MassProperties, ShapeType, TypedShape, RayIntersection, Ray, PointProjection, FeatureId, Point, Cuboid, Isometry, TOI, SimdCompositeShape, RigidBodyBuilder, ColliderBuilder, RigidBodyHandle, SharedShape, Translation}, parry::{bounding_volume::{BoundingSphere, BoundingVolume}, query::{PointQuery, RayCast, DefaultQueryDispatcher, QueryDispatcher, ClosestPoints, Unsupported, Contact, NonlinearRigidMotion, ContactManifoldsWorkspace, PersistentQueryDispatcher, TypedWorkspaceData, WorkspaceData, visitors::BoundingVolumeIntersectionsVisitor, ContactManifold}, utils::IsometryOpt}};
+use rapier3d::{prelude::{CCDSolver, MultibodyJointSet, ImpulseJointSet, ColliderSet, RigidBodySet, BroadPhase, IslandManager, PhysicsPipeline, IntegrationParameters, Vector, Real, NarrowPhase, vector, Aabb, Shape, MassProperties, ShapeType, TypedShape, RayIntersection, Ray, PointProjection, FeatureId, Point, Cuboid, Isometry, TOI, SimdCompositeShape, RigidBodyBuilder, ColliderBuilder, RigidBodyHandle, SharedShape, Translation, RigidBody}, parry::{bounding_volume::{BoundingSphere, BoundingVolume}, query::{PointQuery, RayCast, DefaultQueryDispatcher, QueryDispatcher, ClosestPoints, Unsupported, Contact, NonlinearRigidMotion, ContactManifoldsWorkspace, PersistentQueryDispatcher, TypedWorkspaceData, WorkspaceData, visitors::BoundingVolumeIntersectionsVisitor, ContactManifold}, utils::IsometryOpt}};
 use nalgebra::{self, Point3, Quaternion, UnitQuaternion};
 use utility::{GameCamera, create_camera_from_game_camera, DebugText, TextPosition, BenchmarkWithDebugText, voxel_traversal_3d, AdjustHue, draw_cube_ex, WithAlpha, draw_sphere_wires_ex, draw_cube_wires_ex};
 
@@ -996,7 +996,7 @@ impl PhysicsWorld {
 
     pub fn add_box(&mut self, position: Vec3) -> RigidBodyHandle {
 
-        let box_half_size = 0.5;
+        let box_half_size = 0.5 - 0.1;
         let box_restitution = 0.7;
 
         let rigid_body = RigidBodyBuilder::dynamic()
@@ -1006,7 +1006,7 @@ impl PhysicsWorld {
             .rotation(Vector::new(0.0, PI, 0.0))
             .build();
 
-        let collider = ColliderBuilder::cuboid(box_half_size, box_half_size,box_half_size).restitution(box_restitution).build();
+        let collider = ColliderBuilder::cuboid(box_half_size, box_half_size, box_half_size).restitution(box_restitution).build();
         let ball_body_handle = self.state.rigid_body_set.insert(rigid_body);
 
         self.state.collider_set.insert_with_parent(collider, ball_body_handle, &mut self.state.rigid_body_set);
@@ -1017,7 +1017,7 @@ impl PhysicsWorld {
 
     pub fn add_ball(&mut self, position: Vec3) -> RigidBodyHandle {
 
-        let ball_radius = 0.5;
+        let ball_radius = 0.5 - 0.1;
         let ball_restitution = 0.7;
 
         let rigid_body = RigidBodyBuilder::dynamic()
@@ -1329,34 +1329,40 @@ fn render_voxel_world(voxel_world: &dyn VoxelWorld) {
 
 }
 
+fn render_physics_object(rigid_body: &RigidBody, shape: &dyn Shape) {
+
+    let body_isometry = rigid_body.position();
+    let body_rotation = rigid_body.rotation();
+    let body_quat = body_rotation.coords;
+
+    if let Some(ball) = shape.as_ball() {
+        draw_sphere_wires_ex(
+            vec3(body_isometry.translation.x, body_isometry.translation.y, body_isometry.translation.z),
+            quat(body_quat.x, body_quat.y, body_quat.z, body_quat.w),
+            ball.radius,
+            BLACK.lighten(0.25)
+        ); 
+    }
+
+    if let Some(cuboid) = shape.as_cuboid() {
+        let cuboid_size = vec3(cuboid.half_extents.x * 2.0, cuboid.half_extents.y * 2.0, cuboid.half_extents.z * 2.0);
+        draw_cube_wires_ex(
+            vec3(body_isometry.translation.x, body_isometry.translation.y, body_isometry.translation.z),
+            quat(body_quat.x, body_quat.y, body_quat.z, body_quat.w),
+            cuboid_size,
+            BLACK.lighten(0.25)
+        );
+    }
+
+}
+
 fn render_physics_objects(physics_world: &PhysicsWorld) {
 
     for (_rigid_body_handle, rigid_body) in physics_world.state.rigid_body_set.iter() {
 
-        let physics_shape = physics_world.state.collider_set.get(rigid_body.colliders()[0]).unwrap().shape();
-        let is_ball = physics_shape.as_ball().is_some();
-        let is_box = physics_shape.as_cuboid().is_some();
-
-        let body_isometry = rigid_body.position();
-        let body_rotation = rigid_body.rotation();
-        let body_quat = body_rotation.coords;
-
-        if is_ball {
-            draw_sphere_wires_ex(
-                vec3(body_isometry.translation.x, body_isometry.translation.y, body_isometry.translation.z),
-                quat(body_quat.x, body_quat.y, body_quat.z, body_quat.w),
-                0.5,
-                BLACK.lighten(0.25)
-            ); 
-        }
-
-        if is_box {
-            draw_cube_wires_ex(
-                vec3(body_isometry.translation.x, body_isometry.translation.y, body_isometry.translation.z),
-                quat(body_quat.x, body_quat.y, body_quat.z, body_quat.w),
-                vec3(1.0, 1.0, 1.0),
-                BLACK.lighten(0.25)
-            );
+        for &collider in rigid_body.colliders() {
+            let physics_shape = physics_world.state.collider_set.get(collider).unwrap().shape();
+            render_physics_object(rigid_body, physics_shape);
         }
 
     }
