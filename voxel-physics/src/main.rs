@@ -5,7 +5,7 @@ use macroquad::{prelude::{*}, rand::gen_range};
 
 use rapier3d::{prelude::{CCDSolver, MultibodyJointSet, ImpulseJointSet, ColliderSet, RigidBodySet, BroadPhase, IslandManager, PhysicsPipeline, IntegrationParameters, Vector, Real, NarrowPhase, vector, Aabb, Shape, MassProperties, ShapeType, TypedShape, RayIntersection, Ray, PointProjection, FeatureId, Point, Cuboid, Isometry, TOI, SimdCompositeShape, RigidBodyBuilder, ColliderBuilder, RigidBodyHandle, SharedShape, Translation}, parry::{bounding_volume::{BoundingSphere, BoundingVolume}, query::{PointQuery, RayCast, DefaultQueryDispatcher, QueryDispatcher, ClosestPoints, Unsupported, Contact, NonlinearRigidMotion, ContactManifoldsWorkspace, PersistentQueryDispatcher, TypedWorkspaceData, WorkspaceData, visitors::BoundingVolumeIntersectionsVisitor, ContactManifold}, utils::IsometryOpt}};
 use nalgebra::{self, Point3, Quaternion, UnitQuaternion};
-use utility::{GameCamera, create_camera_from_game_camera, DebugText, TextPosition, BenchmarkWithDebugText, voxel_traversal_3d, AdjustHue, draw_cube_ex, WithAlpha, draw_sphere_wires_ex};
+use utility::{GameCamera, create_camera_from_game_camera, DebugText, TextPosition, BenchmarkWithDebugText, voxel_traversal_3d, AdjustHue, draw_cube_ex, WithAlpha, draw_sphere_wires_ex, draw_cube_wires_ex};
 
 const WORLD_UP: Vec3 = Vec3::Y;
 
@@ -1351,11 +1351,10 @@ fn render_physics_objects(physics_world: &PhysicsWorld) {
         }
 
         if is_box {
-            draw_cube_ex(
+            draw_cube_wires_ex(
                 vec3(body_isometry.translation.x, body_isometry.translation.y, body_isometry.translation.z),
-                vec3(1.0, 1.0, 1.0),
                 quat(body_quat.x, body_quat.y, body_quat.z, body_quat.w),
-                None,
+                vec3(1.0, 1.0, 1.0),
                 BLACK.lighten(0.25)
             );
         }
