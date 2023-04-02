@@ -150,3 +150,17 @@ pub fn draw_sphere_wires_ex(center: Vec3, rotation: Quat, radius: f32, color: Co
     }
 
 }
+
+pub fn draw_plane_ex(center: Vec3, size: Vec2, texture: Option<Texture2D>, color: Color, uv_scale: f32) {
+
+    let half_x = size.x / 2.0;
+    let half_y = size.y / 2.0;
+
+    let a = center + vec3(-half_x, 0.0, -half_y);
+    let b = center + vec3(half_x, 0.0, -half_y);
+    let c = center + vec3(half_x, 0.0, half_y);
+    let d = center + vec3(-half_x, 0.0, half_y);
+
+    draw_quad_3d_ex(a, b, c, d, texture, color, uv_scale);
+
+}
