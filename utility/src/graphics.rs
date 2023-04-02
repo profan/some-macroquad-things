@@ -164,3 +164,24 @@ pub fn draw_plane_ex(center: Vec3, size: Vec2, texture: Option<Texture2D>, color
     draw_quad_3d_ex(a, b, c, d, texture, color, uv_scale);
 
 }
+
+pub fn draw_grid_ex(center: Vec3, rotation: Quat, slices: u32, spacing: f32, axes_color: Color, other_color: Color) {
+
+    unsafe {
+
+        let context = get_internal_gl().quad_gl;
+        context.texture(None);
+
+        // because we're applying the rotation and translation here now, use x, y, z as if the sphere was at the origin now.
+        context.push_model_matrix(Mat4::from_rotation_translation(rotation, center));
+
+    }
+
+    draw_grid(slices, spacing, axes_color, other_color);
+
+    unsafe {
+        let context = get_internal_gl().quad_gl;
+        context.pop_model_matrix();
+    }
+
+}
