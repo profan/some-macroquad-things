@@ -10,4 +10,3 @@ edition = "2021"
 utility = { path = "../utility" }
 macroquad = "0.3.24"
 petgraph = "0.6.2"
-hecs = "0.9.0"
