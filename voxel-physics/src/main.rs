@@ -1394,13 +1394,42 @@ fn render_debug_text(game: &mut Game) {
 }
 
 fn try_pick_block_in_world(game: &mut Game) -> Option<(Vec3, VoxelKind)> {
+    let on_voxel_face = false;
+    try_pick_block_in_world_ex(game, on_voxel_face)
+}
+
+fn try_pick_block_in_world_ex(game: &mut Game, on_voxel_face: bool) -> Option<(Vec3, VoxelKind)> {
 
     let mouse_screen_pos: Vec2 = mouse_position().into();
     let near_target = game.camera.screen_to_world(mouse_screen_pos, 0.0).round() + VOXEL_DIMENSIONS / 2.0;
     let picking_dir = game.camera.screen_to_world_ray(mouse_screen_pos);
 
-    game.voxel_world.write()
-        .unwrap().try_pick_block_in_world(near_target, picking_dir)
+    let picked_block = game.voxel_world.write()
+        .unwrap().try_pick_block_in_world(near_target, picking_dir);
+
+    if on_voxel_face == false {
+
+        picked_block
+
+    } else {
+
+        if let Some((pos, _kind)) = picked_block {
+
+            let physics_ray_origin = Point::new(near_target.x, near_target.y, near_target.z);
+            let physics_ray_direction = Vector::new(picking_dir.x, picking_dir.y, picking_dir.z);
+            let physics_ray = Ray::new(physics_ray_origin, physics_ray_direction);
+    
+            let inferred_face_normal = VoxelWorldShape::infer_face_normal_from_ray(physics_ray);
+            let position_offset = vec3(inferred_face_normal.x, inferred_face_normal.y, inferred_face_normal.z);
+    
+            let position_infront_of_picked_block = pos + position_offset;
+            Some((position_infront_of_picked_block, _kind))
+
+        } else {
+            None
+        }
+
+    }
 
 }
 
@@ -1455,8 +1484,9 @@ fn handle_modify_block_on_click(game: &mut Game) {
 
         let should_set_air = was_left_mouse_pressed;
         let should_set_grass = was_right_mouse_pressed;
+        let should_use_face = should_set_grass;
 
-        if let Some((pos, _kind)) = try_pick_block_in_world(game) {
+        if let Some((pos, _kind)) = try_pick_block_in_world_ex(game, should_use_face) {
 
             let mut voxel_world_writer = game.voxel_world.write().unwrap();
             let voxel_position = ivec3(pos.x as i32, pos.y as i32, pos.z as i32);
