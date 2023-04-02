@@ -68,8 +68,17 @@ impl VoxelWorldSimple {
 
     }
 
+    pub fn get_block(&self, position: IVec3) -> VoxelKind {
+        self.blocks.get(&position).unwrap_or(&Voxel { kind: VoxelKind::Air }).kind
+    }
+
     pub fn set_block(&mut self, position: IVec3, kind: VoxelKind) {
+        
         self.blocks.insert(position, Voxel { kind: kind });
+
+        // # HACK: This is terrifically inefficient innit :D
+        self.update_world_bounds();
+
     }
 
     /// Extremely naive function that just updates the current calculated world bounds, this is fine with a small world size!
@@ -110,11 +119,11 @@ impl VoxelWorld for VoxelWorldSimple {
     }
 
     fn set_block(&mut self, position: IVec3, kind: VoxelKind) {
-        self.blocks.insert(position, Voxel { kind });
+        self.set_block(position, kind)
     }
 
     fn get_block(&self, position: IVec3) -> VoxelKind {
-        self.blocks.get(&position).unwrap_or(&Voxel { kind: VoxelKind::Air }).kind
+        self.get_block(position)
     }
 
     fn get_bounds(&self) -> Aabb {
