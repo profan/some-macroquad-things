@@ -167,6 +167,7 @@ fn ray_ray_intersection(origin_a: Vec2, direction_a: Vec2, origin_b: Vec2, direc
 
 }
 
+/// Clamps the number to the given range, returning min if less than min, max if greater than max, otherwise returning the original value.
 pub fn clamp<T : PartialOrd>(v: T, min: T, max: T) -> T {
     if v < min {
         min
@@ -177,6 +178,7 @@ pub fn clamp<T : PartialOrd>(v: T, min: T, max: T) -> T {
     }
 }
 
+/// Gets the intersection in the plane defined by the normal and origin, given the ray.
 pub fn intersect_ray_with_plane(ray_origin: Vec3, ray_direction: Vec3, plane_normal: Vec3, plane_origin: Vec3) -> Option<Vec3> {
 
     let denom = plane_normal.dot(ray_direction);
@@ -192,6 +194,7 @@ pub fn intersect_ray_with_plane(ray_origin: Vec3, ray_direction: Vec3, plane_nor
 
 }
 
+/// Projects a point in the plane defined by the normal and distance from the origin.
 pub fn project_point_on_plane(point: Vec3, normal: Vec3, d: f32) -> Vec3 {
 
     let proj_point = point - (normal.dot(point) + d);
@@ -200,6 +203,7 @@ pub fn project_point_on_plane(point: Vec3, normal: Vec3, d: f32) -> Vec3 {
 
 }
 
+/// Projects the point onto a sphere with a specific radius.
 pub fn project_point_on_sphere(point: Vec3, sphere_pos: Vec3, r: f32) -> Vec3 {
 
     let p = point - sphere_pos;
@@ -211,6 +215,7 @@ pub fn project_point_on_sphere(point: Vec3, sphere_pos: Vec3, r: f32) -> Vec3 {
 
 }
 
+/// Rotates the point using the origin as the pivot.
 pub fn rotate_relative_to_origin(origin: Vec3, point: Vec3, rotation: Quat) -> Vec3 {
 
     let t1 = point - origin;
@@ -221,6 +226,7 @@ pub fn rotate_relative_to_origin(origin: Vec3, point: Vec3, rotation: Quat) -> V
 
 }
 
+/// Returns the sign of the number, 1.0 if x > 0.0, -1.0 if x < 0.0, when x is 0 it returns 0.
 pub fn sign(x: f32) -> f32 {
     if x > 0.0 {
         1.0 
