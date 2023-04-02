@@ -1,6 +1,6 @@
 #![feature(associated_type_defaults)]
 
-use std::{collections::{HashMap, hash_map}, sync::Arc, f32::consts::PI, ops::Neg};
+use std::{collections::{HashMap, hash_map}, sync::{Arc, RwLock}, f32::consts::PI, ops::Neg};
 use macroquad::{prelude::{*}, rand::gen_range};
 
 use rapier3d::{prelude::{CCDSolver, MultibodyJointSet, ImpulseJointSet, ColliderSet, RigidBodySet, BroadPhase, IslandManager, PhysicsPipeline, IntegrationParameters, Vector, Real, NarrowPhase, vector, Aabb, Shape, MassProperties, ShapeType, TypedShape, RayIntersection, Ray, PointProjection, FeatureId, Point, Cuboid, Isometry, TOI, SimdCompositeShape, RigidBodyBuilder, ColliderBuilder, RigidBodyHandle, SharedShape, Translation, RigidBody}, parry::{bounding_volume::{BoundingSphere, BoundingVolume}, query::{PointQuery, RayCast, DefaultQueryDispatcher, QueryDispatcher, ClosestPoints, Unsupported, Contact, NonlinearRigidMotion, ContactManifoldsWorkspace, PersistentQueryDispatcher, TypedWorkspaceData, WorkspaceData, visitors::BoundingVolumeIntersectionsVisitor, ContactManifold}, utils::IsometryOpt}};
@@ -109,6 +109,10 @@ impl VoxelWorld for VoxelWorldSimple {
         Box::new(self.blocks.iter())
     }
 
+    fn set_block(&mut self, position: IVec3, kind: VoxelKind) {
+        self.blocks.insert(position, Voxel { kind });
+    }
+
     fn get_block(&self, position: IVec3) -> VoxelKind {
         self.blocks.get(&position).unwrap_or(&Voxel { kind: VoxelKind::Air }).kind
     }
@@ -166,6 +170,8 @@ trait VoxelWorld : Send + Sync + 'static {
 
     fn try_pick_block_in_world(&self, ray_origin: Vec3, ray_direction: Vec3) -> Option<(Vec3, VoxelKind)>;
     fn blocks<'a>(&'a self) -> Box<dyn Iterator<Item=(&IVec3, &Voxel)> + 'a>;
+
+    fn set_block(&mut self, position: IVec3, kind: VoxelKind);
     fn get_block(&self, position: IVec3) -> VoxelKind;
     fn get_world_bounds(&self) -> (Vec3, Vec3);
     fn get_block_bounds(&self) -> (IVec3, IVec3);
@@ -175,7 +181,7 @@ trait VoxelWorld : Send + Sync + 'static {
 
 #[derive(Clone)]
 pub struct VoxelWorldShape {
-    world: Arc<dyn VoxelWorld>
+    world: Arc<RwLock<dyn VoxelWorld>>
 }
 
 impl VoxelWorldShape {
@@ -187,7 +193,8 @@ impl VoxelWorldShape {
         let origin = vec3(ray.origin.x, ray.origin.y, ray.origin.z);
         let direction = vec3(ray.dir.x, ray.dir.y, ray.dir.z);
 
-        let (pos, _kind) = self.world.try_pick_block_in_world(origin, direction)?;
+        let voxel_world_reader = self.world.read().unwrap();
+        let (pos, _kind) = voxel_world_reader.try_pick_block_in_world(origin, direction)?;
         let toi = (pos - origin).length();
 
         if toi > max_toi {
@@ -216,17 +223,19 @@ impl VoxelWorldShape {
         let end_y = end.y.max(0.0).ceil() as i32;
         let end_z = end.z.max(0.0).ceil() as i32;
 
+        let voxel_world_reader = self.world.read().unwrap();
+
         for x in start_x..=end_x {
             for y in start_y..=end_y {
                 for z in start_z..=end_z {
 
                     let world_block_pos = ivec3(x, y, z);
-                    let is_within_bounds = self.world.get_bounds().contains_local_point(&Point::new(x as f32, y as f32, z as f32));
+                    let is_within_bounds = voxel_world_reader.get_bounds().contains_local_point(&Point::new(x as f32, y as f32, z as f32));
                     if !is_within_bounds {
                         continue;
                     }
 
-                    if self.world.get_block(world_block_pos) != VoxelKind::Air {
+                    if voxel_world_reader.get_block(world_block_pos) != VoxelKind::Air {
 
                         // #FIXME: fill me in!
                         let feature_id = 0u32;
@@ -245,12 +254,12 @@ impl VoxelWorldShape {
     }
 
     pub fn coords_to_index(&self, coords: IVec3) -> i32 {
-        let (_min, max) = self.world.get_block_bounds();
+        let (_min, max) = self.world.read().unwrap().get_block_bounds();
         (coords.z * max.x * max.y) + (coords.y * max.x) + coords.x
     }
 
     pub fn index_to_coords(&self, idx: i32) -> IVec3 {
-        let (_min, max) = self.world.get_block_bounds();
+        let (_min, max) = self.world.read().unwrap().get_block_bounds();
         let z = idx / (max.x * max.y);
         let y = (idx - (z * max.x * max.y)) / max.y;
         let x = (idx - (z * max.x * max.y)) % max.x;
@@ -302,11 +311,11 @@ impl VoxelWorldShape {
 impl Shape for VoxelWorldShape {
 
     fn compute_local_aabb(&self) -> Aabb {
-        self.world.get_bounds()
+        self.world.read().unwrap().get_bounds()
     }
 
     fn compute_local_bounding_sphere(&self) -> BoundingSphere {
-        self.world.get_bounds().bounding_sphere()
+        self.world.read().unwrap().get_bounds().bounding_sphere()
     }
 
     fn clone_box(&self) -> Box<dyn Shape> {
@@ -315,7 +324,7 @@ impl Shape for VoxelWorldShape {
 
     fn mass_properties(&self, density: Real) -> MassProperties {
         Cuboid {
-            half_extents: self.world.get_bounds().extents() / 2.0
+            half_extents: self.world.read().unwrap().get_bounds().extents() / 2.0
         }.mass_properties(density)
     }
 
@@ -341,7 +350,7 @@ impl PointQuery for VoxelWorldShape {
     
     fn project_local_point(&self, pt: &Point<Real>, solid: bool) -> PointProjection {
 
-        let contains_point = self.world.get_bounds().contains_local_point(pt);
+        let contains_point = self.world.read().unwrap().get_bounds().contains_local_point(pt);
 
         if solid && contains_point {
             return PointProjection {
@@ -358,7 +367,7 @@ impl PointQuery for VoxelWorldShape {
         -> (PointProjection, FeatureId) {
 
         let position = ivec3(pt.x as i32, pt.y as i32, pt.z as i32);
-        let is_current_block_not_air = self.world.get_block(position) != VoxelKind::Air;
+        let is_current_block_not_air = self.world.read().unwrap().get_block(position) != VoxelKind::Air;
 
         let point_projection = PointProjection {
             is_inside: is_current_block_not_air,
@@ -1205,7 +1214,7 @@ pub struct Game {
 
     camera: GameCamera,
     debug_text: DebugText,
-    voxel_world: Arc<dyn VoxelWorld>,
+    voxel_world: Arc<RwLock<dyn VoxelWorld>>,
     physics_world: PhysicsWorld,
 
     debug_parameters: GameDebugParameters
@@ -1230,7 +1239,7 @@ impl Game {
 
             camera: GameCamera::new(),
             debug_text: DebugText::new(),
-            voxel_world: Arc::new(VoxelWorldSimple::new()),
+            voxel_world: Arc::new(RwLock::new(VoxelWorldSimple::new())),
             physics_world: PhysicsWorld::new(),
 
             // purely debug specific stuff
@@ -1390,7 +1399,8 @@ fn try_pick_block_in_world(game: &mut Game) -> Option<(Vec3, VoxelKind)> {
     let near_target = game.camera.screen_to_world(mouse_screen_pos, 0.0).round() + VOXEL_DIMENSIONS / 2.0;
     let picking_dir = game.camera.screen_to_world_ray(mouse_screen_pos);
 
-    game.voxel_world.try_pick_block_in_world(near_target, picking_dir)
+    game.voxel_world.write()
+        .unwrap().try_pick_block_in_world(near_target, picking_dir)
 
 }
 
@@ -1409,8 +1419,9 @@ fn handle_spawn_object_on_click(game: &mut Game) {
 
     let was_left_mouse_pressed = is_mouse_button_pressed(MouseButton::Left);
     let was_right_mouse_pressed = is_mouse_button_pressed(MouseButton::Right);
+    let was_alt_pressed = is_key_down(KeyCode::LeftAlt);
 
-    if was_left_mouse_pressed || was_right_mouse_pressed {
+    if (was_left_mouse_pressed || was_right_mouse_pressed) && was_alt_pressed == false {
 
         let should_spawn_ball = was_left_mouse_pressed;
         let should_spawn_box = was_right_mouse_pressed;
@@ -1431,6 +1442,49 @@ fn handle_spawn_object_on_click(game: &mut Game) {
         }
 
     }
+
+}
+
+fn handle_modify_block_on_click(game: &mut Game) {
+
+    let was_left_mouse_pressed = is_mouse_button_pressed(MouseButton::Left);
+    let was_right_mouse_pressed = is_mouse_button_pressed(MouseButton::Right);
+    let was_alt_pressed = is_key_down(KeyCode::LeftAlt);
+
+    if (was_left_mouse_pressed || was_right_mouse_pressed) && was_alt_pressed {
+
+        let should_set_air = was_left_mouse_pressed;
+        let should_set_grass = was_right_mouse_pressed;
+
+        if let Some((pos, _kind)) = try_pick_block_in_world(game) {
+
+            let mut voxel_world_writer = game.voxel_world.write().unwrap();
+            let voxel_position = ivec3(pos.x as i32, pos.y as i32, pos.z as i32);
+
+            if should_set_air {
+                voxel_world_writer.set_block(voxel_position, VoxelKind::Air);
+            }
+
+            if should_set_grass {
+                voxel_world_writer.set_block(voxel_position, VoxelKind::Grass);
+            }
+
+        }
+
+    }
+
+}
+
+fn handle_spawning_objects_and_modifying_world(game: &mut Game) {
+
+    let is_left_alt_pressed = is_key_down(KeyCode::LeftAlt);
+
+    game.debug_text.draw_text("", TextPosition::TopLeft, BLACK);
+    game.debug_text.draw_text(format!("left/right click to remove/add blocks (with left alt held)"), TextPosition::TopLeft, BLACK);
+    game.debug_text.draw_text(format!("left/right click to spawn objects"), TextPosition::TopLeft, BLACK);
+
+    handle_spawn_object_on_click(game);
+    handle_modify_block_on_click(game);
 
 }
 
@@ -1490,7 +1544,7 @@ fn initialize_world(game: &mut Game) {
     // generate a very basic world
     let mut basic_voxel_world = VoxelWorldSimple::new();
     basic_voxel_world.generate_world(voxel_world_size, voxel_world_size, voxel_world_size);
-    game.voxel_world = Arc::new(basic_voxel_world);
+    game.voxel_world = Arc::new(RwLock::new(basic_voxel_world));
 
     // add the physical voxel world
     game.physics_world.add_voxel_world(VoxelWorldShape { world: game.voxel_world.clone() });
@@ -1521,8 +1575,9 @@ async fn main() {
         // render voxel world (and its bounds)
         game.debug_text.benchmark_execution(
             || {
-                render_voxel_world(game.voxel_world.as_ref());
-                render_voxel_world_bounds(game.voxel_world.as_ref());
+                let voxel_world_reader = game.voxel_world.read().unwrap();
+                render_voxel_world(&*voxel_world_reader);
+                render_voxel_world_bounds(&*voxel_world_reader);
             },
             "render_voxel_world",
             TextPosition::TopRight,
@@ -1557,8 +1612,8 @@ async fn main() {
         // update camera position etc
         handle_camera_input(&mut game.camera, dt);
 
-        // handle spawning shit
-        handle_spawn_object_on_click(&mut game);
+        // handle spawning shit, modifying
+        handle_spawning_objects_and_modifying_world(&mut game);
         
         // step physics world
         game.debug_text.benchmark_execution(
