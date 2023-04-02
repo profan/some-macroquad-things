@@ -708,15 +708,13 @@ fn compute_manifolds<ManifoldData, ContactData>(
         let manifold = &mut manifolds[voxel_state.manifold_index];
     
         // translate current position to one accurate for local space given our current voxel being tested against
-
-        let mut pos12 = *pos12;
-        pos12.append_translation_mut(&voxel_translation(coords).inverse());
+        let relative_pos12 = voxel_translation(coords).inverse() * pos12;
 
         // TODO: Nonconvex, postprocess contact `fid`s once parry's feature ID story is worked out
         if flipped {
 
             let _ = dispatcher.contact_manifold_convex_convex(
-                &pos12.inverse(),
+                &relative_pos12.inverse(),
                 other,
                 cuboid,
                 prediction,
@@ -739,7 +737,7 @@ fn compute_manifolds<ManifoldData, ContactData>(
 
             let _ = dispatcher
                 .contact_manifold_convex_convex(
-                    &pos12,
+                    &relative_pos12,
                     cuboid,
                     other,
                     prediction,
