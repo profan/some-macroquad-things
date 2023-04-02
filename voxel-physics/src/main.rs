@@ -129,8 +129,8 @@ impl VoxelWorld for VoxelWorldSimple {
     fn get_bounds(&self) -> Aabb {
         let (min, max) = self.bounds;
         Aabb {
-            mins: Point3::new(min.x as Real, min.y as Real, min.z as Real),
-            maxs: Point3::new(max.x as Real, max.y as Real, max.z as Real)
+            mins: Point3::new(min.x as Real, min.y as Real, min.z as Real) * VOXEL_SIZE,
+            maxs: Point3::new(max.x as Real, max.y as Real, max.z as Real) * VOXEL_SIZE
         }
     }
 
@@ -182,6 +182,7 @@ trait VoxelWorld : Send + Sync + 'static {
 
     fn set_block(&mut self, position: IVec3, kind: VoxelKind);
     fn get_block(&self, position: IVec3) -> VoxelKind;
+
     fn get_world_bounds(&self) -> (Vec3, Vec3);
     fn get_block_bounds(&self) -> (IVec3, IVec3);
     fn get_bounds(&self) -> Aabb;
@@ -1024,7 +1025,7 @@ impl PhysicsWorld {
 
         let collider = ColliderBuilder::cuboid(box_half_size, box_half_size, box_half_size)
             .restitution(box_restitution).build();
-        
+
         let ball_body_handle = self.state.rigid_body_set.insert(rigid_body);
 
         self.state.collider_set.insert_with_parent(collider, ball_body_handle, &mut self.state.rigid_body_set);
