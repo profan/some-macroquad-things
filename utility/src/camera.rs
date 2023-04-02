@@ -47,10 +47,12 @@ impl GameCamera {
         self.up.cross(self.forward()).normalize()
     }
 
+    /// Returns a normalized vector that points towards the projected world position.
     pub fn screen_to_world_ray(&self, screen_pos: Vec2) -> Vec3 {
         (self.screen_to_world(screen_pos, 1000.0) - self.screen_to_world(screen_pos, 0.0)).normalize()
     }
 
+    /// Returns the projected world position given a screen position and a depth.
     pub fn screen_to_world(&self, screen_pos: Vec2, depth: f32) -> Vec3 {
 
         let projection_matrix = self.projection_matrix();
@@ -74,8 +76,17 @@ impl GameCamera {
         
     }
 
-    pub fn world_to_screen(&self, pos: Vec3) -> Vec2 {
-        Vec2::ZERO
+    /// Returns the projected screen position of a given world position.
+    pub fn world_to_screen(&self, world_pos: Vec3) -> Vec2 {
+
+        let projection_matrix = self.projection_matrix();
+        let screen_pos = projection_matrix.project_point3(world_pos);
+
+        vec2(
+            (screen_pos.x / 2. + 0.5) * screen_width(),
+            (0.5 - screen_pos.y / 2.) * screen_height(),
+        )
+
     }
 
     pub fn projection_matrix(&self) -> Mat4 {
