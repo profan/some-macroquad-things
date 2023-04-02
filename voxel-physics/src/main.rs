@@ -1450,7 +1450,7 @@ fn handle_spawn_object_on_click(game: &mut Game) {
     let was_right_mouse_pressed = is_mouse_button_pressed(MouseButton::Right);
     let was_alt_pressed = is_key_down(KeyCode::LeftAlt);
 
-    if (was_left_mouse_pressed || was_right_mouse_pressed) && was_alt_pressed == false {
+    if (was_left_mouse_pressed || was_right_mouse_pressed) && was_alt_pressed {
 
         let should_spawn_ball = was_left_mouse_pressed;
         let should_spawn_box = was_right_mouse_pressed;
@@ -1480,7 +1480,7 @@ fn handle_modify_block_on_click(game: &mut Game) {
     let was_right_mouse_pressed = is_mouse_button_pressed(MouseButton::Right);
     let was_alt_pressed = is_key_down(KeyCode::LeftAlt);
 
-    if (was_left_mouse_pressed || was_right_mouse_pressed) && was_alt_pressed {
+    if (was_left_mouse_pressed || was_right_mouse_pressed) && was_alt_pressed == false {
 
         let should_set_air = was_left_mouse_pressed;
         let should_set_grass = was_right_mouse_pressed;
@@ -1507,11 +1507,9 @@ fn handle_modify_block_on_click(game: &mut Game) {
 
 fn handle_spawning_objects_and_modifying_world(game: &mut Game) {
 
-    let is_left_alt_pressed = is_key_down(KeyCode::LeftAlt);
-
     game.debug_text.draw_text("", TextPosition::TopLeft, BLACK);
-    game.debug_text.draw_text(format!("left/right click to remove/add blocks (with left alt held)"), TextPosition::TopLeft, BLACK);
-    game.debug_text.draw_text(format!("left/right click to spawn objects"), TextPosition::TopLeft, BLACK);
+    game.debug_text.draw_text(format!("left/right click to spawn objects (with left alt held)"), TextPosition::TopLeft, BLACK);
+    game.debug_text.draw_text(format!("left/right click to remove/add blocks"), TextPosition::TopLeft, BLACK);
 
     handle_spawn_object_on_click(game);
     handle_modify_block_on_click(game);
