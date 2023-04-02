@@ -1022,7 +1022,9 @@ impl PhysicsWorld {
             .rotation(Vector::new(0.0, PI, 0.0))
             .build();
 
-        let collider = ColliderBuilder::cuboid(box_half_size, box_half_size, box_half_size).restitution(box_restitution).build();
+        let collider = ColliderBuilder::cuboid(box_half_size, box_half_size, box_half_size)
+            .restitution(box_restitution).build();
+        
         let ball_body_handle = self.state.rigid_body_set.insert(rigid_body);
 
         self.state.collider_set.insert_with_parent(collider, ball_body_handle, &mut self.state.rigid_body_set);
@@ -1043,7 +1045,9 @@ impl PhysicsWorld {
             .rotation(Vector::new(0.0, PI, 0.0))
             .build();
 
-        let collider = ColliderBuilder::ball(ball_radius).restitution(ball_restitution).build();
+        let collider = ColliderBuilder::ball(ball_radius)
+            .restitution(ball_restitution).build();
+
         let ball_body_handle = self.state.rigid_body_set.insert(rigid_body);
 
         self.state.collider_set.insert_with_parent(collider, ball_body_handle, &mut self.state.rigid_body_set);
