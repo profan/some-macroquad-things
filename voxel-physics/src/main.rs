@@ -175,8 +175,6 @@ impl VoxelWorld for VoxelWorldSimple {
 
 trait VoxelWorld : Send + Sync + 'static {
 
-    // type BlockIterator = dyn Iterator<Item=(IVec3, VoxelKind)>;
-
     fn try_pick_block_in_world(&self, ray_origin: Vec3, ray_direction: Vec3) -> Option<(Vec3, VoxelKind)>;
     fn blocks<'a>(&'a self) -> Box<dyn Iterator<Item=(&IVec3, &Voxel)> + 'a>;
 
@@ -329,7 +327,7 @@ impl Shape for VoxelWorldShape {
     }
 
     fn clone_box(&self) -> Box<dyn Shape> {
-        todo!()
+        Box::new(self.clone())
     }
 
     fn mass_properties(&self, density: Real) -> MassProperties {
@@ -421,8 +419,7 @@ impl RayCast for VoxelWorldShape {
 
 }
 
-fn voxel_translation(coords: IVec3) -> Translation<Real>
-{
+fn voxel_translation(coords: IVec3) -> Translation<Real> {
 
     let block_offset = Vector::new(
         coords.x as f32 * VOXEL_SIZE,
@@ -476,6 +473,9 @@ fn compute_toi(
 
     let mut closest = None::<TOI>;
     world.map_elements_in_local_sphere(&bounds, |_, _, cuboid| {
+
+        // #FIXME: compute relative position here instead
+
         let impact = if flipped {
             dispatcher.time_of_impact(
                 &pos12.inverse(),
@@ -495,6 +495,7 @@ fn compute_toi(
                 stop_at_time_of_impact
             )
         };
+
         if let Ok(Some(impact)) = impact {
             closest = Some(match closest {
                 None => impact,
@@ -607,7 +608,15 @@ where
                     false,
                 );
             } else {
-                compute_manifolds(pos12, p1, g2, prediction, manifolds, workspace, false);
+                compute_manifolds(
+                    pos12,
+                    p1,
+                    g2,
+                    prediction,
+                    manifolds,
+                    workspace,
+                    false
+                );
             }
             return Ok(());
         }
@@ -823,11 +832,7 @@ fn compute_manifolds_vs_composite<ManifoldData, ContactData>(
 
     world.map_elements_in_local_sphere(&bounds, |&coords, index, cuboid| {
 
-        // compute actual offset of cuboid we're testing with
-        // let pos12 = &cuboid_with_translation(pos12, coords);
-        // let mut pos21 = &mut cuboid_with_translation(pos21, coords);
-        // pos21.translation = (-pos21.translation.vector).into();
-        
+        // #FIXME: is this actually right? this looks not right :D
         let voxel_aabb = cuboid.compute_aabb(pos21).loosened(prediction);
 
         let mut visit = |&composite_subshape: &u32| {
@@ -873,8 +878,6 @@ fn compute_manifolds_vs_composite<ManifoldData, ContactData>(
                     };
 
                     let manifold = &mut manifolds[voxel_state.manifold_index];
-                    // let pos12 = &with_translation_for_voxel(pos12, coords);
-                    // let pos21 = &with_translation_for_voxel(pos21, coords);
 
                     if flipped {
                         let _ = dispatcher.contact_manifold_convex_convex(
@@ -1216,7 +1219,7 @@ impl PhysicsWorld {
             None,
             &physics_hooks,
             &event_handler,
-          );
+        );
 
     }
 
