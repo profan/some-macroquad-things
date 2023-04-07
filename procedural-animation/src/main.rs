@@ -1,10 +1,11 @@
+use std::process::exit;
 use std::{f32::consts::PI, thread::current};
 use std::sync::Arc;
 
 use hecs::{World, Bundle};
 use macroquad::prelude::*;
 use utility::{GameCamera, DebugText, create_camera_from_game_camera, TextPosition, intersect_ray_with_plane, draw_cube_ex, draw_cube_wires_ex, rotate_relative_to_origin, AdjustHue, draw_with_transformation, AsAngle, RotatedBy, normalize, is_point_inside_screen, is_point_inside_rect, draw_circle_lines_3d, FromRotationArcAround};
-use rhai::{Engine, EvalAltResult, AST, NativeCallContext, Scope};
+use rhai::{Engine, EvalAltResult, AST, NativeCallContext, Scope, OptimizationLevel};
 
 const WORLD_UP: Vec3 = Vec3::Y;
 
@@ -126,7 +127,13 @@ impl Game {
 
         let camera = GameCamera::new();
         let debug_text = DebugText::new();
-        let engine =  Engine::new();
+
+        let mut engine =  Engine::new();
+
+        let max_expr_depth = 64;
+        let max_function_expr_depth = 32;
+        engine.set_max_expr_depths(max_expr_depth, max_function_expr_depth);
+
         let world = World::new();
         let fallback_script = Arc::new(AST::empty());
 
@@ -148,10 +155,10 @@ fn handle_camera_input(active: &mut GameCamera, dt: f32) {
     let is_turn_left_pressed = is_key_down(KeyCode::Q);
     let is_turn_right_pressed = is_key_down(KeyCode::E);
 
-    let is_forwards_pressed = is_key_down(KeyCode::W);
-    let is_backwards_pressed = is_key_down(KeyCode::S);
-    let is_left_pressed = is_key_down(KeyCode::A);
-    let is_right_pressed = is_key_down(KeyCode::D);
+    let is_forwards_pressed = is_key_down(KeyCode::W) || is_key_down(KeyCode::Up);
+    let is_backwards_pressed = is_key_down(KeyCode::S) || is_key_down(KeyCode::Down);
+    let is_left_pressed = is_key_down(KeyCode::A) || is_key_down(KeyCode::Left);
+    let is_right_pressed = is_key_down(KeyCode::D) || is_key_down(KeyCode::Right);
 
     let is_up_pressed = is_key_down(KeyCode::Space);
     let is_down_pressed = is_key_down(KeyCode::LeftControl);
@@ -689,7 +696,14 @@ fn create_character_script(game: &mut Game) {
     
     if let Result::Ok(compiled_script) = script_ast {
 
+        // create a Scope with all top-level constants
+        let scope: Scope = compiled_script.iter_literal_variables(true, false).collect();
+        
+        // re-optimize the AST to propagate constants into functions
+        let compiled_script = game.engine.optimize_ast(&scope, compiled_script, OptimizationLevel::Simple);
+
         game.character_script = Some(Arc::new(compiled_script));
+
         println!("successfully compiled new character script, using new version!");
 
     } else if let Result::Err(compilation_error) = script_ast {
