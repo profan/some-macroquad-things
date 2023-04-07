@@ -64,7 +64,7 @@ impl SelectionBox {
 
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct Transform {
     position: Vec3,
     rotation: Quat,
@@ -226,7 +226,7 @@ fn draw_character_with_script(engine: &Engine, transform: &Transform, character:
     draw_with_transformation(transform.position, transform.rotation, || {
 
         let mut current_scope = Scope::new();
-        current_scope.push_constant("transform", *transform);
+        current_scope.push_constant("transform", transform.clone());
         
         let error = engine.eval_ast_with_scope::<()>(&mut current_scope, &character.script);
         if let Result::Err(error) = error {

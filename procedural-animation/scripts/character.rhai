@@ -9,9 +9,9 @@ const LIMB_WIDTH = 0.15;
 const TORSO_WIDTH = 0.5;
 const TORSO_DEPTH = TORSO_WIDTH / 2.0;
 
-const SHOULDER_OFFSET = LIMB_WIDTH;
+const SHOULDER_OFFSET = LIMB_WIDTH*2.0;
 
-const ARM_LENGTH = 0.5;
+const ARM_LENGTH = 0.6;
 const TORSO_LENGTH = 0.618 + 0.3;
 const LEG_LENGTH = 1.0;
 
@@ -62,7 +62,7 @@ if current_animation_state == "walking" {
         );
 
         // draw left arm
-        draw_with_transformation(vec3(-TORSO_WIDTH / 2.0, TORSO_LENGTH / 2.0 - SHOULDER_OFFSET / 2.0, 0.0), from_rotation_x(current_left_arm_angle) * from_rotation_z(4.0), || {
+        draw_with_transformation(vec3(-TORSO_WIDTH / 2.0, TORSO_LENGTH / 2.0 - SHOULDER_OFFSET / 2.0, 0.0), from_rotation_x(current_left_arm_angle) * from_rotation_z(4.25), || {
 
             draw_part(
                 vec3(TORSO_WIDTH / 2.0, 0.0, 0.0),
@@ -73,7 +73,7 @@ if current_animation_state == "walking" {
         });
 
         // draw right arm
-        draw_with_transformation(vec3(TORSO_WIDTH / 2.0, TORSO_LENGTH / 2.0 - SHOULDER_OFFSET / 2.0, 0.0), from_rotation_x(current_right_arm_angle) * from_rotation_z(-4.0), || {
+        draw_with_transformation(vec3(TORSO_WIDTH / 2.0, TORSO_LENGTH / 2.0 - SHOULDER_OFFSET / 2.0, 0.0), from_rotation_x(current_right_arm_angle) * from_rotation_z(-4.25), || {
 
             draw_part(
                 vec3(-TORSO_WIDTH / 2.0, 0.0, 0.0),
