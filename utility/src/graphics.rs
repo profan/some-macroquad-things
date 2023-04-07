@@ -191,8 +191,8 @@ pub fn draw_grid_ex(center: Vec3, rotation: Quat, slices: u32, spacing: f32, axe
 }
 
 /// Pushes a model matrix with the given translation and rotation before calling the drawing function, then pops the model matrix.
-pub fn draw_with_transformation<F>(position: Vec3, rotation: Quat, mut drawing_fn: F)
-    where F: FnMut()
+pub fn draw_with_transformation<F>(position: Vec3, rotation: Quat, drawing_fn: F)
+    where F: Fn()
 {
 
     unsafe {
