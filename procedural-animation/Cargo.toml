@@ -1,0 +1,21 @@
+[package]
+name = "procedural-animation"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+hecs = { version = "0.10.1", features = ["macros"] }
+rhai = { version = "1.13.0", features = ["sync", "f32_float"] }
+utility = { path = "../utility" }
+macroquad = "0.3.24"
+
+[profile.dev]
+incremental = true
+opt-level = 2
+
+# all dependencies (but not this crate itself)
+[profile.dev.package."*"]
+opt-level = 3
+debug = false
