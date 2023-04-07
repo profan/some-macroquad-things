@@ -162,3 +162,47 @@ impl AsCartesian for (f32, f32) {
         polar_to_cartesian(self.0, self.1)
     }
 }
+
+pub trait WithY {
+    fn with_y(&self, y: f32) -> Vec3;
+}
+
+impl WithY for Vec2 {
+    fn with_y(&self, y: f32) -> Vec3 {
+        vec3(self.x, y, self.y)
+    }
+}
+
+pub trait FromRotationArcAround {
+    fn from_rotation_arc_2d_around_y(from: Vec2, to: Vec2) -> Quat;
+}
+
+impl FromRotationArcAround for Quat {
+
+    /// Given two 2D vectors in the XZ plane, return a rotation around the Y axis.
+    fn from_rotation_arc_2d_around_y(from: Vec2, to: Vec2) -> Quat {
+        assert!(from.is_normalized());
+        assert!(to.is_normalized());
+
+        const ONE_MINUS_EPSILON: f32 = 1.0 - 2.0 * core::f32::EPSILON;
+        let dot = from.dot(to);
+        if dot > ONE_MINUS_EPSILON {
+            // 0° singulary: from ≈ to
+            Quat::IDENTITY
+        } else if dot < -ONE_MINUS_EPSILON {
+            // 180° singulary: from ≈ -to
+            const COS_FRAC_PI_2: f32 = 0.0;
+            const SIN_FRAC_PI_2: f32 = 1.0;
+            // rotation around y by PI radians
+            Quat::from_xyzw(0.0, SIN_FRAC_PI_2, 0.0, COS_FRAC_PI_2)
+        } else {
+            // vector3 cross where z=0
+            let y = from.x * to.y - to.x * from.y;
+            let w = 1.0 + dot;
+            // calculate length with x=0 and z=0 to normalize
+            let len_rcp = 1.0 / (y * y + w * w).sqrt();
+            Quat::from_xyzw(0.0, y * len_rcp, 0.0, w * len_rcp)
+        }
+    }
+    
+}

@@ -1,4 +1,8 @@
+use std::f32::consts::PI;
+
 use macroquad::prelude::*;
+
+use crate::{RotatedBy, WithY};
 
 unsafe fn draw_quad(vertices: [(Vec3, Vec2, Color); 4]) {
     let context = get_internal_gl().quad_gl;
@@ -184,4 +188,42 @@ pub fn draw_grid_ex(center: Vec3, rotation: Quat, slices: u32, spacing: f32, axe
         context.pop_model_matrix();
     }
 
+}
+
+/// Pushes a model matrix with the given translation and rotation before calling the drawing function, then pops the model matrix.
+pub fn draw_with_transformation<F>(position: Vec3, rotation: Quat, mut drawing_fn: F)
+    where F: FnMut()
+{
+
+    unsafe {
+        let context = get_internal_gl().quad_gl;
+        context.push_model_matrix(Mat4::from_rotation_translation(rotation, position));
+    }
+
+    drawing_fn();
+
+    unsafe {
+        let context = get_internal_gl().quad_gl;
+        context.pop_model_matrix();
+    }
+    
+}
+
+/// Draws a circle in the XZ plane, assuming Y+ up.
+pub fn draw_circle_lines_3d(position: Vec3, r: f32, thickness: f32, color: Color) {
+
+    let sides = 20;
+
+    for i in 0..sides {
+
+        let current_angle = ((2.0*PI) / sides as f32) * i as f32;
+        let next_angle = (((2.0*PI) / sides as f32) * (i + 1) as f32) % (2.0 * PI);
+
+        let current_start = position.xz() + position.xz().normalize_or_zero().rotated_by(current_angle) * r;
+        let current_end = position.xz() + position.xz().normalize_or_zero().rotated_by(next_angle) * r;
+        
+        draw_line_3d(current_start.with_y(position.y), current_end.with_y(position.y), color);
+
+    }
+    
 }
