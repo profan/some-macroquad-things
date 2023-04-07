@@ -472,13 +472,14 @@ fn compute_toi(
     };
 
     let mut closest = None::<TOI>;
-    world.map_elements_in_local_sphere(&bounds, |_, _, cuboid| {
+    world.map_elements_in_local_sphere(&bounds, |coords, _, cuboid| {
 
         // #FIXME: compute relative position here instead
+        let relative_pos12 = voxel_translation(*coords).inverse() * pos12;
 
         let impact = if flipped {
             dispatcher.time_of_impact(
-                &pos12.inverse(),
+                &relative_pos12.inverse(),
                 &-vel12,
                 other,
                 cuboid,
@@ -487,7 +488,7 @@ fn compute_toi(
             )
         } else {
             dispatcher.time_of_impact(
-                &pos12,
+                &relative_pos12,
                 vel12,
                 cuboid,
                 other,
@@ -543,7 +544,7 @@ fn compute_nonlinear_toi(
     };
 
     let mut closest = None::<TOI>;
-    world.map_elements_in_local_sphere(&bounds, |coords, _, cuboid| {
+    world.map_elements_in_local_sphere(&bounds, |_, _, cuboid| {
         let impact = if flipped {
             dispatcher.nonlinear_time_of_impact(
                 motion_other,
