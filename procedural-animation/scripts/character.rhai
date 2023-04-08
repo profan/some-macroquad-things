@@ -43,6 +43,7 @@ let leg_right_size = vec3(LIMB_WIDTH, LEG_LENGTH, LIMB_WIDTH);
 
 let current_animation_state = "walking";
 
+// should be a function, but constant propagation doesn't work right now so can't make it one
 if current_animation_state == "walking" {
 
     let normalized_time = get_time() % (2.0 * global::PI);
