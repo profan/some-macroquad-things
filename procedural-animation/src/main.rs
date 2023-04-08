@@ -675,7 +675,12 @@ fn register_types_for_rhai(engine: &mut Engine) {
 
     // register some drawing functions
     engine
-        .register_fn("draw_with_transformation", |context: NativeCallContext, position: Vec3, rotation: Quat, callback: rhai::FnPtr| draw_with_transformation(position, rotation, || { let _ = callback.call_within_context::<()>(&context, ()); }))
+        .register_fn(
+            "draw_with_transformation",
+            |context: NativeCallContext, position: Vec3, rotation: Quat, callback: rhai::FnPtr| {
+                draw_with_transformation(position, rotation, || { let _ = callback.call_within_context::<()>(&context, ()); })
+            }
+        )
         .register_fn("draw_part", draw_part);
 
     // register some macroquad functions
