@@ -45,8 +45,9 @@ let current_animation_state = "walking";
 
 // should be a function, but constant propagation doesn't work right now so can't make it one
 if current_animation_state == "walking" {
+// def play_walking_animation(transform) {
 
-    let normalized_time = get_time() % (2.0 * global::PI);
+    let normalized_time = get_time() % (2.0 * PI);
     let current_t = (normalized_time * transform.velocity.length() * 2.0).sin();
 
     let current_left_arm_angle = normalize(current_t, 0.0, 0.75, 1.0);
