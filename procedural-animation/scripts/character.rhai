@@ -44,8 +44,7 @@ let leg_right_size = vec3(LIMB_WIDTH, LEG_LENGTH, LIMB_WIDTH);
 let current_animation_state = "walking";
 
 // should be a function, but constant propagation doesn't work right now so can't make it one
-if current_animation_state == "walking" {
-// def play_walking_animation(transform) {
+fn play_walking_animation(transform) {
 
     let normalized_time = get_time() % (2.0 * PI);
     let current_t = (normalized_time * transform.velocity.length() * 2.0).sin();
@@ -127,4 +126,4 @@ if current_animation_state == "walking" {
 
 }
 
-// play_walking_animation(transform);
+play_walking_animation(transform);
