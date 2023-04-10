@@ -130,8 +130,8 @@ impl Game {
 
         let mut engine =  Engine::new();
 
-        let max_expr_depth = 64;
-        let max_function_expr_depth = 32;
+        let max_expr_depth = 128;
+        let max_function_expr_depth = 64;
         engine.set_max_expr_depths(max_expr_depth, max_function_expr_depth);
 
         let world = World::new();
@@ -724,6 +724,10 @@ fn create_character_script(game: &mut Game) {
 
 }
 
+fn create_selection_box(world: &mut World) {
+    world.spawn((SelectionBox::new(), SelectionState::new()));
+}
+
 fn create_default_scene(game: &mut Game) {
 
     let world_center = Vec3::ZERO;
@@ -737,7 +741,7 @@ fn create_default_scene(game: &mut Game) {
     game.world.clear();
 
     // add an entity that is the current selection box
-    game.world.spawn((SelectionBox::new(), SelectionState::new()));
+    create_selection_box(&mut game.world);
 
     // load our character script, for now just one, but at least we have one :D
     create_character_script(game);

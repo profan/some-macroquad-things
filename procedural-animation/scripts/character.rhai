@@ -48,7 +48,21 @@ let current_animation_state = "walking";
 switch current_animation_state {
 
     "walking" => play_walking_animation(transform, character_data),
-    _ => play_idle_animation(transform, character_data)
+    "running" => play_idle_animation(transform, character_data),
+    "proning" => play_proning_animation(transform, character_data),
+    "crouching" => play_crouching_animation(transform, character_data)
+
+}
+
+fn blend_animations(animation_one, animation_two, value) {
+
+}
+
+fn play_crouching_animation(transform, data) {
+
+}
+
+fn play_proning_animation(transform, data) {
 
 }
 
@@ -56,7 +70,6 @@ fn play_idle_animation(transform, data) {
 
 }
 
-// should be a function, but constant propagation doesn't work right now so can't make it one
 fn play_walking_animation(transform, data) {
 
     let normalized_time = get_time() % (2.0 * PI);
@@ -65,76 +78,80 @@ fn play_walking_animation(transform, data) {
     let current_left_arm_angle = normalize(current_t, 0.0, 0.75, 1.0);
     let current_right_arm_angle = -current_left_arm_angle;
 
-    // draw torso
-    draw_with_transformation(data.torso_position, from_rotation_z(0.25 * current_t * 0.5), || {
+    draw_with_transformation(vec3(0.0, data.leg_right_position.y * 2.0, 0.0), quat_identity(), || {
 
-        // draw head
-        draw_part(
-            vec3(0.0, (TORSO_LENGTH / 2.0) + data.head_size.y / 2.0, 0.0),
-            data.head_rotation,
-            data.head_size
-        );
+        // draw legs
 
-        // draw left arm
-        draw_with_transformation(vec3(-TORSO_WIDTH / 2.0, TORSO_LENGTH / 2.0 - SHOULDER_OFFSET / 2.0, 0.0), from_rotation_x(current_left_arm_angle) * from_rotation_z(4.25), || {
+        // left leg
+        let current_left_leg_angle = normalize(current_t, 0.0, PI/4.0, 1.0);
+        let current_right_leg_angle = -current_left_leg_angle;
 
+        draw_with_transformation(vec3(0.0, 0.0, 0.0), from_rotation_x(current_left_leg_angle), || {
             draw_part(
-                vec3(TORSO_WIDTH / 2.0, 0.0, 0.0),
-                data.arm_left_rotation,
-                data.arm_left_size
+                vec3(data.leg_left_position.x, -data.leg_left_position.y, data.leg_left_position.z),
+                data.leg_left_rotation,
+                data.leg_left_size
             );
-
         });
 
-        // draw right arm
-        draw_with_transformation(vec3(TORSO_WIDTH / 2.0, TORSO_LENGTH / 2.0 - SHOULDER_OFFSET / 2.0, 0.0), from_rotation_x(current_right_arm_angle) * from_rotation_z(-4.25), || {
-
+        // right leg
+        draw_with_transformation(vec3(0.0, 0.0, 0.0), from_rotation_x(current_right_leg_angle), || {
             draw_part(
-                vec3(-TORSO_WIDTH / 2.0, 0.0, 0.0),
-                data.arm_right_rotation,
-                data.arm_right_size
+                vec3(data.leg_right_position.x, -data.leg_right_position.y, data.leg_right_position.z),
+                data.leg_right_rotation,
+                data.leg_right_size
             );
-
         });
 
-        draw_part(
-            vec3_zero(),
-            data.torso_rotation,
-            data.torso_size
-        );
+        // draw torso
+        draw_with_transformation(vec3(0.0, TORSO_LENGTH / 2.0, 0.0), from_rotation_z(0.25 * current_t * 0.5), || {
 
-        // draw backpack
-        draw_with_transformation(vec3_zero(), from_rotation_x(0.0), || {
+            // draw head
             draw_part(
-                vec3(0.0, 0.0, TORSO_DEPTH*0.9),
+                vec3(0.0, (TORSO_LENGTH / 2.0) + data.head_size.y / 2.0, 0.0),
+                data.head_rotation,
+                data.head_size
+            );
+
+            // draw left arm
+            draw_with_transformation(vec3(-TORSO_WIDTH / 2.0, TORSO_LENGTH / 2.0 - SHOULDER_OFFSET / 2.0, 0.0), from_rotation_x(current_left_arm_angle) * from_rotation_z(4.25), || {
+
+                draw_part(
+                    vec3(TORSO_WIDTH / 2.0, 0.0, 0.0),
+                    data.arm_left_rotation,
+                    data.arm_left_size
+                );
+
+            });
+
+            // draw right arm
+            draw_with_transformation(vec3(TORSO_WIDTH / 2.0, TORSO_LENGTH / 2.0 - SHOULDER_OFFSET / 2.0, 0.0), from_rotation_x(current_right_arm_angle) * from_rotation_z(-4.25), || {
+
+                draw_part(
+                    vec3(-TORSO_WIDTH / 2.0, 0.0, 0.0),
+                    data.arm_right_rotation,
+                    data.arm_right_size
+                );
+
+            });
+
+            draw_part(
+                vec3_zero(),
                 data.torso_rotation,
-                data.torso_size * 0.75
+                data.torso_size
             );
+
+            // draw backpack
+            draw_with_transformation(vec3_zero(), from_rotation_x(0.0), || {
+                draw_part(
+                    vec3(0.0, 0.0, TORSO_DEPTH*0.9),
+                    data.torso_rotation,
+                    data.torso_size * 0.75
+                );
+            });
+
         });
 
-    });
-
-    // draw legs
-
-    // left leg
-    let current_left_leg_angle = normalize(current_t, 0.0, PI/4.0, 1.0);
-    let current_right_leg_angle = -current_left_leg_angle;
-
-    draw_with_transformation(vec3(0.0, data.leg_left_position.y * 2.0, 0.0), from_rotation_x(current_left_leg_angle), || {
-        draw_part(
-            vec3(data.leg_left_position.x, -data.leg_left_position.y, data.leg_left_position.z),
-            data.leg_left_rotation,
-            data.leg_left_size
-        );
-    });
-
-    // right leg
-    draw_with_transformation(vec3(0.0, data.leg_right_position.y * 2.0, 0.0), from_rotation_x(current_right_leg_angle), || {
-        draw_part(
-            vec3(data.leg_right_position.x, -data.leg_right_position.y, data.leg_right_position.z),
-            data.leg_right_rotation,
-            data.leg_right_size
-        );
     });
 
 }
