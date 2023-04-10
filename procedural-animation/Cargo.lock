@@ -201,9 +201,9 @@ dependencies = [
 
 [[package]]
 name = "hecs"
-version = "0.10.2"
+version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94cd00eb6bc3e98b1aea624d00da6fa27d984f4494cf7b4ae8fdcd9b2d5c16a0"
+checksum = "9d2711ad60b74f2f3d0c0ac338a58410a5249da44005971ae806d2925e6b5167"
 dependencies = [
  "hashbrown 0.13.2",
  "hecs-macros",
@@ -472,7 +472,7 @@ dependencies = [
 [[package]]
 name = "rhai"
 version = "1.14.0"
-source = "git+https://github.com/rhaiscript/rhai.git?branch=main#b2dbd322db602dfa7c9820bb814d22ad66c71d63"
+source = "git+https://github.com/rhaiscript/rhai.git?branch=main#1f8592242f6b72648c4a0f3e1a56b1c8f0c71f2f"
 dependencies = [
  "ahash 0.8.3",
  "bitflags",
@@ -486,7 +486,7 @@ dependencies = [
 [[package]]
 name = "rhai_codegen"
 version = "1.5.0"
-source = "git+https://github.com/rhaiscript/rhai.git?branch=main#b2dbd322db602dfa7c9820bb814d22ad66c71d63"
+source = "git+https://github.com/rhaiscript/rhai.git?branch=main#1f8592242f6b72648c4a0f3e1a56b1c8f0c71f2f"
 dependencies = [
  "proc-macro2",
  "quote",
