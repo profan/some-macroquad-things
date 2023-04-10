@@ -34,6 +34,7 @@ unsafe fn draw_quad(vertices: [(Vec3, Vec2, Color); 4]) {
     context.geometry(&quad[..], &indices);
 }
 
+/// Draws a single quad with an optional texture, color, and uv scale.
 pub fn draw_quad_3d_ex(v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3, texture: Option<Texture2D>, color: Color, uv_scale: f32) {
 
     unsafe {
@@ -56,6 +57,7 @@ pub fn draw_quad_3d_ex(v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3, texture: Option<T
 
 }
 
+/// Draws a single quad with an optional texture, color.
 pub fn draw_quad_3d(v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3, texture: Option<Texture2D>, color: Color) {
 
     let default_uv_scale = 1.0;
@@ -63,6 +65,7 @@ pub fn draw_quad_3d(v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3, texture: Option<Text
 
 }
 
+/// Draws quads using the vertices array passed in (in chunks of 4), the number of vertices must be divisible by 4 or else will panic with an assert.
 pub fn draw_quads_3d(vertices: &[Vec3], texture: Option<Texture2D>, color: Color) {
 
     assert!(vertices.len() % 4 == 0);
@@ -73,6 +76,7 @@ pub fn draw_quads_3d(vertices: &[Vec3], texture: Option<Texture2D>, color: Color
 
 }
 
+/// Draws a cube with rotation.
 pub fn draw_cube_ex(position: Vec3, rotation: Quat, size: Vec3, texture: Option<Texture2D>, color: Color) {
 
     unsafe {
@@ -93,6 +97,7 @@ pub fn draw_cube_ex(position: Vec3, rotation: Quat, size: Vec3, texture: Option<
 
 }
 
+/// Draws a wireframe cube with rotation.
 pub fn draw_cube_wires_ex(position: Vec3, rotation: Quat, size: Vec3, color: Color) {
 
     unsafe {
@@ -113,6 +118,7 @@ pub fn draw_cube_wires_ex(position: Vec3, rotation: Quat, size: Vec3, color: Col
 
 }
 
+/// Draws a sphere with a specific rotation, so that you can nicely render rolling balls and similar things.
 pub fn draw_sphere_ex_with_rotation(center: Vec3, rotation: Quat, radius: f32, texture: Option<Texture2D>, color: Color, params: DrawSphereParams) {
 
     unsafe {
@@ -134,6 +140,7 @@ pub fn draw_sphere_ex_with_rotation(center: Vec3, rotation: Quat, radius: f32, t
 
 }
 
+/// Draws a wireframe sphere with a specific rotation, so that you can nicely render rolling balls and similar things.
 pub fn draw_sphere_wires_ex(center: Vec3, rotation: Quat, radius: f32, color: Color, params: DrawSphereParams) {
 
     unsafe {
@@ -155,6 +162,7 @@ pub fn draw_sphere_wires_ex(center: Vec3, rotation: Quat, radius: f32, color: Co
 
 }
 
+/// Draws a textured plane at a given position with a given size and desired (uniform) uv scale.
 pub fn draw_plane_ex(center: Vec3, size: Vec2, texture: Option<Texture2D>, color: Color, uv_scale: f32) {
 
     let half_x = size.x / 2.0;
@@ -169,6 +177,7 @@ pub fn draw_plane_ex(center: Vec3, size: Vec2, texture: Option<Texture2D>, color
 
 }
 
+/// Draws a grid at a given position, with the given rotation.
 pub fn draw_grid_ex(center: Vec3, rotation: Quat, slices: u32, spacing: f32, axes_color: Color, other_color: Color) {
 
     unsafe {
