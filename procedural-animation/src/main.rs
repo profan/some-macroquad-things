@@ -465,11 +465,11 @@ fn handle_update_orderables(game: &mut Game, dt: f32) {
     let (_selection_box_entity, selection_state) = game.world.query_mut::<(&SelectionState)>().into_iter().nth(0).expect("could not find the selection box entity? this is an error!");
     let current_target_order_positions = selection_state.order_points.clone();
 
-    let orderable_query = game.world.query_mut::<(&Transform, &mut Orderable, &Selectable)>();
+    let orderable_query = game.world.query_mut::<(&mut Orderable, &Selectable)>();
     let number_of_entities_in_query = orderable_query.into_iter().filter(|s| s.1.2.is_selected).count();
 
     // update orderable targets of all selected entities
-    for (idx, (_entity, (transform, orderable, _selectable))) in game.world.query_mut::<(&Transform, &mut Orderable, &Selectable)>().into_iter().filter(|s| s.1.2.is_selected).enumerate() {
+    for (idx, (_entity, (orderable, _selectable))) in game.world.query_mut::<(&mut Orderable, &Selectable)>().into_iter().filter(|s| s.1.2.is_selected).enumerate() {
 
         if was_order_to_move_given {
 
