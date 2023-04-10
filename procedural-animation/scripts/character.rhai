@@ -7,13 +7,11 @@ const LIMB_WIDTH = 0.15;
 const TORSO_WIDTH = 0.5;
 const TORSO_DEPTH = TORSO_WIDTH / 2.0;
 
-const SHOULDER_OFFSET = LIMB_WIDTH*2.0;
+const SHOULDER_OFFSET = LIMB_WIDTH * 2.0;
 
 const ARM_LENGTH = 0.6;
 const TORSO_LENGTH = 0.618 + 0.3;
 const LEG_LENGTH = 1.0;
-
-// the entity position is at the entity's feet in our setup
 
 let character_data = #{
 
@@ -43,16 +41,211 @@ let character_data = #{
 
 };
 
-let current_animation_state = "walking";
+fn create_bone(position, rotation, parent) {
+    return #{
+        position: position,
+        rotation: rotation,
+        parent: parent
+    };
+}
 
-switch current_animation_state {
+// returns a map representing the rigged character and its bones in the idle pose
+fn create_idle_pose() {
 
-    "walking" => play_walking_animation(transform, character_data),
-    "running" => play_idle_animation(transform, character_data),
-    "proning" => play_proning_animation(transform, character_data),
-    "crouching" => play_crouching_animation(transform, character_data)
+    let character_rig = #{
+
+        neck_bone: create_bone(vec3(0.0, TORSO_LENGTH / 2.0, 0.0), quat_identity(), "hip_bone"),
+        hip_bone: create_bone(vec3(0.0, LEG_LENGTH * 1.5, 0.0), quat_identity(), ()),
+
+        shoulder_left_bone: create_bone(vec3(-TORSO_WIDTH / 2.0 - LIMB_WIDTH / 2.0 - SHOULDER_OFFSET - LIMB_WIDTH / 2.0, -SHOULDER_OFFSET / 2.0, 0.0), quat_identity(), "hip_bone"),
+        shoulder_right_bone: create_bone(vec3(TORSO_WIDTH / 2.0 + LIMB_WIDTH / 2.0 + SHOULDER_OFFSET + LIMB_WIDTH / 2.0, -SHOULDER_OFFSET / 2.0, 0.0), quat_identity(), "hip_bone"),
+        
+        leg_left_bone: create_bone(vec3(-LIMB_WIDTH, -(LEG_LENGTH / 2.0), 0.0), quat_identity(), "hip_bone"),
+        leg_right_bone: create_bone(vec3(LIMB_WIDTH, -(LEG_LENGTH / 2.0), 0.0), quat_identity(), "hip_bone"),
+
+    };
+
+    return character_rig;
 
 }
+
+fn calculate_bone(bone, rig) {
+
+    let calculated_bone_position = vec3_zero();
+    let calculated_bone_rotation = bone.rotation;
+
+    let current_bone = bone;
+    while current_bone.parent != () {
+
+        let parent_bone = rig[current_bone.parent];
+        current_bone = rig[current_bone.parent];
+
+        calculated_bone_rotation *= parent_bone.rotation;
+        calculated_bone_position += parent_bone.rotation * current_bone.position; // here we append position in parent
+
+    }
+
+    return #{
+        position: calculated_bone_position + calculated_bone_rotation * bone.position,
+        rotation: calculated_bone_rotation,
+        parent: bone.parent
+    };
+
+}
+
+fn calculate_character_pose(character_rig) {
+
+    let calculated_pose = #{};
+    
+    for bone_key in character_rig.keys() {
+        let bone = character_rig[bone_key];
+        calculated_pose[bone_key] = calculate_bone(bone, character_rig);
+    }
+
+    return calculated_pose;
+
+}
+
+fn proning_pose(transform, character_pose_data) {
+
+    let normalized_time = get_time() % (2.0 * PI);
+    let current_t = (normalized_time * transform.velocity.length() * 2.0).sin();
+
+    return character_pose_data;
+
+}
+
+fn create_walking_pose(transform) {
+
+    let normalized_time = get_time() % (2.0 * PI);
+    let current_t = (normalized_time * transform.velocity.length() * 2.0).sin();
+
+    let current_left_arm_angle = normalize(current_t, 0.0, 0.75, 1.0);
+    let current_right_arm_angle = -current_left_arm_angle;
+
+    let current_left_leg_angle = normalize(current_t, 0.0, PI/4.0, 1.0);
+    let current_right_leg_angle = -current_left_leg_angle;
+
+    let current_torso_sway = 0.25 * current_t * 0.5;
+
+    let idle_pose = create_idle_pose();
+
+    let walking_pose = #{
+
+        shoulder_left_bone: idle_pose.shoulder_left_bone + #{rotation: from_rotation_x(current_left_arm_angle) * from_rotation_z(2.25)},
+        shoulder_right_bone: idle_pose.shoulder_right_bone + #{rotation: from_rotation_x(current_right_arm_angle) * from_rotation_z(-2.25)},
+
+        leg_left_bone: idle_pose.leg_left_bone + #{rotation: from_rotation_x(current_left_leg_angle)},
+        leg_right_bone: idle_pose.leg_right_bone + #{rotation: from_rotation_x(current_right_leg_angle)},
+
+        hip_bone: idle_pose.hip_bone + #{rotation: from_rotation_z(current_torso_sway)},
+
+    };
+
+    return idle_pose + walking_pose;
+
+}
+
+fn blend_character_pose(pose_one, pose_two, value) {
+
+    let blended_pose = #{};
+
+    for bone_key in pose_one.keys() {
+
+        let bone_one = pose_one[bone_key];
+        let bone_two = pose_two[bone_key];
+
+        blended_pose[bone_key] = #{
+            position: bone_one.position.lerp(bone_two.position, value),
+            rotation: bone_one.rotation.slerp(bone_two.rotation, value),
+            parent: bone_one.parent
+        };
+
+    }
+
+    return blended_pose;
+
+}
+
+let normalized_time = get_time() % (2.0 * PI);
+let current_t = (normalized_time * 2.0).sin();
+
+let idle_pose = create_idle_pose();
+let walking_pose = create_walking_pose(transform);
+
+let final_idle_character_pose = calculate_character_pose(idle_pose);
+let final_walking_character_pose = calculate_character_pose(walking_pose);
+
+let calculated_character_pose = calculate_character_pose(blend_character_pose(idle_pose, walking_pose, current_t));
+draw_character_in_pose(character_data, final_walking_character_pose);
+
+fn draw_character_in_pose(character_data, character_pose_data) {
+
+    let neck_bone = character_pose_data.neck_bone;
+    let hip_bone = character_pose_data.hip_bone;
+
+    let shoulder_left_bone = character_pose_data.shoulder_left_bone; 
+    let shoulder_right_bone = character_pose_data.shoulder_right_bone; 
+
+    let leg_left_bone = character_pose_data.leg_left_bone;
+    let leg_right_bone = character_pose_data.leg_right_bone;
+
+    // head
+    draw_part(
+        neck_bone.position + neck_bone.rotation * vec3(0.0, HEAD_SIZE / 2.0, 0.0),
+        neck_bone.rotation,
+        character_data.head_size
+    );
+
+    // torso
+    draw_part(
+        hip_bone.position,
+        hip_bone.rotation,
+        character_data.torso_size
+    );
+
+    // left arm
+    draw_part(
+        shoulder_left_bone.position + shoulder_left_bone.rotation * vec3(LIMB_WIDTH, 0.0, 0.0) + character_pose_data[shoulder_left_bone.parent].rotation * vec3(0.0, TORSO_LENGTH / 2.0, 0.0),
+        (shoulder_left_bone.rotation * character_data.arm_left_rotation),
+        character_data.arm_left_size
+    );
+
+    // right arm
+    draw_part(
+        shoulder_right_bone.position + shoulder_right_bone.rotation * vec3(-LIMB_WIDTH, 0.0, 0.0) + character_pose_data[shoulder_right_bone.parent].rotation * vec3(0.0, TORSO_LENGTH / 2.0, 0.0),
+        shoulder_right_bone.rotation * character_data.arm_right_rotation,
+        character_data.arm_right_size
+    );
+
+    // left leg
+    draw_part(
+        leg_left_bone.position - character_pose_data[leg_left_bone.parent].rotation * vec3(0.0, LEG_LENGTH / 2.0, 0.0),
+        leg_left_bone.rotation,
+        character_data.leg_left_size
+    );
+
+    // right leg
+    draw_part(
+        leg_right_bone.position - character_pose_data[leg_right_bone.parent].rotation * vec3(0.0, LEG_LENGTH / 2.0, 0.0),
+        leg_right_bone.rotation,
+        character_data.leg_right_size
+    );
+
+}
+
+// the entity position is at the entity's feet in our setup
+
+let current_animation_state = "walking";
+
+// switch current_animation_state {
+
+//     "walking" => play_walking_animation(transform, character_data),
+//     "running" => play_idle_animation(transform, character_data),
+//     "proning" => play_proning_animation(transform, character_data),
+//     "crouching" => play_crouching_animation(transform, character_data)
+
+// }
 
 fn blend_animations(animation_one, animation_two, value) {
 

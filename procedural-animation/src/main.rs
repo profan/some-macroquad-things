@@ -634,6 +634,7 @@ fn register_types_for_rhai(engine: &mut Engine) {
         .register_fn("round", Vec3::round)
         .register_fn("ceil", Vec3::ceil)
         .register_fn("floor", Vec3::floor)
+        .register_fn("lerp", Vec3::lerp)
         .register_fn("normalize", Vec3::normalize)
         .register_fn("normalize_or_zero", Vec3::normalize_or_zero)
 
@@ -660,6 +661,8 @@ fn register_types_for_rhai(engine: &mut Engine) {
         .register_fn("from_rotation_z", Quat::from_rotation_z)
         .register_fn("conjugate", Quat::conjugate)
         .register_fn("inverse", Quat::inverse)
+        .register_fn("slerp", Quat::slerp)
+        .register_fn("lerp", Quat::lerp)
 
         .register_get_set("x", |v: &mut Quat| v.x, |v: &mut Quat, n: f32| v.x = n)
         .register_get_set("y", |v: &mut Quat| v.y, |v: &mut Quat, n: f32| v.y = n)
