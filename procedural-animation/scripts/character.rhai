@@ -1,6 +1,4 @@
-// let x = vec2(32.0, 32.0);
-// print(x);
-
+// #TODO: inject these mathematical constants from the rust side somehow instead?
 const PI = 3.14159265358979323846264338327950288;
 
 const HEAD_SIZE = 0.2;
@@ -46,6 +44,17 @@ let character_data = #{
 };
 
 let current_animation_state = "walking";
+
+switch current_animation_state {
+
+    "walking" => play_walking_animation(transform, character_data),
+    _ => play_idle_animation(transform, character_data)
+
+}
+
+fn play_idle_animation(transform, data) {
+
+}
 
 // should be a function, but constant propagation doesn't work right now so can't make it one
 fn play_walking_animation(transform, data) {
@@ -129,5 +138,3 @@ fn play_walking_animation(transform, data) {
     });
 
 }
-
-play_walking_animation(transform, character_data);
