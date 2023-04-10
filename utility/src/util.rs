@@ -1,16 +1,19 @@
 use macroquad::prelude::*;
 
+/// Draws some text centered over a given position in screen space.
 pub fn draw_text_centered(text: &str, x: f32, y: f32, font_size: f32, colour: Color) {
     let TextDimensions { width: t_w, height: t_h, .. } = measure_text(text, None, font_size as u16, 1.0);
     draw_text(text, x - (t_w/2.0), y - (t_h/2.0), font_size, colour);
 }
 
+/// Draws a textured quad with the origin offset by half the texture size (so that the center is over x, y).
 pub fn draw_texture_centered(texture: Texture2D, x: f32, y: f32, colour: Color) {
     let w = texture.width();
     let h = texture.height();
     draw_texture(texture, x - (w / 2.0), y - (h / 2.0), colour);
 }
 
+/// Draws a textured quad with a given rotation.
 pub fn draw_texture_with_rotation(texture: Texture2D, x: f32, y: f32, colour: Color, rotation: f32) {
     draw_texture_ex(texture, x, y, colour, DrawTextureParams {
         rotation: rotation,
@@ -18,6 +21,7 @@ pub fn draw_texture_with_rotation(texture: Texture2D, x: f32, y: f32, colour: Co
     });
 }
 
+/// Draws a centered textured quad with a given rotation, see also [draw_texture_centered].
 pub fn draw_texture_centered_with_rotation(texture: Texture2D, x: f32, y: f32, colour: Color, rotation: f32) {
     let w = texture.width();
     let h = texture.height();
@@ -43,6 +47,7 @@ pub fn draw_texture_centered_with_rotation_frame(texture: Texture2D, x: f32, y: 
     });
 }
 
+/// Draws a line with an arrowhead on the end, with a given head size, line thickness and colour.
 pub fn draw_arrow(x1: f32, y1: f32, x2: f32, y2: f32, thickness: f32, head_size: f32, colour: Color) {
 
     let offset = vec2(x2 - x1, y2 - y1).normalize() * head_size;
@@ -55,6 +60,7 @@ pub fn draw_arrow(x1: f32, y1: f32, x2: f32, y2: f32, thickness: f32, head_size:
 
 }
 
+/// Returns a random number in \[0.0, 1.0\]
 pub fn random_binomial() -> f32 {
     rand::gen_range(0.0, 1.0) - rand::gen_range(0.0, 1.0)
 }
@@ -68,16 +74,18 @@ pub fn lerp(a: f32, b: f32, v: f32) -> f32 {
     a * (1.0 - v) + b * v
 }
 
+/// Draws a rectangle with a given colour where the origin is the center of the rendered shape (given its width, height).
 pub fn draw_rectangle_lines_centered(x: f32, y: f32, w: f32, h: f32, thickness: f32, color: Color) {
     draw_rectangle_lines(x - w/2.0, y - h/2.0, w, h, thickness, color);
 }
 
-pub fn is_point_inside_rect(p: &Vec2, r: &Rect) -> bool {
-    let is_outside = p.x < r.x || p.x > r.x + r.w || p.y < r.y || p.y > r.y + r.h;
+pub fn is_point_inside_rect(point: &Vec2, rect: &Rect) -> bool {
+    let is_outside = point.x < rect.x || point.x > rect.x + rect.w || point.y < rect.y || point.y > rect.y + rect.h;
     !is_outside
 }
 
-pub fn is_point_inside_screen(p: Vec2, padding: f32) -> bool {
+/// Returns true if the point in screen space is inside the current screen dimensions, including optional padding.
+pub fn is_point_inside_screen(point: Vec2, padding: f32) -> bool {
     let w = screen_width();
     let h = screen_height();
     let screen_rect = Rect {
@@ -86,7 +94,7 @@ pub fn is_point_inside_screen(p: Vec2, padding: f32) -> bool {
         w: w - padding,
         h: h - padding,
     };
-    is_point_inside_rect(&p, &screen_rect)
+    is_point_inside_rect(&point, &screen_rect)
 }
 
 /// Returns the vector in the set of vectors that is most similar to the vector v.
@@ -115,7 +123,7 @@ pub fn screen_dimensions() -> Vec2 {
 }
 
 /// Returns the intersection point of the ray defined by origin and direction and the line which is defined as passing through p1 and p2, if any.
-fn ray_line_intersection(origin: Vec2, direction: Vec2, p1: Vec2, p2: Vec2) -> Option<Vec2> {
+pub fn ray_line_intersection(origin: Vec2, direction: Vec2, p1: Vec2, p2: Vec2) -> Option<Vec2> {
 
     let dp = direction.dot((p2 - p1).normalize());
     if dp < 0.0 {
@@ -140,12 +148,12 @@ fn ray_line_intersection(origin: Vec2, direction: Vec2, p1: Vec2, p2: Vec2) -> O
 }
 
 /// Returns true if the point c is on the line segment between a and b (through abuse of the triangle inequality).
-fn is_between(a: Vec2, b: Vec2, c: Vec2) -> bool {
+pub fn is_between(a: Vec2, b: Vec2, c: Vec2) -> bool {
     a.distance(c) + c.distance(b) == a.distance(b)
 }
 
 /// Returns the intersection point of the ray defined by origin_a and direction_a and the ray defined by origin_b and direction_b, if any.
-fn ray_ray_intersection(origin_a: Vec2, direction_a: Vec2, origin_b: Vec2, direction_b: Vec2) -> Option<Vec2> {
+pub fn ray_ray_intersection(origin_a: Vec2, direction_a: Vec2, origin_b: Vec2, direction_b: Vec2) -> Option<Vec2> {
 
     if origin_a == origin_b
     {
