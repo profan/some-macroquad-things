@@ -69,6 +69,70 @@ fn create_idle_pose() {
 
 }
 
+fn create_walking_pose(transform) {
+
+    let normalized_time = get_time() % (2.0 * PI);
+    let current_t = (normalized_time * transform.velocity.length() * 2.0).sin();
+
+    let current_left_arm_angle = normalize(current_t, 0.0, 0.75, 1.0);
+    let current_right_arm_angle = -current_left_arm_angle;
+
+    let current_left_leg_angle = normalize(current_t, 0.0, PI/4.0, 1.0);
+    let current_right_leg_angle = -current_left_leg_angle;
+
+    let current_torso_sway = 0.25 * current_t * 0.5;
+
+    let idle_pose = create_idle_pose();
+
+    let walking_pose = #{
+
+        shoulder_left_bone: idle_pose.shoulder_left_bone + #{rotation: from_rotation_x(current_left_arm_angle) * from_rotation_z(2.0)},
+        shoulder_right_bone: idle_pose.shoulder_right_bone + #{rotation: from_rotation_x(current_right_arm_angle) * from_rotation_z(-2.0)},
+
+        leg_left_bone: idle_pose.leg_left_bone + #{rotation: from_rotation_x(current_left_leg_angle)},
+        leg_right_bone: idle_pose.leg_right_bone + #{rotation: from_rotation_x(current_right_leg_angle)},
+
+        hip_bone: idle_pose.hip_bone + #{rotation: from_rotation_z(current_torso_sway)},
+
+    };
+
+    return idle_pose + walking_pose;
+
+}
+
+fn create_proning_pose(transform) {
+
+    let normalized_time = get_time() % (2.0 * PI);
+    let current_t = (normalized_time * transform.velocity.length() * 2.0).sin();
+
+    let current_left_arm_angle = normalize(current_t, 0.0, 0.75, 1.0);
+    let current_right_arm_angle = -current_left_arm_angle;
+
+    let current_left_leg_angle = normalize(current_t, 0.0, PI/6.0, 1.0);
+    let current_right_leg_angle = -current_left_leg_angle;
+
+    let current_torso_sway = 0.25 * current_t * 0.5;
+
+    let idle_pose = create_idle_pose();
+
+    let proning_pose = #{
+
+        neck_bone: idle_pose.neck_bone + #{rotation: from_rotation_x(0.25) * from_rotation_y(current_torso_sway)},
+
+        shoulder_left_bone: idle_pose.shoulder_left_bone + #{rotation: from_rotation_y(-0.25 + current_left_arm_angle)},
+        shoulder_right_bone: idle_pose.shoulder_right_bone + #{rotation: from_rotation_y(0.25 - current_right_arm_angle)},
+
+        leg_left_bone: idle_pose.leg_left_bone + #{rotation: from_rotation_x(0.125) * from_rotation_y(-current_left_leg_angle)},
+        leg_right_bone: idle_pose.leg_right_bone + #{rotation: from_rotation_x(0.125) * from_rotation_y(current_right_leg_angle)},
+
+        hip_bone: idle_pose.hip_bone + #{rotation: from_rotation_y(current_torso_sway) * from_rotation_x(-(PI / 2.0))}
+
+    };
+
+    return idle_pose + proning_pose;
+
+}
+
 fn calculate_bone(bone, rig) {
 
     let calculated_bone_position = vec3_zero();
@@ -106,46 +170,6 @@ fn calculate_character_pose(character_rig) {
 
 }
 
-fn proning_pose(transform, character_pose_data) {
-
-    let normalized_time = get_time() % (2.0 * PI);
-    let current_t = (normalized_time * transform.velocity.length() * 2.0).sin();
-
-    return character_pose_data;
-
-}
-
-fn create_walking_pose(transform) {
-
-    let normalized_time = get_time() % (2.0 * PI);
-    let current_t = (normalized_time * transform.velocity.length() * 2.0).sin();
-
-    let current_left_arm_angle = normalize(current_t, 0.0, 0.75, 1.0);
-    let current_right_arm_angle = -current_left_arm_angle;
-
-    let current_left_leg_angle = normalize(current_t, 0.0, PI/4.0, 1.0);
-    let current_right_leg_angle = -current_left_leg_angle;
-
-    let current_torso_sway = 0.25 * current_t * 0.5;
-
-    let idle_pose = create_idle_pose();
-
-    let walking_pose = #{
-
-        shoulder_left_bone: idle_pose.shoulder_left_bone + #{rotation: from_rotation_x(current_left_arm_angle) * from_rotation_z(2.25)},
-        shoulder_right_bone: idle_pose.shoulder_right_bone + #{rotation: from_rotation_x(current_right_arm_angle) * from_rotation_z(-2.25)},
-
-        leg_left_bone: idle_pose.leg_left_bone + #{rotation: from_rotation_x(current_left_leg_angle)},
-        leg_right_bone: idle_pose.leg_right_bone + #{rotation: from_rotation_x(current_right_leg_angle)},
-
-        hip_bone: idle_pose.hip_bone + #{rotation: from_rotation_z(current_torso_sway)},
-
-    };
-
-    return idle_pose + walking_pose;
-
-}
-
 fn blend_character_pose(pose_one, pose_two, value) {
 
     let blended_pose = #{};
@@ -170,14 +194,36 @@ fn blend_character_pose(pose_one, pose_two, value) {
 let normalized_time = get_time() % (2.0 * PI);
 let current_t = (normalized_time * 2.0).sin();
 
-let idle_pose = create_idle_pose();
-let walking_pose = create_walking_pose(transform);
+let current_animation = "walking";
 
-let final_idle_character_pose = calculate_character_pose(idle_pose);
-let final_walking_character_pose = calculate_character_pose(walking_pose);
+let current_pose = switch current_animation {
+    "idle" => create_idle_pose(),
+    "walking" => create_walking_pose(transform),
+    "proning" => create_proning_pose(transform),
+};
 
-let calculated_character_pose = calculate_character_pose(blend_character_pose(idle_pose, walking_pose, current_t));
-draw_character_in_pose(character_data, final_walking_character_pose);
+// let idle_pose = create_idle_pose();
+// let walking_pose = create_walking_pose(transform);
+// let proning_pose = create_proning_pose(transform);
+
+// let final_idle_character_pose = calculate_character_pose(idle_pose);
+// let final_walking_character_pose = calculate_character_pose(walking_pose);
+// let final_proning_character_pose = calculate_character_pose(proning_pose);
+
+// let calculated_character_pose = calculate_character_pose(blend_character_pose(idle_pose, walking_pose, current_t));
+
+let current_character_pose = calculate_character_pose(current_pose);
+draw_character_in_pose(character_data, current_character_pose);
+
+fn get_bone_parent_or_identity(character_pose_data, bone) {
+
+    if bone.parent != () {
+        return character_pose_data[bone.parent];
+    } else {
+        return bone;
+    }
+
+}
 
 fn draw_character_in_pose(character_data, character_pose_data) {
 
@@ -203,17 +249,24 @@ fn draw_character_in_pose(character_data, character_pose_data) {
         hip_bone.rotation,
         character_data.torso_size
     );
+    
+    // backpack
+    draw_part(
+        hip_bone.position + hip_bone.rotation * vec3(0.0, 0.0, TORSO_DEPTH*0.9),
+        hip_bone.rotation,
+        character_data.torso_size * 0.75
+    );
 
     // left arm
     draw_part(
-        shoulder_left_bone.position + shoulder_left_bone.rotation * vec3(LIMB_WIDTH, 0.0, 0.0) + character_pose_data[shoulder_left_bone.parent].rotation * vec3(0.0, TORSO_LENGTH / 2.0, 0.0),
+        shoulder_left_bone.position + shoulder_left_bone.rotation * vec3(LIMB_WIDTH, 0.0, 0.0) + get_bone_parent_or_identity(character_pose_data, shoulder_left_bone).rotation * vec3(0.0, TORSO_LENGTH / 2.0, 0.0),
         (shoulder_left_bone.rotation * character_data.arm_left_rotation),
         character_data.arm_left_size
     );
 
     // right arm
     draw_part(
-        shoulder_right_bone.position + shoulder_right_bone.rotation * vec3(-LIMB_WIDTH, 0.0, 0.0) + character_pose_data[shoulder_right_bone.parent].rotation * vec3(0.0, TORSO_LENGTH / 2.0, 0.0),
+        shoulder_right_bone.position + shoulder_right_bone.rotation * vec3(-LIMB_WIDTH, 0.0, 0.0) + get_bone_parent_or_identity(character_pose_data, shoulder_right_bone).rotation * vec3(0.0, TORSO_LENGTH / 2.0, 0.0),
         shoulder_right_bone.rotation * character_data.arm_right_rotation,
         character_data.arm_right_size
     );
@@ -235,33 +288,6 @@ fn draw_character_in_pose(character_data, character_pose_data) {
 }
 
 // the entity position is at the entity's feet in our setup
-
-let current_animation_state = "walking";
-
-// switch current_animation_state {
-
-//     "walking" => play_walking_animation(transform, character_data),
-//     "running" => play_idle_animation(transform, character_data),
-//     "proning" => play_proning_animation(transform, character_data),
-//     "crouching" => play_crouching_animation(transform, character_data)
-
-// }
-
-fn blend_animations(animation_one, animation_two, value) {
-
-}
-
-fn play_crouching_animation(transform, data) {
-
-}
-
-fn play_proning_animation(transform, data) {
-
-}
-
-fn play_idle_animation(transform, data) {
-
-}
 
 fn play_walking_animation(transform, data) {
 
