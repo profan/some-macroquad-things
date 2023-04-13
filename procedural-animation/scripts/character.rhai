@@ -100,6 +100,28 @@ fn create_walking_pose(transform) {
 
 }
 
+fn create_aiming_pose(transform) {
+
+    let current_torso_aim_angle = 0.75;
+
+    let idle_pose = create_idle_pose();
+
+    let aiming_pose = #{
+
+        shoulder_left_bone: idle_pose.shoulder_left_bone + #{rotation: from_rotation_y(-2.0) * from_rotation_z(0.45)},
+        shoulder_right_bone: idle_pose.shoulder_right_bone + #{rotation: from_rotation_y(PI/2.0)},
+
+        leg_left_bone: idle_pose.leg_left_bone + #{rotation: from_rotation_x(-0.25)},
+        leg_right_bone: idle_pose.leg_right_bone + #{rotation: from_rotation_x(0.25)},
+
+        hip_bone: idle_pose.hip_bone + #{rotation: from_rotation_y(current_torso_aim_angle)},
+
+    };
+
+    return idle_pose + aiming_pose;
+
+}
+
 fn create_proning_pose(transform) {
 
     let normalized_time = get_time() % (2.0 * PI);
@@ -170,6 +192,10 @@ fn calculate_character_pose(character_rig) {
 
 }
 
+fn add_character_pose(pose_one, pose_two, weight) {
+
+}
+
 fn blend_character_pose(pose_one, pose_two, value) {
 
     let blended_pose = #{};
@@ -205,7 +231,7 @@ let current_pose = switch current_animation {
 };
 
 // let idle_pose = create_idle_pose();
-let walking_pose = create_walking_pose(transform);
+// let walking_pose = create_walking_pose(transform);
 // let proning_pose = create_proning_pose(transform);
 
 // let final_idle_character_pose = calculate_character_pose(idle_pose);
@@ -213,9 +239,9 @@ let walking_pose = create_walking_pose(transform);
 // let final_proning_character_pose = calculate_character_pose(proning_pose);
 
 // let calculated_character_pose = calculate_character_pose(blend_character_pose(idle_pose, walking_pose, current_t));
+// let blended_pose = blend_character_pose(create_walking_pose(transform), create_aiming_pose(transform), 1.0);
 
-// let blended_pose = blend_character_pose(walking_pose, proning_pose, -0.25);
-let current_character_pose = calculate_character_pose(walking_pose);
+let current_character_pose = calculate_character_pose(current_pose);
 draw_character_in_pose(character_data, current_character_pose);
 
 fn get_bone_parent_or_identity(character_pose_data, bone) {
@@ -262,14 +288,14 @@ fn draw_character_in_pose(character_data, character_pose_data) {
 
     // left arm
     draw_part(
-        shoulder_left_bone.position + shoulder_left_bone.rotation * vec3(LIMB_WIDTH + SHOULDER_OFFSET / 2.0, SHOULDER_OFFSET, 0.0) + get_bone_parent_or_identity(character_pose_data, shoulder_left_bone).rotation * vec3(0.0, TORSO_LENGTH / 2.0 - SHOULDER_OFFSET / 2.0, 0.0),
+        shoulder_left_bone.position + shoulder_left_bone.rotation * vec3(LIMB_WIDTH + SHOULDER_OFFSET, SHOULDER_OFFSET, 0.0) + get_bone_parent_or_identity(character_pose_data, shoulder_left_bone).rotation * vec3(-SHOULDER_OFFSET / 2.0, TORSO_LENGTH / 2.0 - SHOULDER_OFFSET, 0.0),
         (shoulder_left_bone.rotation * character_data.arm_left_rotation),
         character_data.arm_left_size
     );
 
     // right arm
     draw_part(
-        shoulder_right_bone.position + shoulder_right_bone.rotation * vec3(-LIMB_WIDTH - SHOULDER_OFFSET / 2.0, SHOULDER_OFFSET, 0.0) + get_bone_parent_or_identity(character_pose_data, shoulder_right_bone).rotation * vec3(0.0, TORSO_LENGTH / 2.0 - SHOULDER_OFFSET / 2.0, 0.0),
+        shoulder_right_bone.position + shoulder_right_bone.rotation * vec3(-LIMB_WIDTH - SHOULDER_OFFSET, SHOULDER_OFFSET, 0.0) + get_bone_parent_or_identity(character_pose_data, shoulder_right_bone).rotation * vec3(SHOULDER_OFFSET / 2.0, TORSO_LENGTH / 2.0 - SHOULDER_OFFSET, 0.0),
         shoulder_right_bone.rotation * character_data.arm_right_rotation,
         character_data.arm_right_size
     );
