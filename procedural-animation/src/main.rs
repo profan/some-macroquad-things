@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use hecs::{World, Bundle};
 use macroquad::prelude::*;
-use utility::{GameCamera, DebugText, create_camera_from_game_camera, TextPosition, intersect_ray_with_plane, draw_cube_ex, draw_cube_wires_ex, rotate_relative_to_origin, AdjustHue, draw_with_transformation, AsAngle, RotatedBy, normalize, is_point_inside_screen, is_point_inside_rect, draw_circle_lines_3d, FromRotationArcAround};
+use utility::{GameCamera, DebugText, create_camera_from_game_camera, TextPosition, intersect_ray_with_plane, draw_cube_ex, draw_cube_wires_ex, rotate_relative_to_origin, AdjustHue, draw_with_transformation, AsAngle, RotatedBy, normalize, is_point_inside_screen, is_point_inside_rect, draw_circle_lines_3d, FromRotationArcAround, BenchmarkWithDebugText, benchmark_execution};
 use rhai::{Engine, EvalAltResult, AST, NativeCallContext, Scope, OptimizationLevel};
 
 const WORLD_UP: Vec3 = Vec3::Y;
@@ -355,7 +355,7 @@ fn draw_selection_box(world: &World) {
 
 }
 
-fn draw_scene(game: &Game) {
+fn draw_scene(game: &mut Game) {
 
     set_camera(&create_camera_from_game_camera(&game.camera));
 
@@ -365,7 +365,7 @@ fn draw_scene(game: &Game) {
 
     // 3d elements
     draw_grid(number_of_slices, plane_slice_size, RED, GRAY);
-    draw_characters(&game.engine, &game.world);
+    benchmark_execution!(game.debug_text, draw_characters(&game.engine, &game.world));
     draw_selectables(&game.world);
     draw_selection_state(&game.world);
     draw_orderables_state(&game.world);
@@ -461,18 +461,18 @@ fn handle_update_selection(game: &mut Game, dt: f32) {
 
 }
 
-fn handle_update_orderables(game: &mut Game, dt: f32) {
+fn handle_update_orderables(world: &mut World, dt: f32) {
 
     let was_order_to_move_given = is_mouse_button_released(MouseButton::Right);
 
-    let (_selection_box_entity, selection_state) = game.world.query_mut::<(&SelectionState)>().into_iter().nth(0).expect("could not find the selection box entity? this is an error!");
+    let (_selection_box_entity, selection_state) = world.query_mut::<(&SelectionState)>().into_iter().nth(0).expect("could not find the selection box entity? this is an error!");
     let current_target_order_positions = selection_state.order_points.clone();
 
-    let orderable_query = game.world.query_mut::<(&mut Orderable, &Selectable)>();
+    let orderable_query = world.query_mut::<(&mut Orderable, &Selectable)>();
     let number_of_entities_in_query = orderable_query.into_iter().filter(|s| s.1.1.is_selected).count();
 
     // update orderable targets of all selected entities
-    for (idx, (_entity, (orderable, _selectable))) in game.world.query_mut::<(&mut Orderable, &Selectable)>().into_iter().filter(|s| s.1.1.is_selected).enumerate() {
+    for (idx, (_entity, (orderable, _selectable))) in world.query_mut::<(&mut Orderable, &Selectable)>().into_iter().filter(|s| s.1.1.is_selected).enumerate() {
 
         if was_order_to_move_given {
 
@@ -485,7 +485,7 @@ fn handle_update_orderables(game: &mut Game, dt: f32) {
     }
 
     // update current orderable state
-    for (_entity, (transform, orderable, _selectable)) in game.world.query_mut::<(&Transform, &mut Orderable, &Selectable)>().into_iter() {
+    for (_entity, (transform, orderable, _selectable)) in world.query_mut::<(&Transform, &mut Orderable, &Selectable)>().into_iter() {
 
         if let Some(target) = orderable.target {
 
@@ -502,9 +502,9 @@ fn handle_update_orderables(game: &mut Game, dt: f32) {
 
 }
 
-fn handle_update_characters(game: &mut Game, dt: f32) {
+fn handle_update_characters(world: &mut World, dt: f32) {
 
-    for (_entity, (transform, orderable, character)) in game.world.query_mut::<(&mut Transform, &Orderable, &Character)>() {
+    for (_entity, (transform, orderable, character)) in world.query_mut::<(&mut Transform, &Orderable, &Character)>() {
 
         if let Some(target) = orderable.target {
 
@@ -529,9 +529,9 @@ fn handle_update_characters(game: &mut Game, dt: f32) {
 
 }
 
-fn handle_update_transforms(game: &mut Game, dt: f32) {
+fn handle_update_transforms(world: &mut World, dt: f32) {
 
-    for (_entity, transform) in game.world.query_mut::<&mut Transform>() {
+    for (_entity, transform) in world.query_mut::<&mut Transform>() {
         transform.position += transform.velocity * dt;
         // transform.velocity *= 0.965;
     }
@@ -546,9 +546,9 @@ fn update_scene(game: &mut Game, dt: f32) {
     handle_update_selection(game, dt);
     handle_update_selection_state(game, dt);
     
-    handle_update_orderables(game, dt);
-    handle_update_characters(game, dt);
-    handle_update_transforms(game, dt);
+    handle_update_orderables(&mut game.world, dt);
+    handle_update_characters(&mut game.world, dt);
+    handle_update_transforms(&mut game.world, dt);
 
 }
 
@@ -757,7 +757,7 @@ fn create_default_scene(game: &mut Game) {
 
     // add a bunch of characters around 0, 0, 0
 
-    let area_size = 1;
+    let area_size = 4;
 
     for x in -area_size..area_size {
 
@@ -832,7 +832,7 @@ async fn main() {
         update_scene(&mut game, dt);
 
         // draw
-        draw_scene(&game);
+        draw_scene(&mut game);
 
         draw_scene_debug(&mut game);
 
