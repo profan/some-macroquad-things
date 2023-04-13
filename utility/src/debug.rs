@@ -101,3 +101,13 @@ impl BenchmarkWithDebugText for DebugText {
         
     }
 }
+
+#[macro_export]
+macro_rules! benchmark_execution {
+    ($debug_text:expr, $x:expr) => {
+        $debug_text.benchmark_execution(|| $x, stringify!($x).split_once('(').unwrap().0, TextPosition::TopRight, BLACK);
+    };
+    ($debug_text:expr, $x:expr, $n:expr) => {
+        $debug_text.benchmark_execution(|| $x, $n, TextPosition::TopRight, BLACK);
+    };
+}
