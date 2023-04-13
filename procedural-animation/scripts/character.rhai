@@ -86,8 +86,8 @@ fn create_walking_pose(transform) {
 
     let walking_pose = #{
 
-        shoulder_left_bone: idle_pose.shoulder_left_bone + #{rotation: from_rotation_z(0.75) * from_rotation_y(-current_left_arm_angle)},
-        shoulder_right_bone: idle_pose.shoulder_right_bone + #{rotation: from_rotation_z(-0.75) * from_rotation_y(current_right_arm_angle)},
+        shoulder_left_bone: idle_pose.shoulder_left_bone + #{rotation: from_rotation_z(0.95) * from_rotation_y(-current_left_arm_angle)},
+        shoulder_right_bone: idle_pose.shoulder_right_bone + #{rotation: from_rotation_z(-0.95) * from_rotation_y(current_right_arm_angle)},
 
         leg_left_bone: idle_pose.leg_left_bone + #{rotation: from_rotation_x(current_left_leg_angle)},
         leg_right_bone: idle_pose.leg_right_bone + #{rotation: from_rotation_x(current_right_leg_angle)},
