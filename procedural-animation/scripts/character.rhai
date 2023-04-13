@@ -57,8 +57,8 @@ fn create_idle_pose() {
         neck_bone: create_bone(vec3(0.0, TORSO_LENGTH / 2.0, 0.0), quat_identity(), "hip_bone"),
         hip_bone: create_bone(vec3(0.0, LEG_LENGTH * 1.5, 0.0), quat_identity(), ()),
 
-        shoulder_left_bone: create_bone(vec3(-TORSO_WIDTH / 2.0 - LIMB_WIDTH / 2.0 - SHOULDER_OFFSET - LIMB_WIDTH / 2.0, -SHOULDER_OFFSET / 2.0, 0.0), quat_identity(), "hip_bone"),
-        shoulder_right_bone: create_bone(vec3(TORSO_WIDTH / 2.0 + LIMB_WIDTH / 2.0 + SHOULDER_OFFSET + LIMB_WIDTH / 2.0, -SHOULDER_OFFSET / 2.0, 0.0), quat_identity(), "hip_bone"),
+        shoulder_left_bone: create_bone(vec3(-(TORSO_WIDTH / 2.0) - LIMB_WIDTH - SHOULDER_OFFSET, -(SHOULDER_OFFSET / 2.0), 0.0), quat_identity(), "hip_bone"),
+        shoulder_right_bone: create_bone(vec3((TORSO_WIDTH / 2.0) + LIMB_WIDTH + SHOULDER_OFFSET, -(SHOULDER_OFFSET / 2.0), 0.0), quat_identity(), "hip_bone"),
         
         leg_left_bone: create_bone(vec3(-LIMB_WIDTH, -(LEG_LENGTH / 2.0), 0.0), quat_identity(), "hip_bone"),
         leg_right_bone: create_bone(vec3(LIMB_WIDTH, -(LEG_LENGTH / 2.0), 0.0), quat_identity(), "hip_bone"),
@@ -86,8 +86,8 @@ fn create_walking_pose(transform) {
 
     let walking_pose = #{
 
-        shoulder_left_bone: idle_pose.shoulder_left_bone + #{rotation: from_rotation_x(current_left_arm_angle) * from_rotation_z(2.0)},
-        shoulder_right_bone: idle_pose.shoulder_right_bone + #{rotation: from_rotation_x(current_right_arm_angle) * from_rotation_z(-2.0)},
+        shoulder_left_bone: idle_pose.shoulder_left_bone + #{rotation: from_rotation_z(0.75) * from_rotation_y(-current_left_arm_angle)},
+        shoulder_right_bone: idle_pose.shoulder_right_bone + #{rotation: from_rotation_z(-0.75) * from_rotation_y(current_right_arm_angle)},
 
         leg_left_bone: idle_pose.leg_left_bone + #{rotation: from_rotation_x(current_left_leg_angle)},
         leg_right_bone: idle_pose.leg_right_bone + #{rotation: from_rotation_x(current_right_leg_angle)},
@@ -191,8 +191,10 @@ fn blend_character_pose(pose_one, pose_two, value) {
 
 }
 
+// the entity position is at the entity's feet in our setup
+
 let normalized_time = get_time() % (2.0 * PI);
-let current_t = (normalized_time * 2.0).sin();
+let current_t = ((normalized_time * 2.0).sin() * 0.5) + 0.5;
 
 let current_animation = "walking";
 
@@ -203,7 +205,7 @@ let current_pose = switch current_animation {
 };
 
 // let idle_pose = create_idle_pose();
-// let walking_pose = create_walking_pose(transform);
+let walking_pose = create_walking_pose(transform);
 // let proning_pose = create_proning_pose(transform);
 
 // let final_idle_character_pose = calculate_character_pose(idle_pose);
@@ -212,7 +214,8 @@ let current_pose = switch current_animation {
 
 // let calculated_character_pose = calculate_character_pose(blend_character_pose(idle_pose, walking_pose, current_t));
 
-let current_character_pose = calculate_character_pose(current_pose);
+// let blended_pose = blend_character_pose(walking_pose, proning_pose, -0.25);
+let current_character_pose = calculate_character_pose(walking_pose);
 draw_character_in_pose(character_data, current_character_pose);
 
 fn get_bone_parent_or_identity(character_pose_data, bone) {
@@ -259,14 +262,14 @@ fn draw_character_in_pose(character_data, character_pose_data) {
 
     // left arm
     draw_part(
-        shoulder_left_bone.position + shoulder_left_bone.rotation * vec3(LIMB_WIDTH, 0.0, 0.0) + get_bone_parent_or_identity(character_pose_data, shoulder_left_bone).rotation * vec3(0.0, TORSO_LENGTH / 2.0, 0.0),
+        shoulder_left_bone.position + shoulder_left_bone.rotation * vec3(LIMB_WIDTH + SHOULDER_OFFSET / 2.0, SHOULDER_OFFSET, 0.0) + get_bone_parent_or_identity(character_pose_data, shoulder_left_bone).rotation * vec3(0.0, TORSO_LENGTH / 2.0 - SHOULDER_OFFSET / 2.0, 0.0),
         (shoulder_left_bone.rotation * character_data.arm_left_rotation),
         character_data.arm_left_size
     );
 
     // right arm
     draw_part(
-        shoulder_right_bone.position + shoulder_right_bone.rotation * vec3(-LIMB_WIDTH, 0.0, 0.0) + get_bone_parent_or_identity(character_pose_data, shoulder_right_bone).rotation * vec3(0.0, TORSO_LENGTH / 2.0, 0.0),
+        shoulder_right_bone.position + shoulder_right_bone.rotation * vec3(-LIMB_WIDTH - SHOULDER_OFFSET / 2.0, SHOULDER_OFFSET, 0.0) + get_bone_parent_or_identity(character_pose_data, shoulder_right_bone).rotation * vec3(0.0, TORSO_LENGTH / 2.0 - SHOULDER_OFFSET / 2.0, 0.0),
         shoulder_right_bone.rotation * character_data.arm_right_rotation,
         character_data.arm_right_size
     );
@@ -284,93 +287,5 @@ fn draw_character_in_pose(character_data, character_pose_data) {
         leg_right_bone.rotation,
         character_data.leg_right_size
     );
-
-}
-
-// the entity position is at the entity's feet in our setup
-
-fn play_walking_animation(transform, data) {
-
-    let normalized_time = get_time() % (2.0 * PI);
-    let current_t = (normalized_time * transform.velocity.length() * 2.0).sin();
-
-    let current_left_arm_angle = normalize(current_t, 0.0, 0.75, 1.0);
-    let current_right_arm_angle = -current_left_arm_angle;
-
-    draw_with_transformation(vec3(0.0, data.leg_right_position.y * 2.0, 0.0), quat_identity(), || {
-
-        // draw legs
-
-        // left leg
-        let current_left_leg_angle = normalize(current_t, 0.0, PI/4.0, 1.0);
-        let current_right_leg_angle = -current_left_leg_angle;
-
-        draw_with_transformation(vec3(0.0, 0.0, 0.0), from_rotation_x(current_left_leg_angle), || {
-            draw_part(
-                vec3(data.leg_left_position.x, -data.leg_left_position.y, data.leg_left_position.z),
-                data.leg_left_rotation,
-                data.leg_left_size
-            );
-        });
-
-        // right leg
-        draw_with_transformation(vec3(0.0, 0.0, 0.0), from_rotation_x(current_right_leg_angle), || {
-            draw_part(
-                vec3(data.leg_right_position.x, -data.leg_right_position.y, data.leg_right_position.z),
-                data.leg_right_rotation,
-                data.leg_right_size
-            );
-        });
-
-        // draw torso
-        draw_with_transformation(vec3(0.0, TORSO_LENGTH / 2.0, 0.0), from_rotation_z(0.25 * current_t * 0.5), || {
-
-            // draw head
-            draw_part(
-                vec3(0.0, (TORSO_LENGTH / 2.0) + data.head_size.y / 2.0, 0.0),
-                data.head_rotation,
-                data.head_size
-            );
-
-            // draw left arm
-            draw_with_transformation(vec3(-TORSO_WIDTH / 2.0, TORSO_LENGTH / 2.0 - SHOULDER_OFFSET / 2.0, 0.0), from_rotation_x(current_left_arm_angle) * from_rotation_z(4.25), || {
-
-                draw_part(
-                    vec3(TORSO_WIDTH / 2.0, 0.0, 0.0),
-                    data.arm_left_rotation,
-                    data.arm_left_size
-                );
-
-            });
-
-            // draw right arm
-            draw_with_transformation(vec3(TORSO_WIDTH / 2.0, TORSO_LENGTH / 2.0 - SHOULDER_OFFSET / 2.0, 0.0), from_rotation_x(current_right_arm_angle) * from_rotation_z(-4.25), || {
-
-                draw_part(
-                    vec3(-TORSO_WIDTH / 2.0, 0.0, 0.0),
-                    data.arm_right_rotation,
-                    data.arm_right_size
-                );
-
-            });
-
-            draw_part(
-                vec3_zero(),
-                data.torso_rotation,
-                data.torso_size
-            );
-
-            // draw backpack
-            draw_with_transformation(vec3_zero(), from_rotation_x(0.0), || {
-                draw_part(
-                    vec3(0.0, 0.0, TORSO_DEPTH*0.9),
-                    data.torso_rotation,
-                    data.torso_size * 0.75
-                );
-            });
-
-        });
-
-    });
 
 }

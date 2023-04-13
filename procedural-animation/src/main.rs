@@ -95,7 +95,9 @@ impl Orderable {
     }
 }
 
+#[derive(Clone)]
 struct Character {
+    current_state: String,
     movement_speed: f32,
     script: Arc<AST>
 }
@@ -103,6 +105,7 @@ struct Character {
 impl Character {
     pub fn new(movement_speed: f32, script: Arc<AST>) -> Character {
         Character {
+            current_state: String::new(),
             movement_speed,
             script
         }
@@ -587,6 +590,9 @@ fn register_types_for_rhai(engine: &mut Engine) {
     engine
         .register_fn("to_string", |v: &mut Quat| v.to_string())
         .register_fn("to_debug", |v: &mut Quat| format!("{v:?}"));
+
+    engine.register_type::<Character>()
+        .register_get("movement_speed", |c: &mut Character| c.movement_speed);
 
     engine.register_type::<Transform>()
         .register_get("position", |t: &mut Transform| t.position)
