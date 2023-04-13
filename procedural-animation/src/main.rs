@@ -757,7 +757,7 @@ fn create_default_scene(game: &mut Game) {
 
     // add a bunch of characters around 0, 0, 0
 
-    let area_size = 4;
+    let area_size = 1;
 
     for x in -area_size..area_size {
 
