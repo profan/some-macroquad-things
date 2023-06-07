@@ -4,10 +4,11 @@ use macroquad::{prelude::{*}, rand::gen_range};
 use utility::{DebugText, draw_arrow, WithAlpha, TextPosition};
 use petgraph::{graph::{UnGraph}, visit::EdgeRef};
 
-const PHYSICS_STEPS_PER_TIMESTEP: i32 = 2;
+const PHYSICS_STEPS_PER_TIMESTEP: i32 = 8;
 const PHYSICS_TIMESTEP: f32 = 1.0 / 60.0;
 
 /// Spring-Damper system per Hooke's Law, F = -kx - bv
+/// Addendum, as we want our "springs" to pull when apart and push when too close, this is our amended version: F = -k(|x| - d)(x / |x|) - bv
 /// where:
 /// x = vector displacement of the end of the spring from it’s equilibrium position
 /// k = tightness of the spring
@@ -23,12 +24,35 @@ impl Spring {
 
     pub fn evaluate_spring_force(&self, entity_a: &Entity, entity_b: &Entity) -> Vec2 {
 
-        let clamped_vector_displacement = (entity_b.position - entity_a.position).clamp_length(0.0, self.rest_length);
-        let x = (entity_b.position - entity_a.position) - clamped_vector_displacement;
-        let k = self.tightness;
-        let b = self.damping;
-        let v = entity_b.velocity - entity_a.velocity;
-        let f = -k*x - b*v;
+        let should_push_when_close = false;
+
+        let f = if should_push_when_close == false {
+
+            let clamped_vector_displacement = (entity_b.position - entity_a.position).clamp_length(0.0, self.rest_length);
+            let x = (entity_b.position - entity_a.position) - clamped_vector_displacement;
+            let k = self.tightness;
+            let b = self.damping;
+            let v = entity_b.velocity - entity_a.velocity;
+            let f = -k*x - b*v;
+
+            f
+
+        } else {
+
+            // amended version, with separation distance d
+
+            let clamped_vector_displacement = (entity_b.position - entity_a.position).clamp_length(0.0, self.rest_length);
+            let x = (entity_b.position - entity_a.position) - clamped_vector_displacement;
+            let k = self.tightness;
+            let b = self.damping;
+            let v = entity_b.velocity - entity_a.velocity;
+            let d = self.rest_length;
+
+            let f = -k * (x.length() - d) * (x / x.length()) - b*v;
+
+            f
+
+        };
 
         f
 
@@ -136,7 +160,7 @@ struct Entity {
 
 fn create_default_spring() -> Spring {
     Spring {
-        damping: 0.25,
+        damping: 0.75,
         tightness: 2.25,
         rest_length: 64.0
     }
@@ -528,6 +552,9 @@ fn step_physics_for_entities(world: &mut World, spring_forces: &Vec<(i32, i32, V
             e.velocity += vec2(0.0, 9.82);
         }
 
+        // clamp max velocity for simulation stability
+        e.velocity = e.velocity.clamp_length_max(128.0);
+
         // apply spring forces, if any for this entity
 
         if let Some((src_id, target_id, v)) = spring_forces.into_iter().find(|(src_id, target_id, _v)| src_id == entity_id || target_id == entity_id) {
@@ -642,7 +669,7 @@ fn draw_entities(game: &Game) {
 #[macroquad::main("graph")]
 async fn main() {
 
-    let number_of_entities = 32;
+    let number_of_entities = 24;
     let mut has_game_state_been_created = false;
     let mut game = Game::new();
 
