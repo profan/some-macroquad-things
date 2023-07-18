@@ -235,10 +235,17 @@ fn load_all_rooms_from_file(path: &str) -> Vec<Room> {
     let mut found_rooms = Vec::new();
 
     for path in std::fs::read_dir(path).unwrap() {
+        
         let path_string = path.unwrap().path();
-        if let Some(room) = load_room_from_file(&path_string) && is_ignored_path(&path_string) == false {
+
+        if is_ignored_path(&path_string) {
+            continue;
+        }
+
+        if let Some(room) = load_room_from_file(&path_string) {
             found_rooms.push(room);
         }
+
     }
 
     found_rooms

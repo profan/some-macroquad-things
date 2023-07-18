@@ -351,7 +351,7 @@ fn rotate_orbs_around_center_of_grid(game: &mut Game, dt: f32) {
         let rotated_position_in_plane = orb.position.xz().rotated_by_around_origin(rotation_delta, center_of_grid.xz());
         
         orb.position.x = rotated_position_in_plane.x;
-        orb.position.z= rotated_position_in_plane.y;
+        orb.position.z = rotated_position_in_plane.y;
 
     }
 
