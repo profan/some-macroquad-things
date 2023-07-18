@@ -101,8 +101,8 @@ impl DistanceBetween for Vec2 {
 }
 
 pub trait RotatedBy {
-    fn rotated_by(&self, angle: f32) -> Vec2;
-    fn rotated_by_around_origin(&self, angle: f32, origin: Vec2) -> Vec2;
+    fn rotated_by(&self, angle: f32) -> Self;
+    fn rotated_by_around_origin(&self, angle: f32, origin: Self) -> Self;
 }
 
 impl RotatedBy for Vec2 {
