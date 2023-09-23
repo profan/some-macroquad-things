@@ -744,13 +744,14 @@ fn handle_height_map_input(active: &mut GameCamera, map: &mut Heightmap, dt: f32
 }
 
 /// Handles the game input, if any change happened, this returns true.
-fn handle_game_input(active: &mut GameCamera, map: &mut Heightmap, dt: f32) -> bool {
+fn handle_game_input(active: &mut GameCamera, map: &mut Heightmap, out_seed: &mut u32, dt: f32) -> bool {
 
     let was_reload_key_pressed = is_key_pressed(KeyCode::R);
 
     if was_reload_key_pressed {
         let new_random_seed = gen_range(0, u32::MAX / 4);
         apply_noise_to_height_field(map, new_random_seed);
+        *out_seed = new_random_seed;
     }
 
     let height_map_changed = handle_height_map_input(active, map, dt);
@@ -759,7 +760,7 @@ fn handle_game_input(active: &mut GameCamera, map: &mut Heightmap, dt: f32) -> b
 
 }
 
-fn draw_debug_text(active: &GameCamera, map: &Heightmap, debug: &mut DebugText) {
+fn draw_debug_text(active: &GameCamera, map: &Heightmap, debug: &mut DebugText, seed: u32) {
 
     let world_pos = active.camera.screen_to_world(mouse_position().into());
     let tile_pos = map.world_to_tile(world_pos.x, world_pos.y);
@@ -768,6 +769,7 @@ fn draw_debug_text(active: &GameCamera, map: &Heightmap, debug: &mut DebugText) 
     debug.draw_text(format!("world position under mouse: {}", world_pos), TextPosition::TopLeft, WHITE);
     debug.draw_text(format!("tile position under mouse: {:?}", tile_pos), TextPosition::TopLeft, WHITE);
     debug.draw_text(format!("tile under mouse: {:?}", tile), TextPosition::TopLeft, WHITE);
+    debug.draw_text(format!("seed: {}", seed), TextPosition::TopLeft, WHITE);
 
 }
 
@@ -781,7 +783,7 @@ async fn main() {
     // step 5. ???
 
     // highly scientific
-    let initial_seed = 64;
+    let mut current_seed = 64;
 
     let mut debug_text = DebugText::new();
 
@@ -789,9 +791,10 @@ async fn main() {
     let mut rasterized_tile_atlas: Option<RenderTarget> = None;
 
     let mut height_field = create_height_field(128, 128);
-    apply_noise_to_height_field(&mut height_field, initial_seed);
+    apply_noise_to_height_field(&mut height_field, current_seed);
 
-    let height_field_texture = create_height_field_buffer_texture(&height_field);
+    // #TODO: figure out what the purpose of this was, literally do not remember
+    // let height_field_texture = create_height_field_buffer_texture(&height_field);
 
     let mut last_mouse_position: Vec2 = mouse_position().into();
     let mut active_camera = GameCamera::new(screen_dimensions());
@@ -815,7 +818,7 @@ async fn main() {
         }
 
         let camera_changed = handle_camera_input(&mut active_camera, last_mouse_position, dt);
-        let game_changed = handle_game_input(&mut active_camera, &mut height_field, dt);
+        let game_changed = handle_game_input(&mut active_camera, &mut height_field, &mut current_seed, dt);
         should_rasterize_tile_atlas = camera_changed || game_changed;
 
         // update last mouse pos
@@ -828,6 +831,7 @@ async fn main() {
         set_camera(&active_camera.camera);
         clear_background(murky_ocean_blue);
 
+        // uncomment this to see the tile atlas generated
         // draw_texture(
         //     rasterized_tile_atlas.unwrap().texture,
         //     0.0, 0.0,
@@ -846,7 +850,7 @@ async fn main() {
         set_default_camera();
 
         debug_text.new_frame();
-        draw_debug_text(&active_camera, &height_field, &mut debug_text);
+        draw_debug_text(&active_camera, &height_field, &mut debug_text, current_seed);
 
         if is_key_pressed(KeyCode::Escape) {
             break;
