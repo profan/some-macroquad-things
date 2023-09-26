@@ -3,7 +3,7 @@ use std::{ops::{Deref, DerefMut}, collections::{HashMap, hash_map::Entry}, threa
 use macroquad::prelude::*;
 use macroquad::ui::*;
 
-use utility::{draw_cube_ex, draw_cube_wires_ex, create_camera};
+use utility::{draw_cube_ex, draw_cube_wires_ex, create_camera, draw_grid_ex};
 
 const INVALID_ENTITY_ID: i32 = i32::MAX;
 
@@ -201,9 +201,9 @@ async fn main() {
 
     let mut world = World::new();
 
-    let e1 = spawn_cube_entity(&mut world, Vec3::ZERO, Quat::from_rotation_y(PI / 4.0));
+    let e1 = spawn_cube_entity(&mut world, vec3(0.0, 0.5, 0.0), Quat::from_rotation_y(PI / 4.0));
     let e2 = spawn_cube_entity_with_parent(&mut world, vec3(0.0, 2.0, 0.0), Quat::from_rotation_x(PI / 4.0), e1);
-    let e3 = spawn_cube_entity_with_parent(&mut world, vec3(0.0, 4.0, 0.0), Quat::from_rotation_y(PI / 4.0), e2);
+    let e3 = spawn_cube_entity_with_parent(&mut world, vec3(0.0, 2.0, 0.0), Quat::from_rotation_y(PI / 4.0), e2);
 
     let mut going_right = true;
     let mut current_camera_x = 4.0;
@@ -241,6 +241,7 @@ async fn main() {
             let world_position = world.hierarchy.get_world_position(*entity_id);
             let world_rotation = world.hierarchy.get_world_rotation(*entity_id);
             draw_cube_wires_ex(world_position, world_rotation, Vec3::ONE, BLACK);
+            draw_grid_ex(world_position - world_rotation * vec3(0.0, 0.5, 0.0), world_rotation, 4, 0.5, RED, GRAY);
             
             // let other_world_position = world.hierarchy.local_to_world(*entity_id, world.hierarchy.get_local_position(*entity_id));
             // let world_rotation = world.hierarchy.get_world_rotation(*entity_id);
