@@ -196,6 +196,19 @@ fn spawn_cube_entity(world: &mut World, local_position: Vec3, local_rotation: Qu
 
 }
 
+fn draw_cube_entity(world: &World, entity_id: EntityId) {
+
+    let world_position = world.hierarchy.get_world_position(entity_id);
+    let world_rotation = world.hierarchy.get_world_rotation(entity_id);
+    draw_cube_wires_ex(world_position, world_rotation, Vec3::ONE, BLACK);
+    draw_grid_ex(world_position - world_rotation * vec3(0.0, 0.5, 0.0), world_rotation, 4, 0.5, RED, GRAY);
+    
+    // let other_world_position = world.hierarchy.local_to_world(*entity_id, world.hierarchy.get_local_position(*entity_id));
+    // let world_rotation = world.hierarchy.get_world_rotation(*entity_id);
+    // draw_cube_wires_ex(other_world_position, world_rotation, Vec3::ONE, GREEN)
+    
+}
+
 #[macroquad::main("transformy")]
 async fn main() {
 
@@ -237,16 +250,7 @@ async fn main() {
         draw_grid(16, 1.0, RED, GRAY);
 
         for entity_id in &world.entities {
-
-            let world_position = world.hierarchy.get_world_position(*entity_id);
-            let world_rotation = world.hierarchy.get_world_rotation(*entity_id);
-            draw_cube_wires_ex(world_position, world_rotation, Vec3::ONE, BLACK);
-            draw_grid_ex(world_position - world_rotation * vec3(0.0, 0.5, 0.0), world_rotation, 4, 0.5, RED, GRAY);
-            
-            // let other_world_position = world.hierarchy.local_to_world(*entity_id, world.hierarchy.get_local_position(*entity_id));
-            // let world_rotation = world.hierarchy.get_world_rotation(*entity_id);
-            // draw_cube_wires_ex(other_world_position, world_rotation, Vec3::ONE, GREEN)
-
+            draw_cube_entity(&world, *entity_id);
         }
 
         set_default_camera();
