@@ -93,19 +93,16 @@ impl Hierarchy {
         }
 
         let mut current_parent = self.hierarchy.get(&id);
-        let mut parent_world_position = Vec3::ZERO;
-        let mut parent_world_rotation = Quat::IDENTITY;
-        
-        if let Some(parent) = current_parent {
-            parent_world_rotation = self.get_world_rotation(*parent);
-        }
+        let mut world_position = local_position;
 
         while let Some(parent) = current_parent {
-            parent_world_position += self.get_local_position(*parent);
+            let parent_position = self.get_local_position(*parent);
+            let parent_rotation = self.get_local_rotation(*parent);
+            world_position = parent_rotation * world_position + parent_position;
             current_parent = self.hierarchy.get(parent);
         }
 
-        (parent_world_rotation * local_position) + parent_world_position
+        world_position
 
     }
 
@@ -119,7 +116,7 @@ impl Hierarchy {
 
     pub fn set_world_rotation(&mut self, id: EntityId, world_rotation: Quat) {
         let parent_world_rotation = self.hierarchy.get(&id).and_then(|p| Some(self.get_world_rotation(*p))).unwrap_or(Quat::IDENTITY);
-        self.set_local_rotation(id, world_rotation * parent_world_rotation.inverse());
+        self.set_local_rotation(id, world_rotation * parent_world_rotation.conjugate());
     }
 
     pub fn set_local_position(&mut self, id: EntityId, local_position: Vec3) {
@@ -203,9 +200,9 @@ fn draw_cube_entity(world: &World, entity_id: EntityId) {
     draw_cube_wires_ex(world_position, world_rotation, Vec3::ONE, BLACK);
     draw_grid_ex(world_position - world_rotation * vec3(0.0, 0.5, 0.0), world_rotation, 4, 0.5, RED, GRAY);
     
-    // let other_world_position = world.hierarchy.local_to_world(*entity_id, world.hierarchy.get_local_position(*entity_id));
+    let other_world_position = world.hierarchy.local_to_world(entity_id, world.hierarchy.get_local_position(entity_id));
     // let world_rotation = world.hierarchy.get_world_rotation(*entity_id);
-    // draw_cube_wires_ex(other_world_position, world_rotation, Vec3::ONE, GREEN)
+    draw_cube_wires_ex(other_world_position, world_rotation, Vec3::ONE, GREEN)
     
 }
 
@@ -213,10 +210,12 @@ fn draw_cube_entity(world: &World, entity_id: EntityId) {
 async fn main() {
 
     let mut world = World::new();
+    
+    let start = vec3(4.0, 0.0, 0.0);
 
-    let e1 = spawn_cube_entity(&mut world, vec3(0.0, 0.5, 0.0), Quat::from_rotation_y(PI / 4.0));
+    let e1 = spawn_cube_entity(&mut world, start + vec3(0.0, 0.5, 0.0), Quat::from_rotation_y(PI / 4.0));
     let e2 = spawn_cube_entity_with_parent(&mut world, vec3(0.0, 2.0, 0.0), Quat::from_rotation_x(PI / 4.0), e1);
-    let e3 = spawn_cube_entity_with_parent(&mut world, vec3(0.0, 2.0, 0.0), Quat::from_rotation_y(PI / 4.0), e2);
+    let _e3 = spawn_cube_entity_with_parent(&mut world, vec3(0.0, 2.0, 0.0), Quat::from_rotation_y(PI / 4.0), e2);
 
     let mut going_right = true;
     let mut current_camera_x = 4.0;
@@ -243,7 +242,7 @@ async fn main() {
             }
         }
 
-        set_camera(&create_camera(vec3(current_camera_x, 8.0, -12.0), Vec3::Y, Vec3::ZERO));
+        set_camera(&create_camera(vec3(current_camera_x, 8.0, -12.0), Vec3::Y, start));
 
         clear_background(WHITE);
 
