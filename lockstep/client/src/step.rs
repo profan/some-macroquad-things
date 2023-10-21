@@ -311,7 +311,7 @@ impl LockstepClient {
     }
 
     fn execute_with<F>(&mut self, mut handle_command_fn: F)
-        where F: FnMut(&str) -> ()
+        where F: FnMut(PeerID, &str) -> ()
     {
 
         if self.turn_number == -1 {
@@ -321,10 +321,10 @@ impl LockstepClient {
         // execute all commands for the current turn
         if let Some(peer_commands) = self.command_queue.commands_to_process_for_turn(self.turn_number) {
 
-            for (_peer_id, commands) in peer_commands {
+            for (peer_id, commands) in peer_commands {
                 for turn_command in commands {
                     if let TurnCommand::Command(_, command) = turn_command {
-                        handle_command_fn(&command);
+                        handle_command_fn(*peer_id, &command);
                     }
                 }
             }
@@ -339,7 +339,7 @@ impl LockstepClient {
 
     pub fn tick_with<F1, F2>(&mut self, handle_command_fn: F1, send_command_fn: F2) -> bool 
         where
-            F1: FnMut(&str) -> (),
+            F1: FnMut(PeerID, &str) -> (),
             F2: FnMut(PeerID, String) -> ()
     {
 

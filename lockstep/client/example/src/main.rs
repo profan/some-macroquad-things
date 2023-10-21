@@ -1,4 +1,4 @@
-use lockstep_client::{app::ApplicationState, step::LockstepClient, game::Game};
+use lockstep_client::{app::ApplicationState, step::LockstepClient, step::PeerID, game::Game};
 use nanoserde::{SerJson, DeJson};
 use macroquad::prelude::*;
 use utility::DebugText;
@@ -54,7 +54,7 @@ impl Game for ExampleGame {
         self.is_running = false;
     }
 
-    fn handle_message(&mut self, message: &str) {
+    fn handle_message(&mut self, peer_id: PeerID, message: &str) {
 
         let msg = match GameMessage::deserialize_json(message) {
             Ok(msg) => msg,

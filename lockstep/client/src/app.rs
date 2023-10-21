@@ -208,9 +208,9 @@ impl ApplicationState {
         if let Some(lockstep) = &mut self.lockstep {
     
             if self.mode == ApplicationMode::Singleplayer {
-                lockstep.tick_with(|msg| self.game.handle_message(msg), |_ ,_| ());
+                lockstep.tick_with(|peer_id, msg| self.game.handle_message(peer_id, msg), |_ ,_| ());
             } else if self.mode == ApplicationMode::Multiplayer && self.relay.is_in_currently_running_lobby() {
-                lockstep.tick_with(|msg| self.game.handle_message(msg), |peer_id, msg| self.net.send_text(RelayMessage::Message(peer_id, msg).serialize_json()));
+                lockstep.tick_with(|peer_id, msg| self.game.handle_message(peer_id, msg), |peer_id, msg| self.net.send_text(RelayMessage::Message(peer_id, msg).serialize_json()));
             }
     
             if lockstep.turn_state() == TurnState::Running {
@@ -220,8 +220,8 @@ impl ApplicationState {
     
             } else if lockstep.turn_state() == TurnState::Waiting {
     
-                self.game.stop_game();
-    
+                self.game.pause_game();
+
             }
     
         }

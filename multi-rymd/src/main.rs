@@ -1,4 +1,4 @@
-use lockstep_client::{game::Game, step::LockstepClient, app::ApplicationState};
+use lockstep_client::{game::Game, step::LockstepClient, step::PeerID, app::ApplicationState};
 use macroquad::prelude::*;
 use utility::DebugText;
 
@@ -24,7 +24,7 @@ impl Game for RymdGame {
         self.is_running = false;
     }
 
-    fn handle_message(&mut self, message: &str) {    
+    fn handle_message(&mut self, peer_id: PeerID, message: &str) {    
     }
 
     fn update(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient) {     
