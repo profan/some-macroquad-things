@@ -17,6 +17,25 @@ pub struct Entity {
 
 impl Entity {
 
+
+    fn integrate(&mut self, dt: f32) {
+        self.position += self.velocity * dt;
+        self.orientation += self.angular_velocity * dt;
+    }
+    
+    fn apply_friction(&mut self, dt: f32) {
+
+        let original_fixed_rate = 1.0 / 60.0;
+        let friction_rate = (self.friction_value).log2() / original_fixed_rate;
+
+        self.velocity *= (friction_rate * dt).exp2();
+        self.angular_velocity *= (friction_rate * dt).exp2();
+        if self.orientation.is_nan() {
+            self.orientation = 0.0;
+        }
+
+    }
+
     /// Returns the given Entity's predicted position a given number of seconds into the future given it's current position and velocity.
     fn predicted_position(&self, dt: f32) -> Vec2 {
         let mut mock_entity = self.clone();
@@ -38,7 +57,7 @@ impl SteeringOutputFilteredExt for SteeringOutput {
     }
 
     fn only_angular(&self) -> SteeringOutput {
-        SteeringOutput { linear: Vec2::zero(), angular: self.angular }
+        SteeringOutput { linear: Vec2::ZERO, angular: self.angular }
     }
 }
 
@@ -276,7 +295,7 @@ pub fn wander(character: &Entity, target: &Entity, max_acceleration: f32, wander
 
 pub fn separation<'a>(character: &Entity, targets: impl Iterator<Item=&'a Entity>, max_acceleration: f32, threshold: f32, decay_coefficient: f32) -> SteeringOutput {
 
-    let mut repulsion: Vec2 = Vec2::zero();
+    let mut repulsion: Vec2 = Vec2::ZERO;
 
     for target in targets {
         let vector_to_target = target.position - character.position;

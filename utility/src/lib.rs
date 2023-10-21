@@ -10,6 +10,9 @@ pub use graphics::*;
 mod extensions;
 pub use extensions::*;
 
+mod steering;
+pub use steering::*;
+
 mod util;
 pub use util::*;
 
