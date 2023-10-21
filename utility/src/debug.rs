@@ -56,6 +56,10 @@ impl DebugText {
         }
     }
 
+    pub fn skip_line(&mut self, pos: TextPosition) {
+        let _ = self.next_text_position("", pos);
+    }
+
     pub fn draw_text<S>(&mut self, text: S, pos: TextPosition, color: Color)
         where S: Into<String>
     {
