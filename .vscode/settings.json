@@ -4,7 +4,6 @@
         ".\\contribution-grid\\Cargo.toml",
         ".\\corners\\Cargo.toml",
         ".\\dungeons\\Cargo.toml",
-        ".\\flight\\Cargo.toml",
         ".\\graph\\Cargo.toml",
         ".\\l-system\\Cargo.toml",
         ".\\graph\\Cargo.toml",
@@ -17,7 +16,6 @@
         ".\\procedural-animation\\Cargo.toml",
         ".\\stress-majorization\\Cargo.toml",
         ".\\territory\\Cargo.toml",
-        ".\\textual\\Cargo.toml",
         ".\\transformy\\Cargo.toml"
     ],
     "FSharp.suggestGitignore": false
