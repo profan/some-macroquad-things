@@ -1,0 +1,24 @@
+{
+    "rust-analyzer.linkedProjects": [
+        ".\\contribution\\Cargo.toml",
+        ".\\contribution-grid\\Cargo.toml",
+        ".\\corners\\Cargo.toml",
+        ".\\dungeons\\Cargo.toml",
+        ".\\flight\\Cargo.toml",
+        ".\\graph\\Cargo.toml",
+        ".\\l-system\\Cargo.toml",
+        ".\\graph\\Cargo.toml",
+        ".\\lockstep\\Cargo.toml",
+        ".\\lockstep\\client\\Cargo.toml",
+        ".\\lockstep\\client\\example\\Cargo.toml",
+        ".\\lockstep\\server\\Cargo.toml",
+        ".\\multi-rymd\\Cargo.toml",
+        ".\\polar\\Cargo.toml",
+        ".\\procedural-animation\\Cargo.toml",
+        ".\\stress-majorization\\Cargo.toml",
+        ".\\territory\\Cargo.toml",
+        ".\\textual\\Cargo.toml",
+        ".\\transformy\\Cargo.toml"
+    ],
+    "FSharp.suggestGitignore": false
+}

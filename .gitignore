@@ -1,4 +1,5 @@
-/target
+dist/
+target/
 www/
 *.zip
 *.o
