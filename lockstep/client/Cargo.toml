@@ -1,0 +1,19 @@
+[package]
+name = "lockstep-client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+nanoserde = "0.1.35"
+lockstep = { path = "../" }
+deterministic-hash = "1.0.1"
+utility = { path = "../../utility" }
+ewebsock = "0.4.0"
+
+# macroquad related dependencies
+egui-macroquad = "0.15.0"
+macroquad = "0.3.24"
+
+[profile.dev]
+incremental = true
+opt-level = 2

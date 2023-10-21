@@ -1,0 +1,12 @@
+[package]
+name = "lockstep"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+deterministic-hash = "1.0.1"
+nanoserde = "0.1.35"
+
+[profile.dev]
+incremental = true
+opt-level = 2

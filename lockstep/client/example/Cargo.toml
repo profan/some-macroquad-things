@@ -1,0 +1,20 @@
+[package]
+name = "lockstep-example-client"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+utility = { path = "../../../utility" }
+lockstep-client = { path = "../" }
+lockstep = { path = "../../" }
+nanoserde = "0.1.35"
+
+# macroquad related dependencies
+egui-macroquad = "0.15.0"
+macroquad = "0.3.24"
+
+[profile.dev]
+incremental = true
+opt-level = 2
