@@ -58,7 +58,7 @@ done
 # Restore positionals
 set -- "${POSITIONAL[@]}"
 
-PROJECT_NAME="lockstep-example-client"
+PROJECT_NAME="multi-rymd"
 
 HTML=$(cat <<- END
 <html lang="en">
