@@ -1,7 +1,9 @@
 use utility::DebugText;
 use crate::step::{LockstepClient, PeerID};
 
-pub trait Game {
+pub trait Game where Self: Sized {
+
+    async fn load_resources(&mut self);
 
     fn is_running(&self) -> bool;
     fn start_game(&mut self);

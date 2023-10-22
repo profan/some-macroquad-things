@@ -1,3 +1,5 @@
+#![feature(async_fn_in_trait)]
+
 use lockstep_client::{app::ApplicationState, step::LockstepClient, step::PeerID, game::Game};
 use nanoserde::{SerJson, DeJson};
 use macroquad::prelude::*;
@@ -106,6 +108,10 @@ impl Game for ExampleGame {
         self.circles.clear();
     }
 
+    async fn load_resources(&mut self) {
+
+    }
+
 }
 
 fn send_spawn_circle_message(lockstep: &mut LockstepClient) {
@@ -117,7 +123,8 @@ fn send_spawn_circle_message(lockstep: &mut LockstepClient) {
 #[macroquad::main("lockstep-example-client")]
 async fn main() {
 
-    let mut app = ApplicationState::new("lockstep-example-client", Box::new(ExampleGame::new()));
+    let mut app = ApplicationState::new("lockstep-example-client", ExampleGame::new());
+    app.load_resources().await;
 
     loop {
 
