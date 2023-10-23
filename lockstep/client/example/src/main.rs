@@ -24,7 +24,8 @@ impl Circle {
 
 pub struct ExampleGame {
     circles: Vec<Circle>,
-    is_running: bool
+    is_running: bool,
+    is_paused: bool
 }
 
 impl ExampleGame {
@@ -32,7 +33,8 @@ impl ExampleGame {
     pub fn new() -> ExampleGame {
         ExampleGame {
             circles: Vec::new(),
-            is_running: false
+            is_running: false,
+            is_paused: false
         }
     }
 
@@ -44,8 +46,13 @@ impl Game for ExampleGame {
         self.is_running
     }
 
+    fn is_paused(&self) -> bool {
+        self.is_paused
+    }
+
     fn start_game(&mut self) {
         self.is_running = true;
+        self.is_paused = false;
     }
 
     fn stop_game(&mut self) {
@@ -53,7 +60,7 @@ impl Game for ExampleGame {
     }
 
     fn pause_game(&mut self) {
-        self.is_running = false;
+        self.is_paused = true;
     }
 
     fn handle_message(&mut self, peer_id: PeerID, message: &str) {
@@ -81,7 +88,7 @@ impl Game for ExampleGame {
             send_spawn_circle_message(lockstep);
         }
 
-        if self.is_running {
+        if self.is_paused == false {
             self.tick(debug);
         } else {
             panic!("Game - update called when not supposed to be running, should be impossible?");

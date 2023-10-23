@@ -6,6 +6,7 @@ pub trait Game where Self: Sized {
     async fn load_resources(&mut self);
 
     fn is_running(&self) -> bool;
+    fn is_paused(&self) -> bool;
     fn start_game(&mut self);
     fn pause_game(&mut self);
     fn stop_game(&mut self);

@@ -248,23 +248,27 @@ impl LockstepClient {
     }
 
     fn check_pass_turn(&mut self) {
-        let current_send_turn_id = self.current_send_turn_id();
+        self.check_pass_turn_with_offset(0);
+    }
+
+    fn check_pass_turn_with_offset(&mut self, offset: i32) {
+        let current_send_turn_id = self.current_send_turn_id() + offset;
         if self.command_queue.commands_to_process.contains_key(&current_send_turn_id) == false {
-            self.command_queue.send(self.current_send_turn_id(), TurnCommand::Pass(current_send_turn_id));
+            self.command_queue.send(current_send_turn_id, TurnCommand::Pass(current_send_turn_id));
             if IS_DEBUGGING {
                 println!("[LockstepClient] queued pass turn message for turn: {}", current_send_turn_id);
             }
         } else if let Some(commands) = self.command_queue.commands_to_process.get(&current_send_turn_id) {
             if commands.contains_key(&self.peer_id) == false {
-                self.command_queue.send(self.current_send_turn_id(), TurnCommand::Pass(current_send_turn_id));
+                self.command_queue.send(current_send_turn_id, TurnCommand::Pass(current_send_turn_id));
             }
-        }
+        } 
     }
 
-    fn send_queued_commands_with<F>(&mut self, mut send_command_fn: F) 
+    fn send_queued_commands_with_offset<F>(&mut self, mut send_command_fn: F, offset: i32) 
         where F: FnMut(PeerID, String) -> ()
     {
-        let Some(commands_queued) = self.command_queue.commands_for_turn_mut(self.current_send_turn_id()) else { return; };
+        let Some(commands_queued) = self.command_queue.commands_for_turn_mut(self.current_send_turn_id() + offset) else { return; };
 
         // #HACK: ugly clone, but it works!
         for command in &commands_queued.clone() {
@@ -351,8 +355,8 @@ impl LockstepClient {
                 // if we've reached the end of the turn, it's now time send our queued comands
                 if self.turn_part == self.turn_length - 1 {
 
-                    self.check_pass_turn();
-                    self.send_queued_commands_with(send_command_fn);
+                    self.check_pass_turn_with_offset(TURN_DELAY);
+                    self.send_queued_commands_with_offset(send_command_fn, TURN_DELAY);
 
                     if self.all_turns_received(self.current_send_turn_id()) {
                         // execute all the commands! ... or at least queue them to be executed
@@ -373,8 +377,8 @@ impl LockstepClient {
 
                 if self.turn_number == -1 {
                     self.send_turn_command(TurnCommand::Pass(self.current_send_turn_id()));
-                    self.send_turn_command_with_delay(TurnCommand::Pass(self.current_send_turn_id()), self.turn_delay);
-                    self.send_queued_commands_with(send_command_fn);
+                    self.send_turn_command_with_delay(TurnCommand::Pass(self.current_send_turn_id() + self.turn_delay), self.turn_delay);
+                    self.send_queued_commands_with_offset(send_command_fn, 0);
                 }
 
                 if self.all_turns_received(self.current_send_turn_id()) {
