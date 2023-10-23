@@ -293,8 +293,8 @@ impl LockstepClient {
     }
 
     pub fn send_command(&mut self, command: String) {
-        let turn_command = TurnCommand::Command(self.current_send_turn_id(), command);
-        self.send_turn_command(turn_command);
+        let turn_command = TurnCommand::Command(self.current_send_turn_id() + self.turn_delay, command);
+        self.send_turn_command_with_delay(turn_command, self.turn_delay);
     }
 
     pub fn handle_message(&mut self, peer_id: PeerID, command: &str) {

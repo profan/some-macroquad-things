@@ -59,6 +59,10 @@ impl Game for ExampleGame {
         self.is_running = false;
     }
 
+    fn resume_game(&mut self) {
+        self.is_paused = false;
+    }
+
     fn pause_game(&mut self) {
         self.is_paused = true;
     }
