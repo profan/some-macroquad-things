@@ -21,6 +21,7 @@ pub struct ApplicationState<GameType> where GameType: Game {
     lockstep: Option<LockstepClient>,
     net: NetworkClient,
     mode: ApplicationMode,
+    debug_text_colour: Color,
     current_frame: i64
 }
 
@@ -39,9 +40,18 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
             lockstep: None,
             net: NetworkClient::new(),
             mode: ApplicationMode::Frontend,
+            debug_text_colour: WHITE,
             current_frame: 0
         }
 
+    }
+
+    pub fn get_debug_text_colour(&self) -> Color {
+        self.debug_text_colour
+    }
+
+    pub fn set_debug_text_colour(&mut self, color: Color) {
+        self.debug_text_colour = color;
     }
      
     pub async fn load_resources(&mut self) {
@@ -237,44 +247,44 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         self.debug.new_frame();
     
         if self.net.connection_state() != ConnectionState::Disconnected {
-            self.debug.draw_text(format!("connected to host: {}", self.net.connected_host()), utility::TextPosition::TopLeft, BLACK);
+            self.debug.draw_text(format!("connected to host: {}", self.net.connected_host()), utility::TextPosition::TopLeft, self.debug_text_colour);
         }
     
-        self.debug.draw_text(format!("connection state: {:?}", self.net.connection_state()), utility::TextPosition::TopLeft, BLACK);
+        self.debug.draw_text(format!("connection state: {:?}", self.net.connection_state()), utility::TextPosition::TopLeft, self.debug_text_colour);
     
         if let Some(client_id) = self.relay.get_client_id() {
-            self.debug.draw_text(format!("client id: {}", client_id), utility::TextPosition::TopLeft, BLACK);
+            self.debug.draw_text(format!("client id: {}", client_id), utility::TextPosition::TopLeft, self.debug_text_colour);
         }
             
         if self.net.connection_state() != ConnectionState::Disconnected {
     
-            self.debug.draw_text("all clients", utility::TextPosition::TopRight, BLACK);
+            self.debug.draw_text("all clients", utility::TextPosition::TopRight, self.debug_text_colour);
             for c in self.relay.get_clients() {
-                self.debug.draw_text(format!("{} ({})", c.name.as_str(), c.id), utility::TextPosition::TopRight, BLACK);
+                self.debug.draw_text(format!("{} ({})", c.name.as_str(), c.id), utility::TextPosition::TopRight, self.debug_text_colour);
             }
     
             for l in self.relay.get_lobbies() {
-                self.debug.draw_text(format!("{} ({})", l.name, l.id), utility::TextPosition::BottomRight, BLACK);
+                self.debug.draw_text(format!("{} ({})", l.name, l.id), utility::TextPosition::BottomRight, self.debug_text_colour);
             }
-            self.debug.draw_text("all lobbies", utility::TextPosition::BottomRight, BLACK);
+            self.debug.draw_text("all lobbies", utility::TextPosition::BottomRight, self.debug_text_colour);
     
         }
     
         if let Some(lobby) = self.relay.get_current_lobby() {
             self.debug.skip_line(utility::TextPosition::TopLeft);
-            self.debug.draw_text(format!("lobby: {} ({})", lobby.name, lobby.id), utility::TextPosition::TopLeft, BLACK);
+            self.debug.draw_text(format!("lobby: {} ({})", lobby.name, lobby.id), utility::TextPosition::TopLeft, self.debug_text_colour);
             let clients_string = lobby.clients.iter().fold(String::new(), |acc, c| acc + " " + &self.relay.client_with_id(*c).unwrap().name);
-            self.debug.draw_text(format!("- clients: {}", clients_string.trim()), utility::TextPosition::TopLeft, BLACK);
+            self.debug.draw_text(format!("- clients: {}", clients_string.trim()), utility::TextPosition::TopLeft, self.debug_text_colour);
         }
     
         if let Some(lockstep) = &self.lockstep {
     
-            self.debug.draw_text(format!("turn part: {}", lockstep.turn_part()), utility::TextPosition::BottomLeft, BLACK);
-            self.debug.draw_text(format!("turn number: {}", lockstep.turn_number()), utility::TextPosition::BottomLeft, BLACK);
-            self.debug.draw_text(format!("turn length: {}", lockstep.turn_length()), utility::TextPosition::BottomLeft, BLACK);
-            self.debug.draw_text(format!("turn delay: {}", lockstep.turn_delay()), utility::TextPosition::BottomLeft, BLACK);
-            self.debug.draw_text(format!("turn state: {:?}", lockstep.turn_state()), utility::TextPosition::BottomLeft, BLACK);
-            self.debug.draw_text(format!("peers: {}", lockstep.peers().len()), utility::TextPosition::BottomLeft, BLACK);
+            self.debug.draw_text(format!("turn part: {}", lockstep.turn_part()), utility::TextPosition::BottomLeft, self.debug_text_colour);
+            self.debug.draw_text(format!("turn number: {}", lockstep.turn_number()), utility::TextPosition::BottomLeft, self.debug_text_colour);
+            self.debug.draw_text(format!("turn length: {}", lockstep.turn_length()), utility::TextPosition::BottomLeft, self.debug_text_colour);
+            self.debug.draw_text(format!("turn delay: {}", lockstep.turn_delay()), utility::TextPosition::BottomLeft, self.debug_text_colour);
+            self.debug.draw_text(format!("turn state: {:?}", lockstep.turn_state()), utility::TextPosition::BottomLeft, self.debug_text_colour);
+            self.debug.draw_text(format!("peers: {}", lockstep.peers().len()), utility::TextPosition::BottomLeft, self.debug_text_colour);
     
         }
     
