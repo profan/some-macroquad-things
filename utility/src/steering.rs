@@ -4,9 +4,8 @@ use std::ops::Add;
 
 use crate::extensions::*;
 
-#[derive(Debug, Clone)]
-pub struct Entity {
-    pub id: u32,
+#[derive(Debug, Clone, Default)]
+pub struct Kinematic {
     pub position: Vec2,
     pub orientation: f32,
     pub velocity: Vec2,
@@ -15,15 +14,14 @@ pub struct Entity {
     pub mass: f32
 }
 
-impl Entity {
+impl Kinematic {
 
-
-    fn integrate(&mut self, dt: f32) {
+    pub fn integrate(&mut self, dt: f32) {
         self.position += self.velocity * dt;
         self.orientation += self.angular_velocity * dt;
     }
     
-    fn apply_friction(&mut self, dt: f32) {
+    pub fn apply_friction(&mut self, dt: f32) {
 
         let original_fixed_rate = 1.0 / 60.0;
         let friction_rate = (self.friction_value).log2() / original_fixed_rate;
@@ -36,8 +34,8 @@ impl Entity {
 
     }
 
-    /// Returns the given Entity's predicted position a given number of seconds into the future given it's current position and velocity.
-    fn predicted_position(&self, dt: f32) -> Vec2 {
+    /// Returns the given Kinematic's predicted position a given number of seconds into the future given it's current position and velocity.
+    pub fn predicted_position(&self, dt: f32) -> Vec2 {
         let mut mock_entity = self.clone();
         mock_entity.integrate(dt);
         mock_entity.apply_friction(dt);
@@ -98,9 +96,9 @@ pub struct SteeringParameters {
 
 }
 
-type SteeringBehaviour = dyn FnMut(&Entity, &Entity) -> SteeringOutput;
+type SteeringBehaviour = dyn FnMut(&Kinematic, &Kinematic) -> SteeringOutput;
 
-pub fn seek(character: &Entity, target: &Entity) -> SteeringOutput {
+pub fn seek(character: &Kinematic, target: &Kinematic) -> SteeringOutput {
 
     let vector_to_target = target.position - character.position;
     let result_velocity = vector_to_target.normalize();
@@ -112,10 +110,10 @@ pub fn seek(character: &Entity, target: &Entity) -> SteeringOutput {
     
 }
 
-pub fn pursue(character: &Entity, target: &Entity) -> SteeringOutput {
+pub fn pursue(character: &Kinematic, target: &Kinematic) -> SteeringOutput {
 
     let target_lead = target.velocity;
-    let adjusted_target = Entity {
+    let adjusted_target = Kinematic {
         position: target.position + target_lead,
         ..*target
     };
@@ -125,13 +123,17 @@ pub fn pursue(character: &Entity, target: &Entity) -> SteeringOutput {
 }
 
 /// The flee behaviour is the inverse of [`seek()`].
-pub fn flee(character: &Entity, target: &Entity) -> SteeringOutput {
+pub fn flee(character: &Kinematic, target: &Kinematic) -> SteeringOutput {
     seek(target, character) // flee is the inverse of seek, so it's as simple as this
 }
 
-pub fn arrive_with_lead(character: &Entity, target: &Entity, max_speed: f32, max_acceleration: f32, target_radius: f32, slow_radius: f32, time_to_target: f32) -> Option<SteeringOutput> {
+pub fn arrive_with_lead_ex(character: &Kinematic, target: &Kinematic, parameters: SteeringParameters, time_to_target: f32) -> Option<SteeringOutput> {
+    arrive(character, target, parameters.max_speed, parameters.max_acceleration, parameters.arrive_radius, parameters.slow_radius, time_to_target)
+}
 
-    let lead_target = Entity {
+pub fn arrive_with_lead(character: &Kinematic, target: &Kinematic, max_speed: f32, max_acceleration: f32, target_radius: f32, slow_radius: f32, time_to_target: f32) -> Option<SteeringOutput> {
+
+    let lead_target = Kinematic {
         position: target.position + target.velocity,
         ..*target
     };
@@ -140,7 +142,19 @@ pub fn arrive_with_lead(character: &Entity, target: &Entity, max_speed: f32, max
 
 }
 
-pub fn arrive(character: &Entity, target: &Entity, max_speed: f32, max_acceleration: f32, target_radius: f32, slow_radius: f32, time_to_target: f32) -> Option<SteeringOutput> {
+pub fn arrive_ex(character: &Kinematic, target: &Kinematic, parameters: SteeringParameters, time_to_target: f32) -> Option<SteeringOutput> {
+    arrive(
+        character,
+        target,
+        parameters.max_speed,
+        parameters.max_acceleration,
+        parameters.arrive_radius,
+        parameters.slow_radius,
+        time_to_target
+    )
+}
+
+pub fn arrive(character: &Kinematic, target: &Kinematic, max_speed: f32, max_acceleration: f32, target_radius: f32, slow_radius: f32, time_to_target: f32) -> Option<SteeringOutput> {
 
     let vector_to_target = target.position - character.position;
     let distance = vector_to_target.length();
@@ -193,7 +207,11 @@ pub fn shortest_arc(r: f32, t: f32) -> f32 {
     2.0 * delta % (max - delta)
 }
 
-pub fn align(character: &Entity, target: &Entity, max_rotation: f32, max_angular_acceleration: f32, target_radius: f32, slow_radius: f32, time_to_target: f32) -> Option<SteeringOutput> {
+pub fn align_ex(character: &Kinematic, target: &Kinematic, parameters: SteeringParameters, time_to_target: f32) -> Option<SteeringOutput> {
+    align(character, target, parameters.align_max_rotation, parameters.align_max_angular_acceleration, parameters.align_radius, parameters.align_slow_radius, time_to_target)
+}
+
+pub fn align(character: &Kinematic, target: &Kinematic, max_rotation: f32, max_angular_acceleration: f32, target_radius: f32, slow_radius: f32, time_to_target: f32) -> Option<SteeringOutput> {
 
     let rotation_to_target = map_to_range(target.orientation - character.orientation);
     let rotation_size = rotation_to_target.abs();
@@ -225,11 +243,15 @@ pub fn align(character: &Entity, target: &Entity, max_rotation: f32, max_angular
 
 }
 
-pub fn face_with_lead(character: &Entity, target: &Entity, max_rotation: f32, max_angular_acceleration: f32, target_radius: f32, slow_radius: f32, time_to_target: f32) -> Option<SteeringOutput> {
+pub fn face_with_lead_ex(character: &Kinematic, target: &Kinematic, parameters: SteeringParameters, time_to_target: f32) -> Option<SteeringOutput> {
+    face_with_lead(character, target, parameters.align_max_rotation, parameters.align_max_angular_acceleration, parameters.align_radius, parameters.align_slow_radius, time_to_target)
+}
+
+pub fn face_with_lead(character: &Kinematic, target: &Kinematic, max_rotation: f32, max_angular_acceleration: f32, target_radius: f32, slow_radius: f32, time_to_target: f32) -> Option<SteeringOutput> {
 
     let predicted_target_position = target.predicted_position(1.0 / 60.0);
 
-    let lead_target = Entity {
+    let lead_target = Kinematic {
         position: predicted_target_position,
         ..*target
     };
@@ -238,7 +260,11 @@ pub fn face_with_lead(character: &Entity, target: &Entity, max_rotation: f32, ma
 
 }
 
-pub fn face(character: &Entity, target: &Entity, max_rotation: f32, max_angular_acceleration: f32, target_radius: f32, slow_radius: f32, time_to_target: f32) -> Option<SteeringOutput> {
+pub fn face_ex(character: &Kinematic, target: &Kinematic, parameters: SteeringParameters, time_to_target: f32) -> Option<SteeringOutput> {
+    face(character, target, parameters.align_max_rotation, parameters.align_max_angular_acceleration, parameters.align_radius, parameters.align_slow_radius, time_to_target)
+}
+
+pub fn face(character: &Kinematic, target: &Kinematic, max_rotation: f32, max_angular_acceleration: f32, target_radius: f32, slow_radius: f32, time_to_target: f32) -> Option<SteeringOutput> {
 
     let vector_to_target = target.position - character.position;
 
@@ -246,7 +272,7 @@ pub fn face(character: &Entity, target: &Entity, max_rotation: f32, max_angular_
         return Some(SteeringOutput::default())
     }
 
-    let adjusted_target = Entity {
+    let adjusted_target = Kinematic {
         orientation: -vector_to_target.as_angle(),
         ..*target
     };
@@ -255,7 +281,11 @@ pub fn face(character: &Entity, target: &Entity, max_rotation: f32, max_angular_
 
 }
 
-pub fn velocity_match(character: &Entity, target: &Entity, max_acceleration: f32, time_to_target: f32) -> SteeringOutput {
+pub fn velocity_match_ex(character: &Kinematic, target: &Kinematic, parameters: SteeringParameters, time_to_target: f32) -> SteeringOutput {
+    velocity_match(character, target, parameters.max_acceleration, time_to_target)
+}
+
+pub fn velocity_match(character: &Kinematic, target: &Kinematic, max_acceleration: f32, time_to_target: f32) -> SteeringOutput {
 
     let target_velocity = (target.velocity - character.velocity) / time_to_target;
 
@@ -272,11 +302,15 @@ pub fn velocity_match(character: &Entity, target: &Entity, max_acceleration: f32
     
 }
 
-pub fn look_where_you_are_going(character: &Entity, target: &Entity, max_rotation: f32, max_angular_acceleration: f32, target_radius: f32, slow_radius: f32, time_to_target: f32) -> Option<SteeringOutput> {
+pub fn look_where_you_are_going_ex(character: &Kinematic, target: &Kinematic, parameters: SteeringParameters, time_to_target: f32) -> Option<SteeringOutput> {
+    look_where_you_are_going(character, target, parameters.align_max_rotation, parameters.align_max_angular_acceleration, parameters.align_radius, parameters.align_slow_radius, time_to_target)
+}
+
+pub fn look_where_you_are_going(character: &Kinematic, target: &Kinematic, max_rotation: f32, max_angular_acceleration: f32, target_radius: f32, slow_radius: f32, time_to_target: f32) -> Option<SteeringOutput> {
 
     let vector_to_target = character.velocity;
 
-    let velocity_based_target = Entity {
+    let velocity_based_target = Kinematic {
         position: character.position + vector_to_target,
         ..*target
     };
@@ -285,7 +319,7 @@ pub fn look_where_you_are_going(character: &Entity, target: &Entity, max_rotatio
 
 }
 
-pub fn wander(character: &Entity, target: &Entity, max_acceleration: f32, wander_offset: f32, wander_radius: f32, wander_rate: f32, wander_orientation: f32) -> SteeringOutput {
+pub fn wander(character: &Kinematic, target: &Kinematic, max_acceleration: f32, wander_offset: f32, wander_radius: f32, wander_rate: f32, wander_orientation: f32) -> SteeringOutput {
 
     SteeringOutput {
         linear: vec2(0.0, 0.0),
@@ -293,7 +327,7 @@ pub fn wander(character: &Entity, target: &Entity, max_acceleration: f32, wander
     }
 }
 
-pub fn separation<'a>(character: &Entity, targets: impl Iterator<Item=&'a Entity>, max_acceleration: f32, threshold: f32, decay_coefficient: f32) -> SteeringOutput {
+pub fn separation<'a>(character: &Kinematic, targets: impl Iterator<Item=&'a Kinematic>, max_acceleration: f32, threshold: f32, decay_coefficient: f32) -> SteeringOutput {
 
     let mut repulsion: Vec2 = Vec2::ZERO;
 
