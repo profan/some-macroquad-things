@@ -124,11 +124,13 @@ impl LockstepCommandQueue {
 
 #[derive(Debug)]
 pub struct LockstepPeer {
-    id: PeerID
+    pub id: PeerID
 }
 
 #[derive(Debug)]
 pub struct LockstepClient {
+
+    is_singleplayer: bool,
 
     peer_id: PeerID,
     peers: Vec<LockstepPeer>,
@@ -144,8 +146,10 @@ pub struct LockstepClient {
 
 impl LockstepClient {
 
-    pub fn new(peer_id: PeerID) -> LockstepClient {
+    pub fn new(peer_id: PeerID, is_singleplayer: bool) -> LockstepClient {
         LockstepClient {
+
+            is_singleplayer: is_singleplayer,
 
             peer_id: peer_id,
             peers: Vec::new(),
@@ -159,6 +163,10 @@ impl LockstepClient {
             turn_delay: TURN_DELAY, // in turns
 
         }
+    }
+
+    pub fn is_singleplayer(&self) -> bool {
+        self.is_singleplayer
     }
 
     pub fn reset(&mut self) {

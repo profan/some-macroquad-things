@@ -50,7 +50,7 @@ impl Game for ExampleGame {
         self.is_paused
     }
 
-    fn start_game(&mut self) {
+    fn start_game(&mut self, _lockstep: &LockstepClient) {
         self.is_running = true;
         self.is_paused = false;
     }

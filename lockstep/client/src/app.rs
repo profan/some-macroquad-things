@@ -86,10 +86,10 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
     pub fn start_singleplayer_game(&mut self) {
         let local_peer_id = 0;
-        let new_lockstep_client = LockstepClient::new(local_peer_id);
+        let mut new_lockstep_client = LockstepClient::new(local_peer_id, true);
         self.mode = ApplicationMode::Singleplayer;
+        self.game.start_game(&new_lockstep_client);
         self.lockstep = Some(new_lockstep_client);
-        self.game.start_game();
     }
 
     pub fn start_multiplayer_game(&mut self) {
@@ -167,7 +167,8 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                         match event {
                             RelayMessage::SuccessfullyJoinedLobby(_) => {
                                 if let Some(client_id) = self.relay.get_client_id() {
-                                    let new_lockstep_client = LockstepClient::new(client_id);
+                                    let is_singleplayer = false;
+                                    let new_lockstep_client = LockstepClient::new(client_id, is_singleplayer);
                                     self.lockstep = Some(new_lockstep_client);
                                 } else {
                                     panic!("client didn't have client id for some reason when receiving successfully joined lobby message, should be impossible!");
@@ -187,7 +188,12 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                                 self.game.reset();
                             },
                             RelayMessage::StartedLobby => {
-                                self.game.start_game();
+                                if let Some(lockstep) = &self.lockstep {
+                                    self.game.start_game(lockstep);
+                                } else {
+                                    println!("could not start the game as no active lockstep client, definitely an error!");
+                                }
+                                
                             },
                             RelayMessage::StoppedLobby => {
                                 if let Some(lockstep) = &mut self.lockstep {
@@ -229,7 +235,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
     
             if lockstep.turn_state() == TurnState::Running {
     
-                self.game.start_game();
+                self.game.resume_game();
                 self.game.update(&mut self.debug, lockstep);
     
             } else if lockstep.turn_state() == TurnState::Waiting {
