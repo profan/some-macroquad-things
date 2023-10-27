@@ -140,7 +140,7 @@ impl Hierarchy {
     pub fn world_to_local(&self, id: EntityId, world_position: Vec3) -> Vec3 {
         let parent_world_position = if let Some(p) = self.get_parent(id) { self.get_world_position(p) } else { Vec3::ZERO };
         let parent_world_rotation = if let Some(p) = self.get_parent(id) { self.get_world_rotation(p) } else { Quat::IDENTITY };
-        (parent_world_rotation.inverse() * world_position) - parent_world_position
+        parent_world_rotation.inverse() * (world_position - parent_world_position)
     }
 
     pub fn local_to_world(&self, id: EntityId, local_position: Vec3) -> Vec3 {
@@ -217,6 +217,12 @@ async fn main() {
     let e1 = spawn_cube_entity(&mut world, start + vec3(0.0, 0.5, 0.0), Quat::from_rotation_y(PI / 4.0));
     let e2 = spawn_cube_entity_with_parent(&mut world, vec3(0.0, 2.0, 0.0), Quat::from_rotation_x(PI / 4.0), e1);
     let _e3 = spawn_cube_entity_with_parent(&mut world, vec3(0.0, 2.0, 0.0), Quat::from_rotation_y(PI / 4.0), e2);
+
+    world.hierarchy.set_world_position(e2, vec3(8.0, 0.0, 8.0));
+
+    // FUN: comment out for some world_to_local, local_to_world debugging joy
+    // println!("e2 world position: {}", world.hierarchy.get_world_position(e2));
+    // ntln!("e2 local position in e1: {}, calculated local position: {}", world.hierarchy.get_local_position(e2), world.hierarchy.world_to_local(e2, world.hierarchy.get_world_position(e2)));
 
     let mut going_right = true;
     let mut current_camera_x = 4.0;
