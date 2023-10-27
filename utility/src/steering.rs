@@ -173,7 +173,7 @@ pub fn arrive(character: &Kinematic, target: &Kinematic, max_speed: f32, max_acc
     let result_velocity = (target_velocity - character.velocity) / time_to_target;
 
     let adjusted_velocity = if result_velocity.length() > max_acceleration {
-      result_velocity.normalize() * max_acceleration  
+        result_velocity.normalize() * max_acceleration  
     } else {
         result_velocity
     };
@@ -185,9 +185,27 @@ pub fn arrive(character: &Kinematic, target: &Kinematic, max_speed: f32, max_acc
 
 }
 
+pub fn map_to_range_new(r: f32) -> f32 {
+    let two_pi = 2.0 * PI;
+    let wrapped_angle = ((r - PI) % two_pi + two_pi) % two_pi;
+    if wrapped_angle >= PI {
+        wrapped_angle - two_pi
+    } else {
+        wrapped_angle
+    }
+}
+
+pub fn map_to_range_fmod(r: f32) -> f32 {
+    ((r - PI) % PI + PI) % PI
+}
+
 pub fn map_to_range(r: f32) -> f32 {
+    r % PI
+}
+
+pub fn map_to_range_old(r: f32) -> f32 {
     // note: ARGHHHH
-    (r % (2.0*PI)) - PI
+    (r % (2.0*PI))
     // r.rem_euclid(2.0*PI) - PI
 }
 
@@ -213,6 +231,7 @@ pub fn align_ex(character: &Kinematic, target: &Kinematic, parameters: SteeringP
 
 pub fn align(character: &Kinematic, target: &Kinematic, max_rotation: f32, max_angular_acceleration: f32, target_radius: f32, slow_radius: f32, time_to_target: f32) -> Option<SteeringOutput> {
 
+    // let rotation_to_target = target.orientation
     let rotation_to_target = map_to_range(target.orientation - character.orientation);
     let rotation_size = rotation_to_target.abs();
 
