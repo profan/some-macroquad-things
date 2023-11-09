@@ -12,7 +12,6 @@ lockstep = { path = "../../" }
 nanoserde = "0.1.35"
 
 # macroquad related dependencies
-egui-macroquad = "0.15.0"
 macroquad = "0.3.24"
 
 [profile.dev]

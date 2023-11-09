@@ -135,6 +135,7 @@ fn send_spawn_circle_message(lockstep: &mut LockstepClient) {
 async fn main() {
 
     let mut app = ApplicationState::new("lockstep-example-client", ExampleGame::new());
+    app.set_debug_text_colour(BLACK);
     app.load_resources().await;
 
     loop {

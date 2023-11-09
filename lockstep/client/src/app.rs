@@ -1,7 +1,8 @@
 use macroquad::{prelude::*, ui::{widgets::Window, root_ui, hash}};
-use lockstep::lobby::{DEFAULT_LOBBY_PORT, RelayMessage, LobbyClientID, LobbyState};
+use lockstep::lobby::{DEFAULT_LOBBY_PORT, RelayMessage, LobbyClientID, LobbyState, Lobby};
 use nanoserde::SerJson;
 use utility::DebugText;
+use yakui::{Direction, Response, widgets::{ButtonWidget, Pad}};
 
 use crate::{game::Game, relay::RelayClient, network::{NetworkClient, ConnectionState}, step::{LockstepClient, TurnState}, extensions::RelayCommandsExt};
 
@@ -86,7 +87,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
     pub fn start_singleplayer_game(&mut self) {
         let local_peer_id = 0;
-        let mut new_lockstep_client = LockstepClient::new(local_peer_id, true);
+        let new_lockstep_client = LockstepClient::new(local_peer_id, true);
         self.mode = ApplicationMode::Singleplayer;
         self.game.start_game(&new_lockstep_client);
         self.lockstep = Some(new_lockstep_client);
@@ -270,7 +271,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
             }
     
             for l in self.relay.get_lobbies() {
-                self.debug.draw_text(format!("{} ({})", l.name, l.id), utility::TextPosition::BottomRight, self.debug_text_colour);
+                 self.debug.draw_text(format!("{} ({})", l.name, l.id), utility::TextPosition::BottomRight, self.debug_text_colour);
             }
             self.debug.draw_text("all lobbies", utility::TextPosition::BottomRight, self.debug_text_colour);
     
@@ -297,6 +298,33 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
     }
     
     fn draw_lobby_ui(&mut self) {
+
+        let lobby = self.relay.get_current_lobby().expect("called draw_lobby_ui without there being a current lobby!");
+
+        yakui::label(format!("lobby: {}", lobby.name.clone()));
+
+        yakui::column(|| {
+
+            for client_id in &lobby.clients {
+                let c = self.relay.client_with_id(*client_id).unwrap();
+                yakui::label(format!("{} ({})", c.name, client_id));
+            }
+
+        });
+
+        yakui_min_row(|| {
+            if yakui::button("start").clicked {
+                self.net.start_lobby();
+            }
+
+            if yakui::button("leave").clicked {
+                self.net.leave_lobby();
+            }
+        });
+
+    }
+
+    fn draw_multiplayer_lobby_ui(&mut self) {
     
         if self.relay.is_in_currently_running_lobby() {
             return;   
@@ -311,169 +339,79 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
             }
         }
     
-        let center_of_screen = vec2(screen_width() / 2.0, screen_height() / 2.0);
-        let size_of_window = vec2(400.0, 400.0);
-    
         let lobbies_title = format!("{} - lobbies", self.title);
         let lobby_title = format!("{} - lobby", self.title);
-    
-        Window::new(hash!(), center_of_screen - size_of_window / 2.0, size_of_window)
-            .label(if self.relay.is_in_lobby() { &lobbies_title } else { &lobby_title })
-            .titlebar(true)
-            .ui(&mut *root_ui(), |ui| {
-    
-            let mut current_y_position = 0.0;
-    
+
+        draw_menu_window_with_column(|| {
+
+            yakui::label(if self.relay.is_in_lobby() { lobby_title } else { lobbies_title });
+
             if self.net.is_connected() {
-    
-                if let Some(lobby) = self.relay.get_current_lobby() {
-    
-                    if lobby.state == LobbyState::Open {
-                    
-                        let label_text = format!("lobby: {}", lobby.name);
-                        let label_size_half = ui.calc_size(&label_text) / 2.0;
-                        ui.label(vec2(size_of_window.x / 2.0, 0.0) - vec2(label_size_half.x, 0.0) + vec2(0.0, current_y_position), &label_text);
-                        current_y_position += label_size_half.y * 2.0;
-    
-                        for client_id in &lobby.clients {
-    
-                            let c = self.relay.client_with_id(*client_id).unwrap();
-    
-                            let label_text = format!("{} ({})", c.name, c.id);
-                            let label_size_half = ui.calc_size(&label_text) / 2.0;
-                            ui.label(vec2(size_of_window.x / 2.0, 0.0) - vec2(label_size_half.x, 0.0) + vec2(0.0, current_y_position), &label_text);
-                            current_y_position += label_size_half.y * 2.0;
-    
-                        }
-    
-                        let label_text = "start";
-                        let label_size_half = ui.calc_size(label_text) / 2.0;
-                        if ui.button(vec2(size_of_window.x / 2.0, 0.0) - vec2(label_size_half.x, 0.0) + vec2(0.0, current_y_position), label_text) {
-                            self.net.start_lobby();
-                        }
-                        current_y_position += label_size_half.y * 2.0;
-    
-                        let label_text = "leave";
-                        let label_size_half = ui.calc_size(label_text) / 2.0;
-                        if ui.button(vec2(size_of_window.x / 2.0, 0.0) - vec2(label_size_half.x, 0.0) + vec2(0.0, current_y_position), label_text) {
-                            self.net.leave_lobby();
-                        }
-                        current_y_position += label_size_half.y * 2.0;
-    
-                    } else {
-    
-                        // running?
-    
-                    }
-        
+
+                if self.relay.is_in_lobby() {
+                    self.draw_lobby_ui();
                 } else {
-    
                     if self.relay.get_lobbies().is_empty() == false {
-                        for l in self.relay.get_lobbies() {
-        
-                            if let Some(client_id) = self.relay.get_client_id() && self.relay.lobby_of_client(client_id).is_some_and(|lobby| lobby.id == l.id) {
-                                continue;
-                            }
-            
-                            let lobby_text = format!("{} ({})", l.name, l.id);
-                            let lobby_size_half = ui.calc_size(&lobby_text) / 2.0;
-                            ui.label(vec2(size_of_window.x / 2.0 - lobby_size_half.x, 0.0), &lobby_text);
-                            current_y_position += lobby_size_half.y * 2.0;
-            
-                            let button_size_half = ui.calc_size("join");
-                            if ui.button(vec2(size_of_window.x / 2.0 - lobby_size_half.x, 0.0) + vec2(0.0, lobby_size_half.y * 2.0) + vec2(button_size_half.x, 0.0), "join") {
-                                self.net.join_lobby(l.id);
-                            }
-                            current_y_position += button_size_half.y * 2.0;
-                
+
+                        for lobby in self.relay.get_lobbies() {
+
+                            let lobby_text = format!("{} ({})", lobby.name, lobby.id);
+                            yakui::row(|| {
+                                yakui::label(lobby_text);
+                                if yakui::button("join").clicked {
+                                    self.net.join_lobby(lobby.id);
+                                }
+                            });
+
                         }
+
                     } else {
-            
-                        let label_text = "there appears to be no lobbies!";
-                        let label_size_half = ui.calc_size(label_text) / 2.0;
-                        ui.label(vec2(size_of_window.x / 2.0 - label_size_half.x, 0.0), label_text);
-                        current_y_position += label_size_half.y * 2.0;
-            
-                    };
-    
-                    let label_text = "create new lobby";
-                    let label_size_half = ui.calc_size(label_text) / 2.0;
-                    if ui.button(vec2(size_of_window.x / 2.0, 0.0) - vec2(label_size_half.x, 0.0) + vec2(0.0, current_y_position), label_text) {
+                        yakui::label("there appears to be no lobbies!");
+                    }
+
+                    if yakui::button("create new lobby").clicked {
                         self.net.query_active_state();
                         self.net.create_new_lobby();
                     }
-                    current_y_position += label_size_half.y * 2.0;
-    
-                    if false {
-                        let label_text = "refresh";
-                        let label_size_half = ui.calc_size(label_text) / 2.0;
-                        if ui.button(vec2(size_of_window.x / 2.0, 0.0) - vec2(label_size_half.x, 0.0) + vec2(0.0, current_y_position), label_text) {
-                            // refresh the current lobbies and players?
-                        }
-                        current_y_position += label_size_half.y * 2.0;
-                    }
-    
+
                 }
-    
-            } else if self.net.is_connecting() {
-    
-                let label_text = "connecting...";
-                let center_of_window = size_of_window / 2.0 - ui.calc_size(label_text) / 2.0;
-                ui.label(center_of_window, label_text);
-    
+
             }
-    
-            if self.net.is_connected() == false && self.net.is_connecting() == false {
-    
-                let label_text = "connect to server";
-                let label_size_half = ui.calc_size(label_text) / 2.0;
-                if ui.button(vec2(size_of_window.x / 2.0, size_of_window.y - label_size_half.y * 4.0) - vec2(label_size_half.x, 0.0), label_text) {
+
+            if self.net.is_connecting() {
+                yakui::label("connecting...");
+            }
+
+            if self.net.is_connected() == false {
+                if yakui::button("connect to server").clicked {
                     self.connect_to_server();
                 }
-    
-            }
-    
-            if self.net.is_connected() {
-    
-                let label_text = "disconnect from server";
-                let label_size_half = ui.calc_size(label_text) / 2.0;
-                if ui.button(vec2(size_of_window.x / 2.0, size_of_window.y - label_size_half.y * 4.0) - vec2(label_size_half.x, 0.0), label_text) {
+            } else {
+                if yakui::button("disconnect from server").clicked {
                     self.disconnect_from_server();
                 }
-    
             }
-    
+
         });
     
     }
     
     fn draw_main_menu_ui(&mut self) {
     
-        let center_of_screen = vec2(screen_width() / 2.0, screen_height() / 2.0);
-        let size_of_window = vec2(400.0, 400.0);
-    
-        let lockstep_main_menu_title = format!("{} - main menu", self.title);
-        Window::new(hash!(), center_of_screen - size_of_window / 2.0, size_of_window)
-            .label(&lockstep_main_menu_title)
-            .titlebar(true)
-            .ui(&mut *root_ui(), |ui| {
-    
-            let mut current_y_position = 0.0;
-    
-            let label_text = "singleplayer";
-            let label_size_half = ui.calc_size(label_text) / 2.0;
-            if ui.button(vec2(size_of_window.x / 2.0, 0.0) - vec2(label_size_half.x, 0.0) + vec2(0.0, current_y_position), label_text) {
+        let lockstep_main_menu_title = format!("{}", self.title);
+
+        draw_menu_window_with_column(|| {
+
+            yakui::label(lockstep_main_menu_title);
+            
+            if yakui::button("singleplayer").clicked {
                 self.start_singleplayer_game();
             }
-            current_y_position += label_size_half.y * 2.0;
-    
-            let label_text = "multiplayer";
-            let label_size_half = ui.calc_size(label_text) / 2.0;
-            if ui.button(vec2(size_of_window.x / 2.0, 0.0) - vec2(label_size_half.x, 0.0) + vec2(0.0, current_y_position), label_text) {
+
+            if yakui::button("multiplayer").clicked {
                 self.start_multiplayer_game();
             }
-            current_y_position += label_size_half.y * 2.0;
-    
+
         });
     
     }
@@ -489,12 +427,14 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         }
     
         if self.mode == ApplicationMode::Multiplayer {
-            self.draw_lobby_ui();
+            self.draw_multiplayer_lobby_ui();
         }
     
     }
 
     pub fn draw(&mut self) {
+
+        yakui_macroquad::start();
 
         if self.game.is_running() {
             self.game.draw(&mut self.debug);
@@ -503,6 +443,54 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         self.draw_debug_text();
         self.draw_ui();
 
+        yakui_macroquad::finish();
+
+        yakui_macroquad::draw();
+
     }
 
+}
+
+pub fn draw_menu_window<F>(children: F)
+    where F: FnOnce() -> ()
+{
+    yakui::center(|| {
+        yakui::pad(Pad::all(32.0), || {
+            yakui::colored_box_container(yakui::Color::WHITE.adjust(0.1), ||{
+                yakui::pad(Pad::all(32.0), || {
+                    children();               
+                });
+            });
+        });
+    });
+}
+
+pub fn draw_menu_window_with_column<F>(children: F)
+    where F: FnOnce() -> ()
+{
+    draw_menu_window(|| {
+        let mut list = yakui::widgets::List::new(Direction::Down);
+        list.cross_axis_alignment = yakui::CrossAxisAlignment::Center;
+        list.item_spacing = 16.0;
+        
+        list.show(|| {
+            children();
+        });
+    });
+}
+
+pub fn yakui_min_column<F>(children: F)
+    where F: FnOnce() -> ()
+{
+    let mut column = yakui::widgets::List::column();
+    column.main_axis_size = yakui::MainAxisSize::Min;
+    column.show(children);
+}
+
+pub fn yakui_min_row<F>(children: F)
+    where F: FnOnce() -> ()
+{
+    let mut row = yakui::widgets::List::row();
+    row.main_axis_size = yakui::MainAxisSize::Min;
+    row.show(children);
 }
