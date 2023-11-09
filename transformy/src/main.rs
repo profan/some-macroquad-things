@@ -222,7 +222,7 @@ async fn main() {
 
     // FUN: comment out for some world_to_local, local_to_world debugging joy
     // println!("e2 world position: {}", world.hierarchy.get_world_position(e2));
-    // ntln!("e2 local position in e1: {}, calculated local position: {}", world.hierarchy.get_local_position(e2), world.hierarchy.world_to_local(e2, world.hierarchy.get_world_position(e2)));
+    // println!("e2 local position in e1: {}, calculated local position: {}", world.hierarchy.get_local_position(e2), world.hierarchy.world_to_local(e2, world.hierarchy.get_world_position(e2)));
 
     let mut going_right = true;
     let mut current_camera_x = 4.0;
