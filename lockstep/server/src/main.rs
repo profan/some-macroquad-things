@@ -268,6 +268,7 @@ impl RelayServer {
     pub fn start_lobby_with_client_id(&mut self, client_id: LobbyClientID) {
         if let Some(lobby_id) = self.get_client_lobby(client_id) {
             self.start_lobby(lobby_id);
+            self.update_lobby_for_all(lobby_id);
             self.send_message_to_lobby(lobby_id, RelayMessage::StartedLobby);
             self.update_lobby_for_all(lobby_id);
         } else {
