@@ -356,7 +356,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                         for lobby in self.relay.get_lobbies() {
 
                             let lobby_text = format!("{} ({})", lobby.name, lobby.id);
-                            yakui::row(|| {
+                            yakui_min_row(|| {
                                 yakui::label(lobby_text);
                                 if yakui::button("join").clicked {
                                     self.net.join_lobby(lobby.id);
@@ -378,18 +378,22 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
             }
 
-            if self.net.is_connecting() {
-                yakui::label("connecting...");
-            }
+            if self.relay.is_in_lobby() == false {
 
-            if self.net.is_connected() == false {
-                if yakui::button("connect to server").clicked {
-                    self.connect_to_server();
+                if self.net.is_connecting() {
+                    yakui::label("connecting...");
                 }
-            } else {
-                if yakui::button("disconnect from server").clicked {
-                    self.disconnect_from_server();
+
+                if self.net.is_connected() == false {
+                    if yakui::button("connect to server").clicked {
+                        self.connect_to_server();
+                    }
+                } else {
+                    if yakui::button("disconnect from server").clicked {
+                        self.disconnect_from_server();
+                    }
                 }
+
             }
 
         });
