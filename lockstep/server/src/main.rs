@@ -333,12 +333,26 @@ impl RelayServer {
         self.send_message_to_lobby(lobby_id, RelayMessage::UpdatedLobby(lobby.clone()));
     }
 
-    pub fn join_lobby(&mut self, lobby_id: LobbyID, client_id: LobbyClientID) {
+    fn client_joined_lobby(&mut self, lobby_id: LobbyID, client_id: LobbyClientID) {
         if let Some(lobby) = self.lobbies.get_mut(&lobby_id) {
             lobby.clients.push(client_id);
             let cloned_lobby = lobby.clone();
             self.send_message_to_clients_lobby(client_id, RelayMessage::UpdatedLobby(cloned_lobby));
             self.send_message_to_client(client_id, RelayMessage::SuccessfullyJoinedLobby(lobby_id));
+        } else {
+            // client joined nonexistent lobby? should not happen!
+        }
+    }
+
+    pub fn join_lobby(&mut self, lobby_id: LobbyID, client_id: LobbyClientID) {
+        if let Some(lobby) = self.lobbies.get(&lobby_id) {
+
+            if lobby.state == LobbyState::Running {
+                self.send_message_to_client(client_id, RelayMessage::FailedToJoinLobby(lobby_id, "lobby is already running! currently you cannot join running lobbies, sorry!".to_string()));
+            }
+
+            self.client_joined_lobby(lobby_id, client_id);
+ 
         } else {
             self.send_message_to_client(client_id, RelayMessage::FailedToJoinLobby(lobby_id, "lobby does not exist!".to_string()));
         }
