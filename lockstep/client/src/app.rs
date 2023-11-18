@@ -291,7 +291,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
             }
     
             for l in self.relay.get_lobbies() {
-                 self.debug.draw_text(format!("{} ({})", l.name, l.id), utility::TextPosition::BottomRight, self.debug_text_colour);
+                 self.debug.draw_text(format!("{} ({}) - {:?}", l.name, l.id, l.state), utility::TextPosition::BottomRight, self.debug_text_colour);
             }
             self.debug.draw_text("all lobbies", utility::TextPosition::BottomRight, self.debug_text_colour);
     
