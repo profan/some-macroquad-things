@@ -375,7 +375,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
                         for lobby in self.relay.get_lobbies() {
 
-                            let lobby_text = format!("{} ({}) - {}", lobby.name, lobby.id, lobby.state);
+                            let lobby_text = format!("{} ({}) - {:?}", lobby.name, lobby.id, lobby.state);
                             yakui_min_row(|| {
                                 yakui::label(lobby_text);
                                 if lobby.state == LobbyState::Open && yakui::button("join").clicked {
