@@ -263,6 +263,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
             } else if lockstep.turn_state() == TurnState::Waiting {
     
                 self.game.pause_game();
+                self.game.update(&mut self.debug, lockstep);
 
             }
     

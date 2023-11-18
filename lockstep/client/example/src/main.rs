@@ -94,8 +94,6 @@ impl Game for ExampleGame {
 
         if self.is_paused == false {
             self.tick(debug);
-        } else {
-            panic!("Game - update called when not supposed to be running, should be impossible?");
         }
 
     }
