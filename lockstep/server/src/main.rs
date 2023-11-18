@@ -285,6 +285,7 @@ impl RelayServer {
             self.stop_lobby(lobby_id);
             self.update_lobby_for_all(lobby_id);
             self.send_message_to_lobby(lobby_id, RelayMessage::StoppedLobby);
+            self.update_lobby_for_all(lobby_id);
         } else {
             // can't stop nonexistent lobby!
         }
