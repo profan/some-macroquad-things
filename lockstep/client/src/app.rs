@@ -203,6 +203,9 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                                 self.game.reset();
                             },
                             RelayMessage::StartedLobby => {
+                                if let Some(lockstep) = &mut self.lockstep {
+                                    lockstep.reset();
+                                }
                                 if let Some(lockstep) = &self.lockstep {
                                     self.game.start_game(lockstep);
                                 } else {
