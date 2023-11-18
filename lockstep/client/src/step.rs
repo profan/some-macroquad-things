@@ -174,6 +174,7 @@ impl LockstepClient {
         self.turn_number = -1;
         self.turn_length = TURN_LENGTH;
         self.turn_delay = TURN_DELAY;
+        self.turn_state = TurnState::Waiting;
     }
 
     pub fn peer_id(&self) -> PeerID {
