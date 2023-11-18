@@ -256,16 +256,20 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
             }
     
             if lockstep.turn_state() == TurnState::Running {
-    
+
                 self.game.resume_game();
-                self.game.update(&mut self.debug, lockstep);
-    
-            } else if lockstep.turn_state() == TurnState::Waiting {
-    
-                self.game.pause_game();
+
+                // only tick when actually running
                 self.game.update(&mut self.debug, lockstep);
 
+            } else if lockstep.turn_state() == TurnState::Waiting {
+
+                self.game.pause_game();
+
             }
+
+            // always update the view
+            self.game.update_view(&mut self.debug, lockstep);
     
         }
 

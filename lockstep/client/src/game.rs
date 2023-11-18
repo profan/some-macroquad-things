@@ -16,7 +16,7 @@ pub trait Game where Self: Sized {
 
     fn handle_message(&mut self, peer_id: PeerID, message: &str);
     fn update(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient);
-    fn tick(&mut self, debug: &mut DebugText);
+    fn update_view(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient);
     fn draw(&mut self, debug: &mut DebugText);
     fn reset(&mut self);
     

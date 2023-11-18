@@ -87,19 +87,15 @@ impl Game for ExampleGame {
     }
 
     fn update(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+        if self.is_paused {
+            panic!("should never be called when paused!");
+        }
+    }
 
+    fn update_view(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient) {
         if is_mouse_button_pressed(MouseButton::Left) {
             send_spawn_circle_message(lockstep);
         }
-
-        if self.is_paused == false {
-            self.tick(debug);
-        }
-
-    }
-
-    fn tick(&mut self, debug: &mut DebugText) {
-
     }
 
     fn draw(&mut self, debug: &mut DebugText) {
