@@ -162,9 +162,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         if self.net.is_connected() && self.current_frame % query_server_interval == 0 {
             // query for lobby/ping/etc state
             self.net.query_active_state();
-            self.ping_clients()
-            // #TODO: ping server too?
-            // self.net.ping(self.relay.get_client_id().expect("could not get current client id?"), None);
+            self.ping_clients();
         }
 
         self.current_frame += 1;
