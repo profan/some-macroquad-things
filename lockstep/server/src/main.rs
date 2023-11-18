@@ -362,6 +362,10 @@ impl RelayServer {
 
     pub fn ping(&mut self, from_client_id: LobbyClientID, to_client_id: Option<LobbyClientID>) {
 
+        if self.senders.contains_key(&to_client_id) == false {
+            return;
+        }
+
         if let Some(to_client_id) = to_client_id {
 
             // asking another client :)
@@ -377,6 +381,10 @@ impl RelayServer {
     }
 
     pub fn pong(&mut self, from_client_id: Option<LobbyClientID>, to_client_id: LobbyClientID) {
+
+        if self.senders.contains_key(&to_client_id) == false {
+            return;
+        }
 
         if let Some(from_client_id) = from_client_id {
 
