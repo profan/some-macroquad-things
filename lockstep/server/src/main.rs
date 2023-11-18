@@ -362,11 +362,11 @@ impl RelayServer {
 
     pub fn ping(&mut self, from_client_id: LobbyClientID, to_client_id: Option<LobbyClientID>) {
 
-        if self.senders.contains_key(&to_client_id) == false {
-            return;
-        }
-
         if let Some(to_client_id) = to_client_id {
+
+            if self.senders.contains_key(&to_client_id) == false {
+                return;
+            }
 
             // asking another client :)
             self.send_message_to_client(to_client_id, RelayMessage::Ping(from_client_id, Some(to_client_id)));
