@@ -349,6 +349,7 @@ impl RelayServer {
 
             if lobby.state == LobbyState::Running {
                 self.send_message_to_client(client_id, RelayMessage::FailedToJoinLobby(lobby_id, "lobby is already running! currently you cannot join running lobbies, sorry!".to_string()));
+                return;
             }
 
             self.client_joined_lobby(lobby_id, client_id);
