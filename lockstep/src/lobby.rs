@@ -44,6 +44,12 @@ pub enum RelayMessage {
     /// Represents a response telling clients the lobby they are in has been stopped.
     StoppedLobby,
 
+    /// Represents a request from a client to another client, for them to send them a pong message back, can be a server ping if no target client is specified.
+    Ping(LobbyClientID, Option<LobbyClientID>),
+
+    /// Represents a response from a client to another client's ping message, can be a server ping if no source client is specified.
+    Pong(Option<LobbyClientID>, LobbyClientID),
+
     /// Represents a response telling clients in a specific lobby that the specific client has left.
     LeftLobby(LobbyClientID),
 

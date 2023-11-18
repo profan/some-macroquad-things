@@ -1,4 +1,4 @@
-use std::collections::{VecDeque, HashMap};
+use std::collections::{HashMap};
 use nanoserde::{SerJson, DeJson};
 
 pub use i64 as PeerID;

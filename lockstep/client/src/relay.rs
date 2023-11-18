@@ -1,16 +1,43 @@
+use std::collections::HashMap;
+
 use lockstep::lobby::Lobby;
 use lockstep::lobby::LobbyClient;
 use lockstep::lobby::LobbyClientID;
 use lockstep::lobby::LobbyID;
 use lockstep::lobby::LobbyState;
 use lockstep::lobby::RelayMessage;
+use macroquad::time::get_time;
 use nanoserde::DeJson;
 
 const IS_DEBUGGING: bool = false;
 
+struct RelayPingStats {
+    send_time: i32,
+    receive_time: i32,
+    last_time: i32
+}
+
+impl RelayPingStats {
+    fn new() -> RelayPingStats {
+        RelayPingStats { send_time: 0, receive_time: 0, last_time: 999 }
+    }
+
+    fn ping(&self) -> i32 {
+
+        if self.receive_time != self.send_time {
+            self.receive_time - self.send_time
+        } else {
+            self.last_time
+        }
+
+    }
+}
+
 pub struct RelayClient {
     client_id: Option<LobbyClientID>,
     current_lobby_id: Option<LobbyID>,
+    client_stats: HashMap<LobbyClientID, RelayPingStats>, // milliseconds latency
+    server_stats: RelayPingStats,
     clients: Vec<LobbyClient>,
     lobbies: Vec<Lobby>
 }
@@ -21,6 +48,8 @@ impl RelayClient {
         RelayClient {
             client_id: None,
             current_lobby_id: None,
+            client_stats: HashMap::new(),
+            server_stats: RelayPingStats::new(),
             clients: Vec::new(),
             lobbies: Vec::new()
         }
@@ -43,6 +72,14 @@ impl RelayClient {
             Some(lobby)
         } else {
             None
+        }
+    }
+
+    pub fn get_client_ping(&self, client_id: LobbyClientID) -> i32 {
+        if let Some(client_stats) = self.client_stats.get(&client_id) {
+            client_stats.ping()
+        } else {
+            999
         }
     }
 
@@ -104,6 +141,47 @@ impl RelayClient {
         }
 
         current_lobby.clients.retain(|id| *id != client_id);
+
+    }
+
+    pub fn ping(&mut self, from_client_id: LobbyClientID, to_client_id: Option<LobbyClientID>) {
+
+        if let Some(current_client_id) = self.client_id && from_client_id == current_client_id {
+
+            if let Some(to_client_id) = to_client_id {
+                println!("[RelayClient] sent ping message to: {}!", to_client_id);
+
+                let current_time_in_ms = (get_time() * 1000.0) as i32;
+
+                if let Some(stats) = self.client_stats.get_mut(&to_client_id) {
+                    stats.receive_time = current_time_in_ms;
+                    stats.send_time = current_time_in_ms;
+                } else {
+                    self.client_stats.insert(to_client_id, RelayPingStats { send_time: current_time_in_ms, receive_time: current_time_in_ms, last_time: 999 });
+                }
+
+            } else {
+                println!("[RelayClient] sent ping message to server!");
+            }
+
+        }
+
+    }
+
+    pub fn pong(&mut self, from_client_id: Option<LobbyClientID>, to_client_id: LobbyClientID) {
+
+        if let Some(client_id) = from_client_id && to_client_id == self.client_id.expect("client id should never be empty here") {
+            println!("[RelayClient] got pong message from: {}, updating ping!", client_id);
+
+            let current_time_in_ms = (get_time() * 1000.0) as i32;
+            if let Some(stats) = self.client_stats.get_mut(&client_id) {
+                stats.receive_time = current_time_in_ms;
+                stats.last_time = stats.ping();
+            }
+
+        } else {
+            println!("[RelayClient] got pong message from server!");
+        }
 
     }
 
@@ -177,6 +255,9 @@ impl RelayClient {
 
             RelayMessage::StartedLobby => {},
             RelayMessage::StoppedLobby => {},
+
+            RelayMessage::Ping(from_client_id, to_client_id) => { self.ping(from_client_id, to_client_id); },
+            RelayMessage::Pong(from_client_id, to_client_id) => { self.pong(from_client_id, to_client_id); },
 
             // when the game/lobby is running, these relevant
             RelayMessage::Message(client_id, ref text) => handle_message(client_id, text),

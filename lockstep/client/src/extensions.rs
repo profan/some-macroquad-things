@@ -1,4 +1,4 @@
-use lockstep::lobby::{LobbyID, RelayMessage};
+use lockstep::lobby::{LobbyID, LobbyClientID, RelayMessage, Lobby};
 use nanoserde::{DeJson, SerJson};
 
 use crate::network::NetworkClient;
@@ -22,6 +22,9 @@ pub trait RelayCommandsExt {
     fn create_new_lobby(&mut self);
     fn join_lobby(&mut self, lobby_id: LobbyID);
     fn query_active_state(&mut self);
+
+    fn ping(&mut self, from_client_id: LobbyClientID, to_client_id: Option<LobbyClientID>);
+    fn pong(&mut self, from_client_id: Option<LobbyClientID>, to_client_id: LobbyClientID);
 
 }
 
@@ -54,6 +57,14 @@ impl RelayCommandsExt for NetworkClient {
     fn query_active_state(&mut self) {
         self.send_relay_message(RelayMessage::QueryActivePlayers);
         self.send_relay_message(RelayMessage::QueryActiveLobbies);
+    }
+
+    fn ping(&mut self, from_client_id: LobbyClientID, to_client_id: Option<LobbyClientID>) {
+        self.send_relay_message(RelayMessage::Ping(from_client_id, to_client_id));
+    }
+
+    fn pong(&mut self, from_client_id: Option<LobbyClientID>, to_client_id: LobbyClientID) {
+        self.send_relay_message(RelayMessage::Pong(from_client_id, to_client_id));
     }
 
 }

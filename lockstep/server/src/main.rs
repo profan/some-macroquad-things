@@ -104,6 +104,10 @@ impl ws::Handler for Session {
                 RelayMessage::LeaveLobby => { self.server.borrow_mut().leave_lobby(self.id); },
                 RelayMessage::JoinLobby(lobby_id) => { self.server.borrow_mut().join_lobby(lobby_id, self.id); },
 
+                // ping/pong messages between clients
+                RelayMessage::Ping(from_client_id, to_client_id) => { self.server.borrow_mut().ping(from_client_id, to_client_id); },
+                RelayMessage::Pong(from_client_id, to_client_id) => { self.server.borrow_mut().pong(from_client_id, to_client_id); },
+
                 // messages for passing game data, external to the relay server (to be forwarded to all in the same lobby)
                 RelayMessage::Message(peer_id, text) => { self.server.borrow_mut().send_message_to_clients_lobby(self.id, RelayMessage::Message(peer_id, text)); },
 
@@ -173,7 +177,7 @@ impl RelayServer {
         let new_relay_server = Rc::new(RefCell::new(RelayServer::new()));
 
         // Listen on an address and call the closure for each connection
-        if let Err(error) = ws::listen(format!("localhost:{}", new_relay_server.borrow().port), |out| {
+        if let Err(error) = ws::listen(format!("0.0.0.0:{}", new_relay_server.borrow().port), |out| {
             Router {
                 sender: out,
                 inner: Box::new(NotFound),
@@ -340,7 +344,44 @@ impl RelayServer {
         }
     }
 
+    pub fn ping(&mut self, from_client_id: LobbyClientID, to_client_id: Option<LobbyClientID>) {
+
+        if let Some(to_client_id) = to_client_id {
+
+            // asking another client :)
+            self.send_message_to_client(to_client_id, RelayMessage::Ping(from_client_id, Some(to_client_id)));
+
+        } else {
+            
+            // asking the server!
+            self.pong(None, from_client_id);
+
+        }
+
+    }
+
+    pub fn pong(&mut self, from_client_id: Option<LobbyClientID>, to_client_id: LobbyClientID) {
+
+        if let Some(from_client_id) = from_client_id {
+
+            // forward client pong to actual target client
+            self.send_message_to_client(to_client_id, RelayMessage::Pong(Some(from_client_id), to_client_id));
+
+        } else {
+
+            // respond to client with pong :)
+            self.send_message_to_client(to_client_id, RelayMessage::Pong(None, to_client_id));
+
+        }
+
+    }
+
     pub fn send_message_to_client(&self, client_id: LobbyClientID, message: RelayMessage) {
+        if self.senders.contains_key(&client_id) == false {
+            println!("attempted to send message to client: {} which seems to have disconnected, ignoring message!", client_id);
+            return;
+        }
+
         let client_sender = &self.senders[&client_id];
         let _ = client_sender.send(message.serialize_json());
     }

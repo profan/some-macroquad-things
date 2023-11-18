@@ -64,7 +64,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
     }
 
     pub fn set_target_host(&mut self, address: &str) {
-        self.host_address = address.to_string();
+        self.host_address = format!("ws://{}:{}", address.to_string(), DEFAULT_LOBBY_PORT);
     }
 
     fn is_in_running_game(&self) -> bool {
@@ -127,6 +127,17 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         self.relay.reset();
     }
 
+    pub fn ping_clients(&mut self) {
+
+        let Some(current_client_id) = self.relay.get_client_id() else { return; };
+
+        for c in self.relay.get_clients().clone() {
+            self.net.ping(current_client_id, Some(c.id));
+            self.relay.ping(current_client_id, Some(c.id));
+        }
+        
+    }
+
     pub fn handle_messages(&mut self) {
         match self.mode {
             ApplicationMode::Frontend => self.handle_frontend(),
@@ -149,6 +160,9 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
     
         if self.is_in_running_game() == false && self.net.is_connected() && self.current_frame % query_server_interval == 0 {
             self.net.query_active_state();
+            self.ping_clients()
+            // #TODO: ping server too?
+            // self.net.ping(self.relay.get_client_id().expect("could not get current client id?"), None);
         }
 
         self.current_frame += 1;
@@ -202,6 +216,11 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                                 }
                                 self.game.reset();
                             },
+                            RelayMessage::Ping(from_client_id, to_client_id) => {
+                                if let Some(client_id) = self.relay.get_client_id() && to_client_id == Some(client_id) {
+                                    self.net.pong(Some(client_id), from_client_id);
+                                }
+                            }
                             _ => ()
                         }
                     }
@@ -267,7 +286,8 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
     
             self.debug.draw_text("all clients", utility::TextPosition::TopRight, self.debug_text_colour);
             for c in self.relay.get_clients() {
-                self.debug.draw_text(format!("{} ({})", c.name.as_str(), c.id), utility::TextPosition::TopRight, self.debug_text_colour);
+                let client_rtt_to_us_in_ms = self.relay.get_client_ping(c.id);
+                self.debug.draw_text(format!("{} ({}) - {} ms", c.name.as_str(), c.id, client_rtt_to_us_in_ms), utility::TextPosition::TopRight, self.debug_text_colour);
             }
     
             for l in self.relay.get_lobbies() {
@@ -385,9 +405,20 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                 }
 
                 if self.net.is_connected() == false {
+
+                    // let mut host_textbox = yakui::widgets::TextBox::new("localhost");
+                    // host_textbox.style.color = yakui::Color::WHITE;
+
+                    // if let Some(address) = &host_textbox.show().text {
+                    //     self.set_target_host(&address);
+                    // }
+
+                    yakui::label(self.target_host().to_string());
+
                     if yakui::button("connect to server").clicked {
                         self.connect_to_server();
                     }
+
                 } else {
                     if yakui::button("disconnect from server").clicked {
                         self.disconnect_from_server();
