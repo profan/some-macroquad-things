@@ -158,7 +158,9 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
         let query_server_interval = 100; // every 100 frames? :D
     
-        if self.is_in_running_game() == false && self.net.is_connected() && self.current_frame % query_server_interval == 0 {
+        // #FIXME: previously also queried if not in a game, but maybe just always update?
+        if self.net.is_connected() && self.current_frame % query_server_interval == 0 {
+            // query for lobby/ping/etc state
             self.net.query_active_state();
             self.ping_clients()
             // #TODO: ping server too?
