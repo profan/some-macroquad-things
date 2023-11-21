@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 use macroquad::prelude::*;
 use utility::{AsPerpendicular, AsVector, load_texture_from_image, set_texture_filter};
 
-fn slice_sprite(texture: Texture2D, num_pieces: i32, w: u16, h: u16) -> Vec<Image> {
+pub fn slice_sprite(texture: Texture2D, num_pieces: i32, w: u16, h: u16) -> Vec<Image> {
     assert!(num_pieces > 0);
 
     let image = texture.get_texture_data();
@@ -47,7 +47,7 @@ fn slice_sprite(texture: Texture2D, num_pieces: i32, w: u16, h: u16) -> Vec<Imag
     
 }
 
-fn upload_sprite_slices(slices: Vec<Image>) -> Vec<Texture2D> {
+pub fn upload_sprite_slices(slices: Vec<Image>) -> Vec<Texture2D> {
     slices.iter().map(|image| {
         let texture = load_texture_from_image(image);
         set_texture_filter(texture, FilterMode::Nearest);
