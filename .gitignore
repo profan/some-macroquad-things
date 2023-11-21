@@ -5,6 +5,7 @@ www/
 *.o
 *.bin
 *.d.
+*.*.s??
 
 
 # Added by cargo

@@ -5,12 +5,20 @@ edition = "2021"
 
 [dependencies]
 macroquad = "0.3.24"
+macroquad-particles = "0.1.2"
 lockstep = { path = "../lockstep" }
 lockstep-client = { path = "../lockstep/client" }
 utility = { path = "../utility" }
 deterministic-hash = "1.0.1"
 nanoserde = "0.1.35"
+hecs = { version = "0.10.3", features = ["macros"] }
 
 [profile.dev]
+opt-level = 0
 incremental = true
+
+[profile.dev.build-override]
+opt-level = 3
+
+[profile.dev.package."*"]
 opt-level = 2
