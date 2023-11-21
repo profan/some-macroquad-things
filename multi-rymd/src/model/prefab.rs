@@ -1,10 +1,10 @@
-use std::{collections::VecDeque, f32::consts::PI};
+use std::f32::consts::PI;
 
 use hecs::*;
 use macroquad::prelude::*;
 use utility::{Kinematic, AsAngle};
 
-use crate::{Transform, Orderable, AnimatedSprite, Thruster, DynamicBody, Ship, ThrusterKind};
+use crate::model::{Transform, Orderable, AnimatedSprite, Thruster, DynamicBody, Ship, ThrusterKind};
 
 #[derive(Bundle)]
 pub struct ShipBody {

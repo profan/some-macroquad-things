@@ -16,7 +16,8 @@
         "./procedural-animation/Cargo.toml",
         "./stress-majorization/Cargo.toml",
         "./territory/Cargo.toml",
-        "./transformy/Cargo.toml"
+        "./transformy/Cargo.toml",
+        "./multi-rymd/Cargo.toml"
     ],
     "FSharp.suggestGitignore": false
 }
