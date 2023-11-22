@@ -199,13 +199,17 @@ pub fn map_to_range_fmod(r: f32) -> f32 {
     ((r - PI) % PI + PI) % PI
 }
 
-pub fn map_to_range(r: f32) -> f32 {
+pub fn map_to_range_basic(r: f32) -> f32 {
     r % PI
+}
+
+pub fn map_to_range(r: f32) -> f32 {
+    (r + PI) % (PI*2.0) - PI
 }
 
 pub fn map_to_range_old(r: f32) -> f32 {
     // note: ARGHHHH
-    (r % (2.0*PI))
+    r % (2.0*PI)
     // r.rem_euclid(2.0*PI) - PI
 }
 
