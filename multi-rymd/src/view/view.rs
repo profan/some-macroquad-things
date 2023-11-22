@@ -345,6 +345,7 @@ impl RymdGameView {
     fn handle_selection(&mut self, world: &mut World) {
 
         let mouse_position: Vec2 = mouse_position().into();
+        let is_adding_to_selection: bool = is_key_down(KeyCode::LeftShift);
         let mut selection_turned_inactive = false;
 
         if is_mouse_button_pressed(MouseButton::Left) {
@@ -365,7 +366,7 @@ impl RymdGameView {
         }
 
         if selection_turned_inactive {
-            self.perform_selection(world);
+            self.perform_selection(world, is_adding_to_selection);
         }
 
     }
@@ -407,7 +408,7 @@ impl RymdGameView {
 
     }
 
-    fn perform_selection(&mut self, world: &mut World) {
+    fn perform_selection(&mut self, world: &mut World, is_additive: bool) {
 
         let selection_rectangle = self.selection.as_rect();
 
@@ -417,9 +418,9 @@ impl RymdGameView {
 
             if let Some(bounds) = bounds {
                 let current_selectable_bounds = bounds.rect.offset(transform.world_position);
-                selectable.is_selected = current_selectable_bounds.intersect(selection_rectangle).is_some();
+                selectable.is_selected = (selectable.is_selected && is_additive) || current_selectable_bounds.intersect(selection_rectangle).is_some();
             } else {
-                selectable.is_selected = is_point_inside_rect(&transform.local_position, &selection_rectangle);
+                selectable.is_selected = (selectable.is_selected && is_additive) || is_point_inside_rect(&transform.local_position, &selection_rectangle);
             };
 
             if selectable.is_selected {
