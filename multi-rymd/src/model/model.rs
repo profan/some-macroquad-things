@@ -3,7 +3,9 @@ use macroquad::{*, math::vec2};
 use nanoserde::DeJson;
 use utility::RotatedBy;
 
-use crate::{EntityID, RymdGameParameters, model::GameMessage};
+use crate::EntityID;
+use crate::model::GameMessage;
+use crate::game::RymdGameParameters;
 use super::{create_player_ship, GameOrder, Orderable, Transform, DynamicBody};
 
 pub struct RymdGameModel {

@@ -327,7 +327,7 @@ impl RymdGameView {
 
     fn handle_order(&mut self, world: &mut World, lockstep: &mut LockstepClient) {
 
-        if is_mouse_button_pressed(MouseButton::Right) {
+        if is_mouse_button_released(MouseButton::Right) {
 
             let should_add = is_key_down(KeyCode::LeftShift);
             let current_mouse_position: Vec2 = mouse_position().into();
