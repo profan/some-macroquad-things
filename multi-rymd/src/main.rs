@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
-#![feature(async_fn_in_trait)]
 #![feature(let_chains)]
 
 use model::{RymdGameModel, Transform};
