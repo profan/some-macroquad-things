@@ -28,9 +28,6 @@ impl RymdGameModel {
             let random_x = rand::gen_range(200, 400);
             let random_y = rand::gen_range(200, 400);
             create_player_ship(&mut self.world, vec2(random_x as f32, random_y as f32));
-            create_player_ship(&mut self.world, vec2(random_x as f32, random_y as f32));
-            create_player_ship(&mut self.world, vec2(random_x as f32, random_y as f32));
-            create_player_ship(&mut self.world, vec2(random_x as f32, random_y as f32));
         }
         
     }
