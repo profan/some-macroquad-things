@@ -3,6 +3,8 @@ use hecs::{Entity, World};
 use macroquad::math::Vec2;
 use utility::{Kinematic, RotatedBy};
 
+use crate::view::calculate_sprite_bounds;
+
 use super::GameOrder;
 
 #[derive(Clone)]

@@ -2,6 +2,14 @@ use std::f32::consts::PI;
 use macroquad::prelude::*;
 use utility::{AsPerpendicular, AsVector, load_texture_from_image, set_texture_filter};
 
+pub fn calculate_sprite_bounds(texture: Texture2D, centered: bool) -> Rect {
+    let w = texture.width();
+    let h = texture.height();
+    let x = if centered { -(w / 2.0) } else { 0.0 };
+    let y = if centered { -(h / 2.0) } else { 0.0 };
+    Rect { x, y, w, h}
+}
+
 pub fn slice_sprite(texture: Texture2D, num_pieces: i32, w: u16, h: u16) -> Vec<Image> {
     assert!(num_pieces > 0);
 

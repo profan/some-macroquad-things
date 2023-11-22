@@ -9,6 +9,43 @@ use hecs::*;
 
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind};
 
+use super::calculate_sprite_bounds;
+
+struct OrderingState {
+    points: Vec<Vec2>
+}
+
+impl OrderingState {
+
+    fn new() -> OrderingState {
+        OrderingState { points: Vec::new() }
+    }
+
+    fn add_point(&mut self, point: Vec2) {
+
+        let point_add_threshold = 16.0;
+
+        if self.points.len() > 0 {
+            if point.distance(self.points[self.points.len() - 1]) >= point_add_threshold {
+                self.points.push(point);
+            }
+        } else {
+            self.points.push(point);
+        }
+
+    }
+
+    fn get_point(&self, count: usize, idx: usize) -> Vec2 {
+        let partition = self.points.len() / count;
+        self.points[(partition * idx) % self.points.len()]
+    }
+    
+    fn clear_points(&mut self) {
+        self.points.clear();
+    }
+
+}
+
 struct SelectionBox {
     is_active: bool,
     start: Vec2,
@@ -58,7 +95,13 @@ struct Selectable {
 
 #[derive(Debug)]
 struct Bounds {
-    rect: Vec2
+    rect: Rect
+}
+
+impl Bounds {
+    fn as_radius(&self) -> f32 {
+        self.rect.size().max_element() / 4.0 // #TODO: this is hella magic number tho
+    }
 }
 
 struct Particles {
@@ -277,6 +320,7 @@ impl Resources {
 
 pub struct RymdGameView {
     selection: SelectionBox,
+    ordering: OrderingState,
     resources: Resources
 }
 
@@ -284,6 +328,7 @@ impl RymdGameView {
 
     pub fn new() -> RymdGameView {
         RymdGameView {
+            ordering: OrderingState::new(),
             selection: SelectionBox::new(),
             resources: Resources::new()
         }
@@ -327,17 +372,36 @@ impl RymdGameView {
 
     fn handle_order(&mut self, world: &mut World, lockstep: &mut LockstepClient) {
 
+        let current_mouse_position: Vec2 = mouse_position().into();
+
+        if is_mouse_button_down(MouseButton::Right) {
+            self.ordering.add_point(current_mouse_position);
+        }
+
         if is_mouse_button_released(MouseButton::Right) {
 
             let should_add = is_key_down(KeyCode::LeftShift);
-            let current_mouse_position: Vec2 = mouse_position().into();
 
-            for (e, (orderable, selectable)) in world.query_mut::<(&Orderable, &Selectable)>() {
+            let number_of_selected_orderables = world.query_mut::<(&Orderable, &Selectable)>().into_iter().filter(|e| e.1.1.is_selected).count();
+
+            for (idx, (e, (orderable, selectable))) in world.query_mut::<(&Orderable, &Selectable)>().into_iter().enumerate() {
+                
                 if selectable.is_selected {
-                    lockstep.send_move_order(e, current_mouse_position, should_add);
+
+                    let current_order_point = if number_of_selected_orderables > 1 {
+                        self.ordering.get_point(number_of_selected_orderables, idx)
+                    } else {
+                        current_mouse_position
+                    };
+
+                    lockstep.send_move_order(e, current_order_point, should_add);
                     println!("[RymdGameView] ordered: {:?} to move to: {}", e, current_mouse_position);
+
                 }
+                
             }
+            
+            self.ordering.clear_points();
 
         }
 
@@ -349,11 +413,44 @@ impl RymdGameView {
 
         println!("[RymdGameView] attempted to select entities inside: {:?}", selection_rectangle);
 
-        for (e, (transform, orderable, selectable)) in world.query_mut::<(&Transform, &Orderable, &mut Selectable)>() {
-            selectable.is_selected = is_point_inside_rect(&transform.local_position, &selection_rectangle);
+        for (e, (transform, orderable, bounds, selectable)) in world.query_mut::<(&Transform, &Orderable, Option<&Bounds>, &mut Selectable)>() {
+
+            if let Some(bounds) = bounds {
+                let current_selectable_bounds = bounds.rect.offset(transform.world_position);
+                selectable.is_selected = current_selectable_bounds.intersect(selection_rectangle).is_some();
+            } else {
+                selectable.is_selected = is_point_inside_rect(&transform.local_position, &selection_rectangle);
+            };
+
             if selectable.is_selected {
                 println!("[RymdGameView] selected: {:?}", e);
             }
+
+        }
+
+    }
+
+    fn draw_ordering(&self) {
+        
+        if self.ordering.points.is_empty() {
+            return;
+        }
+
+        let line_thickness = 1.0;
+        let mut last_point: Vec2 = self.ordering.points[0];
+
+        for p in self.ordering.points.iter().skip(1) {
+            if last_point != *p {
+                draw_line(
+                    last_point.x,
+                    last_point.y,
+                    p.x,
+                    p.y,
+                    line_thickness,
+                    GREEN
+                );
+            }
+            last_point = *p;
         }
 
     }
@@ -373,7 +470,7 @@ impl RymdGameView {
         }
     }
 
-    fn draw_orders(&self, world: &mut World) {
+    fn draw_orders(&self, world: &World) {
 
         for (e, (transform, orderable, selectable)) in world.query::<(&Transform, &Orderable, &Selectable)>().iter() {
 
@@ -405,6 +502,7 @@ impl RymdGameView {
 
         let mut selectable_components_to_add = Vec::new();
         let mut thruster_components_to_add = Vec::new();
+        let mut bounds_components_to_add = Vec::new();
 
         for (e, (transform, orderable)) in model.world.query::<Without<(&Transform, &Orderable), &Selectable>>().iter() {
             let selectable = Selectable { is_selected: false };
@@ -417,11 +515,33 @@ impl RymdGameView {
             thruster_components_to_add.push((e, particle_emitter));
         }
 
+        for (e, (transform, selectable, sprite, animated_sprite)) in model.world.query::<(&Transform, &Selectable, Option<&Sprite>, Option<&AnimatedSprite>)>().iter() {
+
+            if let Some(sprite) = sprite {
+                let sprite_is_centered = true;
+                let sprite_texture_handle = self.resources.get_texture_by_name(&sprite.texture);
+                let sprite_texture_bounds = Bounds { rect: calculate_sprite_bounds(sprite_texture_handle, sprite_is_centered) };
+                bounds_components_to_add.push((e, sprite_texture_bounds));
+            }
+
+            if let Some(animated_sprite) = animated_sprite {
+                let sprite_is_centered = true;
+                let sprite_texture_handle = self.resources.get_texture_by_name(&animated_sprite.texture);
+                let sprite_texture_bounds = Bounds { rect: calculate_sprite_bounds(sprite_texture_handle, sprite_is_centered) };
+                bounds_components_to_add.push((e, sprite_texture_bounds));
+            }
+
+        }
+
         for (e, c) in selectable_components_to_add {
             let _ = model.world.insert_one(e, c);
         }
 
         for (e, c) in thruster_components_to_add {
+            let _ = model.world.insert_one(e, c);
+        }
+
+        for (e, c) in bounds_components_to_add {
             let _ = model.world.insert_one(e, c);
         }
 
@@ -432,14 +552,14 @@ impl RymdGameView {
         self.handle_order(world, lockstep);
     }
 
-    fn draw_sprites(&self, world: &mut World) {
+    fn draw_sprites(&self, world: &World) {
         for (e, (transform, sprite)) in world.query::<(&Transform, &Sprite)>().iter() {
             let sprite_texture_handle = self.resources.get_texture_by_name(&sprite.texture);
             draw_texture_centered_with_rotation(sprite_texture_handle, transform.world_position.x, transform.world_position.y, WHITE, transform.world_rotation);
         }
     }
 
-    fn draw_animated_sprites(&self, world: &mut World) {
+    fn draw_animated_sprites(&self, world: &World) {
         for (e, (transform, body, sprite)) in world.query::<(&Transform, Option<&DynamicBody>, &AnimatedSprite)>().iter() {
             let is_sprite_flipped = false;
             let sprite_texture_handle = self.resources.get_texture_by_name(&sprite.texture);
@@ -447,7 +567,25 @@ impl RymdGameView {
         }
     }
 
-    fn update_thrusters(&mut self, world: &mut World) {
+    fn draw_selectables(&self, world: &mut World) {
+
+        let bounds_thickness = 1.0;
+
+        for (e, (transform, selectable, bounds)) in world.query::<(&Transform, &Selectable, &Bounds)>().iter() {
+            if selectable.is_selected {
+                draw_circle_lines(
+                    transform.world_position.x,
+                    transform.world_position.y,
+                    bounds.as_radius(),
+                    bounds_thickness,
+                    GREEN
+                );
+            }
+        }
+
+    }
+
+    fn update_thrusters(&mut self, world: &World) {
 
         for (e, (transform, body, ship)) in world.query::<(&Transform, &DynamicBody, &Ship)>().iter() {
             for &t in &ship.thrusters {
@@ -490,7 +628,7 @@ impl RymdGameView {
 
     }
 
-    fn draw_thrusters(&mut self, world: &mut World) {
+    fn draw_particles(&mut self, world: &mut World) {
 
         for (_, emitter) in &mut self.resources.particle_emitters {
             emitter.draw(Vec2::ZERO);
@@ -541,12 +679,14 @@ impl RymdGameView {
         let screen_center: Vec2 = vec2(screen_width(), screen_height()) / 2.0;
         self.draw_background_texture(screen_width(), screen_height(), screen_center);
 
-        self.draw_thrusters(world);
+        self.draw_particles(world);
         self.draw_orders(world);
 
         self.draw_sprites(world);
         self.draw_animated_sprites(world);
+        self.draw_selectables(world);
         self.draw_selection();
+        self.draw_ordering();
 
         self.draw_debug_ui(debug);
 
