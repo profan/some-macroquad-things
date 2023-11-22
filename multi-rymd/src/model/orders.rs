@@ -1,13 +1,35 @@
 use hecs::{Entity, World};
-use lockstep_client::step::LockstepClient;
 use macroquad::prelude::*;
 use nanoserde::{SerJson, DeJson};
-use utility::{Kinematic, arrive_ex, face_ex};
+use lockstep_client::step::LockstepClient;
+use utility::{Kinematic, arrive_ex, face_ex, SteeringOutput, AsVector};
 
-use crate::{EntityID, ship_apply_steering, get_entity_position};
+use crate::EntityID;
 use crate::model::GameMessage;
 
 use super::{Transform, DynamicBody, DEFAULT_STEERING_PARAMETERS};
+
+fn ship_apply_steering(kinematic: &mut Kinematic, steering_maybe: Option<SteeringOutput>, dt: f32) {
+
+    let turn_rate = 4.0;
+    if let Some(steering) = steering_maybe {
+
+        let desired_linear_velocity = steering.linear * dt;
+
+        // project our desired velocity along where we're currently pointing first
+        let projected_linear_velocity = desired_linear_velocity * desired_linear_velocity.dot(-kinematic.orientation.as_vector()).max(0.0);
+        kinematic.velocity += projected_linear_velocity;
+
+        let turn_delta = steering.angular * turn_rate * dt;
+        kinematic.angular_velocity += turn_delta;
+
+    }
+
+}
+
+fn get_entity_position(world: &World, entity_id: u64) -> Option<Vec2> {
+    world.get::<&Transform>(Entity::from_bits(entity_id).unwrap()).and_then(|t| Ok(t.world_position)).or(Err(())).ok()
+}
 
 pub trait GameOrdersExt {
     fn send_move_order(&mut self, entity: Entity, target_position: Vec2, should_add: bool);
