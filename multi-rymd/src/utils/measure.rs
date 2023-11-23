@@ -39,6 +39,7 @@ impl<F> Drop for StopWatch<F> where F: FnMut(f32) -> () {
     }
 }
 
+/// Measures the time the scope this is placed in takes to execute, writes the result to the variable passed, example usage:
 #[macro_export]
 macro_rules! measure_scope {
     ($e:expr) => {

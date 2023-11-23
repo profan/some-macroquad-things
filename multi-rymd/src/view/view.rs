@@ -37,7 +37,7 @@ impl OrderingState {
 
     fn get_point(&self, count: usize, idx: usize) -> Vec2 {
         if count > self.points.len() {
-            let partition = self.points.len() / count;
+            let partition = count / self.points.len();
             self.points[(partition * idx) % self.points.len()]
         } else {
             let partition = self.points.len() / count;
