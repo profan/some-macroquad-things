@@ -1,7 +1,8 @@
 use lockstep_client::{game::Game, step::LockstepClient};
 use lockstep_client::step::PeerID;
-use utility::DebugText;
+use utility::{DebugText, TextPosition};
 
+use crate::measure_scope;
 use crate::model::RymdGameModel;
 use crate::view::RymdGameView;
 
@@ -16,11 +17,24 @@ pub struct RymdGameParameters {
 }
 
 pub struct RymdGame {
+    stats: RymdGameFrameStats,
     model: RymdGameModel,
     view: RymdGameView,
     is_started: bool,
     is_running: bool,
     is_paused: bool
+}
+
+struct RymdGameFrameStats {
+    update_time_ms: f32,
+    update_view_time_ms: f32,
+    draw_time_ms: f32
+}
+
+impl RymdGameFrameStats {
+    fn new() -> RymdGameFrameStats {
+        RymdGameFrameStats { update_time_ms: 0.0, update_view_time_ms: 0.0, draw_time_ms: 0.0 }
+    }
 }
 
 impl Game for RymdGame {
@@ -79,16 +93,22 @@ impl Game for RymdGame {
     }
 
     fn update(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+        measure_scope!(self.stats.update_time_ms);
         self.model.tick();
-        self.view.update(&mut self.model);    
+        self.view.update(&mut self.model);
     }
 
     fn update_view(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+        measure_scope!(self.stats.update_view_time_ms);
         self.view.tick(&mut self.model.world, lockstep);
     }
 
     fn draw(&mut self, debug: &mut DebugText) {
-        self.view.draw(&mut self.model.world, debug);
+        {
+            measure_scope!(self.stats.draw_time_ms);
+            self.view.draw(&mut self.model.world, debug);
+        }
+        self.draw_frame_stats(debug);
     }
 
     fn reset(&mut self) {
@@ -102,8 +122,10 @@ impl Game for RymdGame {
 }
 
 impl RymdGame {
+    
     pub fn new() -> RymdGame {
         RymdGame {
+            stats: RymdGameFrameStats::new(),
             model: RymdGameModel::new(),
             view: RymdGameView::new(),
             is_running: false,
@@ -111,4 +133,12 @@ impl RymdGame {
             is_paused: false
         }
     }
+
+    fn draw_frame_stats(&self, debug: &mut DebugText) {
+        debug.draw_text("game update", TextPosition::TopRight, macroquad::color::WHITE);
+        debug.draw_text(format!("update tick time: {:.2} ms", self.stats.update_time_ms), TextPosition::TopRight, macroquad::color::WHITE);
+        debug.draw_text(format!("update view time: {:.2} ms", self.stats.update_view_time_ms), TextPosition::TopRight, macroquad::color::WHITE);
+        debug.draw_text(format!("draw time: {:.2} ms", self.stats.draw_time_ms), TextPosition::TopRight, macroquad::color::WHITE);
+    }
+
 }

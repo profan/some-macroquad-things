@@ -69,10 +69,10 @@ pub fn create_player_ship(world: &mut World, position: Vec2) -> Entity {
     let player_ship_body = world.spawn(ShipBody::new(position, player_kinematic_body, player_ship_parameters, "PLAYER_SHIP", 3));
 
     let player_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), -Vec2::X, -(PI / 2.0), player_turn_thruster_power, ThrusterKind::Attitude, player_ship_body));
-    let player_ship_thuster_right_top = world.spawn(ShipThruster::new(vec2(14.0, 4.0), Vec2::X, (PI / 2.0), player_turn_thruster_power, ThrusterKind::Attitude, player_ship_body));
+    let player_ship_thuster_right_top = world.spawn(ShipThruster::new(vec2(14.0, 4.0), Vec2::X, PI / 2.0, player_turn_thruster_power, ThrusterKind::Attitude, player_ship_body));
 
     let player_ship_thruster_left_bottom = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), Vec2::X, -(PI / 2.0), player_turn_thruster_power, ThrusterKind::Attitude, player_ship_body));
-    let player_ship_thuster_right_bottom = world.spawn(ShipThruster::new(vec2(14.0, 4.0), -Vec2::X, (PI / 2.0), player_turn_thruster_power, ThrusterKind::Attitude, player_ship_body));
+    let player_ship_thuster_right_bottom = world.spawn(ShipThruster::new(vec2(14.0, 4.0), -Vec2::X, PI / 2.0, player_turn_thruster_power, ThrusterKind::Attitude, player_ship_body));
 
     let player_ship_thruster_main = world.spawn(ShipThruster::new(vec2(0.0, 10.0), Vec2::Y, 0.0, player_thruster_power, ThrusterKind::Main, player_ship_body));
 

@@ -36,8 +36,13 @@ impl OrderingState {
     }
 
     fn get_point(&self, count: usize, idx: usize) -> Vec2 {
-        let partition = self.points.len() / count;
-        self.points[(partition * idx) % self.points.len()]
+        if count > self.points.len() {
+            let partition = self.points.len() / count;
+            self.points[(partition * idx) % self.points.len()]
+        } else {
+            let partition = self.points.len() / count;
+            self.points[(partition * idx) % self.points.len()]
+        }
     }
     
     fn clear_points(&mut self) {

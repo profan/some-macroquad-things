@@ -3,11 +3,8 @@
 #![feature(let_chains)]
 
 use game::RymdGame;
-use model::Transform;
 use macroquad::prelude::*;
-use hecs::*;
 
-use utility::{Kinematic, SteeringOutput, AsVector};
 use lockstep_client::app::ApplicationState;
 
 mod game;
