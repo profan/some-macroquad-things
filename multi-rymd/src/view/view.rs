@@ -387,10 +387,13 @@ impl RymdGameView {
         if is_mouse_button_released(MouseButton::Right) {
 
             let should_add = is_key_down(KeyCode::LeftShift);
+            let current_selection_end_point = self.ordering.points[0];
 
             let number_of_selected_orderables = world.query_mut::<(&Orderable, &Selectable)>().into_iter().filter(|e| e.1.1.is_selected).count();
+            let mut selectables_ordered_by_distance_to_end_point: Vec<(Entity, (&Transform, &Orderable, &Selectable))> = world.query_mut::<(&Transform, &Orderable, &Selectable)>().into_iter().collect();
+            selectables_ordered_by_distance_to_end_point.sort_by(|a, b| a.1.0.world_position.distance(current_selection_end_point).total_cmp(&b.1.0.world_position.distance(current_selection_end_point)));
 
-            for (idx, (e, (orderable, selectable))) in world.query_mut::<(&Orderable, &Selectable)>().into_iter().enumerate() {
+            for (idx, (e, (_transform, orderable, selectable))) in selectables_ordered_by_distance_to_end_point.into_iter().enumerate() {
                 
                 if selectable.is_selected {
 
