@@ -219,7 +219,7 @@ pub fn draw_with_transformation<F>(position: Vec3, rotation: Quat, drawing_fn: F
 }
 
 /// Draws a circle in the XZ plane, assuming Y+ up.
-pub fn draw_circle_lines_3d(position: Vec3, r: f32, thickness: f32, color: Color) {
+pub fn draw_circle_lines_3d(position: Vec3, r: f32, _thickness: f32, color: Color) {
 
     let sides = 20;
 
