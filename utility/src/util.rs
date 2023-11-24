@@ -246,10 +246,12 @@ pub fn sign(x: f32) -> f32 {
     }
 }
 
+/// Returns the value produced by the equation x - floor(x), should always be in the range \[0.0, 1.0\].
 pub fn frac0(x: f32) -> f32 {
     x - x.floor()
 }
 
+/// Returns the value produced by the equation 1.0 - x + floor(x), should always be in the range \[0.0, 1.0\].
 pub fn frac1(x: f32) -> f32 {
     1.0 - x + x.floor()
 }
