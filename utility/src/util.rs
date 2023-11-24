@@ -79,6 +79,7 @@ pub fn draw_rectangle_lines_centered(x: f32, y: f32, w: f32, h: f32, thickness: 
     draw_rectangle_lines(x - w/2.0, y - h/2.0, w, h, thickness, color);
 }
 
+/// Retuns true if the given point is inside the rect.
 pub fn is_point_inside_rect(point: &Vec2, rect: &Rect) -> bool {
     let is_outside = point.x < rect.x || point.x > rect.x + rect.w || point.y < rect.y || point.y > rect.y + rect.h;
     !is_outside
