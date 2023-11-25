@@ -349,6 +349,13 @@ impl RymdGameView {
     
     fn handle_selection(&mut self, world: &mut World) {
 
+        // CTRL+A should select all units
+        let is_selecting_all = is_key_down(KeyCode::LeftControl) && is_key_down(KeyCode::A);
+        if is_selecting_all {
+            self.perform_select_all(world);
+            return;
+        }
+
         let mouse_position: Vec2 = mouse_position().into();
         let is_adding_to_selection: bool = is_key_down(KeyCode::LeftShift);
         let mut selection_turned_inactive = false;
@@ -371,7 +378,7 @@ impl RymdGameView {
         }
 
         if selection_turned_inactive {
-            self.perform_selection(world, is_adding_to_selection);
+            self.perform_selection_with_bounds(world, is_adding_to_selection);
         }
 
     }
@@ -390,7 +397,10 @@ impl RymdGameView {
             let should_group = is_key_down(KeyCode::LeftControl);
             let current_selection_end_point = self.ordering.points[0];
 
+            // we need to know the number of selected orderables so that we can distribute units along the line we draw for movement
             let number_of_selected_orderables = world.query_mut::<(&Orderable, &Selectable)>().into_iter().filter(|e| e.1.1.is_selected).count();
+
+            // order the selectables by their distance from the current selection end point, this way we mostly retain the current arrangement the units are in and they hopefully make sorta-optimal moves
             let mut selectables_ordered_by_distance_to_end_point: Vec<(Entity, (&Transform, &Orderable, &Selectable))> = world.query_mut::<(&Transform, &Orderable, &Selectable)>().into_iter().collect();
             selectables_ordered_by_distance_to_end_point.sort_by(|a, b| a.1.0.world_position.distance(current_selection_end_point).total_cmp(&b.1.0.world_position.distance(current_selection_end_point)));
 
@@ -427,7 +437,16 @@ impl RymdGameView {
 
     }
 
-    fn perform_selection(&mut self, world: &mut World, is_additive: bool) {
+    fn perform_select_all(&mut self, world: &mut World) {
+
+        for (e, (transform, orderable, selectable)) in world.query_mut::<(&Transform, &Orderable, &mut Selectable)>() {
+            selectable.is_selected = true;
+            println!("[RymdGameView] selected: {:?}", e);
+        }
+
+    }
+
+    fn perform_selection_with_bounds(&mut self, world: &mut World, is_additive: bool) {
 
         let selection_rectangle = self.selection.as_rect();
 
