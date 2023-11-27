@@ -1,3 +1,5 @@
+#![allow(async_fn_in_trait)]
+
 use lockstep_client::{app::ApplicationState, step::LockstepClient, step::PeerID, game::Game};
 use nanoserde::{SerJson, DeJson};
 use macroquad::prelude::*;

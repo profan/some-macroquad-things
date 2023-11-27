@@ -47,6 +47,10 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
     }
 
+    pub fn get_game(&mut self) -> &mut GameType {
+        &mut self.game
+    }
+
     pub fn get_debug_text_colour(&self) -> Color {
         self.debug_text_colour
     }
