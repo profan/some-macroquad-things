@@ -455,7 +455,7 @@ impl RymdGameView {
 
                 if self.is_entity_friendly(target_entity, world) {
 
-                    self.handle_build_order(world, target_entity, lockstep, should_add);
+                    self.handle_repair_order(world, target_entity, lockstep, should_add);
 
                 } else if self.is_entity_attackable(target_entity, world) {
 
@@ -476,15 +476,15 @@ impl RymdGameView {
 
     }
 
-    fn handle_build_order(&mut self, world: &mut World, target_entity: Entity, lockstep: &mut LockstepClient, should_add: bool) {
+    fn handle_repair_order(&mut self, world: &mut World, target_entity: Entity, lockstep: &mut LockstepClient, should_add: bool) {
 
         let target_position = get_entity_position(world, target_entity).expect("target must have position!");
 
-        for (e, (transform, orderable, selectable)) in world.query_mut::<(&Transform, &Orderable, &Selectable)>() {
+        for (e, (transform, orderable, selectable, constructor)) in world.query_mut::<(&Transform, &Orderable, &Selectable, &Constructor)>() {
     
             if selectable.is_selected {
                 lockstep.send_repair_order(e, target_position, target_entity, should_add);
-                println!("[RymdGameView] ordered: {:?} to build: {:?}", e, target_entity);
+                println!("[RymdGameView] ordered: {:?} to repair: {:?}", e, target_entity);
             }
     
         }

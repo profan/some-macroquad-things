@@ -265,7 +265,7 @@ impl Order for ConstructOrder {
             // cancel our current order now
             self.cancel_current_order(entity, world);
 
-            // now that this is created, issue a local order to help build this new building
+            // now that this is created, issue a local order to ourselves to help build this new building
             self.construct_building(entity, world, new_entity_id, construction_position);
 
         }
