@@ -272,9 +272,6 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                 self.game.pause_game();
 
             }
-
-            // always update the view
-            self.game.update_view(&mut self.debug, lockstep);
     
         }
 
@@ -483,8 +480,8 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
         yakui_macroquad::start();
 
-        if self.game.is_running() {
-            self.game.draw(&mut self.debug);
+        if self.game.is_running() && let Some(lockstep) = &mut self.lockstep {
+            self.game.draw(&mut self.debug, lockstep);
         }
 
         self.draw_debug_text();

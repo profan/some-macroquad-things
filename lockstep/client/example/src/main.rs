@@ -92,13 +92,11 @@ impl Game for ExampleGame {
         }
     }
 
-    fn update_view(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+    fn draw(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+
         if is_mouse_button_pressed(MouseButton::Left) {
             send_spawn_circle_message(lockstep);
         }
-    }
-
-    fn draw(&mut self, debug: &mut DebugText) {
 
         let circle_radius = 32.0;
 
