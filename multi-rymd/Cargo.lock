@@ -521,6 +521,8 @@ dependencies = [
  "macroquad-particles",
  "nanoserde",
  "utility",
+ "yakui",
+ "yakui-macroquad",
 ]
 
 [[package]]
@@ -1144,9 +1146,9 @@ dependencies = [
 
 [[package]]
 name = "yakui-macroquad"
-version = "0.2.0"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7273897c9b55e2f38170fb7ac53762f041e1a227321876af4a0f33c71f519c09"
+checksum = "cce273c87d1ab4aa5a2ce7a494817d9996f85b99fb0964e30cdf749caef72707"
 dependencies = [
  "macroquad",
  "yakui-miniquad",
@@ -1154,9 +1156,9 @@ dependencies = [
 
 [[package]]
 name = "yakui-miniquad"
-version = "0.2.2"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47530ee61599dd355a2c6ec5a283254136c21a4b69d75e9cf152b759d78b56c1"
+checksum = "f9f0c967586e507c3972995540022c27bc279dcaa336060ce85296f8cdab33e9"
 dependencies = [
  "miniquad",
  "yakui-core",

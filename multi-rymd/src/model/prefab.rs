@@ -4,10 +4,14 @@ use hecs::*;
 use macroquad::prelude::*;
 use utility::{Kinematic, AsAngle};
 
+use crate::PlayerID;
 use crate::model::{Transform, Orderable, AnimatedSprite, Thruster, DynamicBody, Ship, ThrusterKind};
 
+use super::{Constructor, Blueprint, build_solar_collector, Controller, Health};
+
 #[derive(Bundle)]
-pub struct ShipBody {
+pub struct AnimatedShipBody {
+    health: Health,
     transform: Transform,
     dynamic_body: DynamicBody,
     orderable: Orderable,
@@ -19,10 +23,11 @@ pub struct ShipParameters {
     turn_rate: f32
 }
 
-impl ShipBody {
+impl AnimatedShipBody {
 
-    pub fn new(position: Vec2, kinematic: Kinematic, parameters: ShipParameters, texture: &str, v_frames: i32) -> ShipBody {
-        ShipBody {
+    pub fn new(health: i32, position: Vec2, kinematic: Kinematic, parameters: ShipParameters, texture: &str, v_frames: i32) -> AnimatedShipBody {
+        AnimatedShipBody {
+            health: Health::new(health),
             transform: Transform::new(position, 0.0, None),
             dynamic_body: DynamicBody { kinematic },
             orderable: Orderable::new(),
@@ -48,12 +53,17 @@ impl ShipThruster {
     }
 }
 
-pub fn create_player_ship(world: &mut World, position: Vec2) -> Entity {
+pub fn create_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
 
-    let player_thruster_power = 64.0;
-    let player_turn_thruster_power = 16.0;
+    let commander_health = 1000;
+
+    let commander_build_speed = 100;
+    let commander_build_range = 100;
+
+    let commander_thruster_power = 64.0;
+    let commander_turn_thruster_power = 16.0;
     
-    let player_kinematic_body = Kinematic {
+    let commander_kinematic_body = Kinematic {
         position: position,
         orientation: 0.0,
         velocity: Vec2::ZERO,
@@ -62,27 +72,32 @@ pub fn create_player_ship(world: &mut World, position: Vec2) -> Entity {
         mass: 1.0
     };
 
-    let player_ship_parameters = ShipParameters {
+    let commander_ship_parameters = ShipParameters {
         turn_rate: 4.0
     };
 
-    let player_ship_body = world.spawn(ShipBody::new(position, player_kinematic_body, player_ship_parameters, "PLAYER_SHIP", 3));
+    let commander_ship_controller = Controller { id: owner };
+    let commander_ship_constructor = Constructor { constructibles: vec![Blueprint { name: "Solar Collector".to_string(), constructor: build_solar_collector }], build_speed: commander_build_range, build_range: commander_build_speed };
+    let commander_ship_body = world.spawn(AnimatedShipBody::new(commander_health, position, commander_kinematic_body, commander_ship_parameters, "PLAYER_SHIP", 3));
 
-    let player_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), -Vec2::X, -(PI / 2.0), player_turn_thruster_power, ThrusterKind::Attitude, player_ship_body));
-    let player_ship_thuster_right_top = world.spawn(ShipThruster::new(vec2(14.0, 4.0), Vec2::X, PI / 2.0, player_turn_thruster_power, ThrusterKind::Attitude, player_ship_body));
+    let _ = world.insert_one(commander_ship_body, commander_ship_controller);
+    let _ = world.insert_one(commander_ship_body, commander_ship_constructor);
 
-    let player_ship_thruster_left_bottom = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), Vec2::X, -(PI / 2.0), player_turn_thruster_power, ThrusterKind::Attitude, player_ship_body));
-    let player_ship_thuster_right_bottom = world.spawn(ShipThruster::new(vec2(14.0, 4.0), -Vec2::X, PI / 2.0, player_turn_thruster_power, ThrusterKind::Attitude, player_ship_body));
+    let commander_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), -Vec2::X, -(PI / 2.0), commander_turn_thruster_power, ThrusterKind::Attitude, commander_ship_body));
+    let commander_ship_thuster_right_top = world.spawn(ShipThruster::new(vec2(14.0, 4.0), Vec2::X, PI / 2.0, commander_turn_thruster_power, ThrusterKind::Attitude, commander_ship_body));
 
-    let player_ship_thruster_main = world.spawn(ShipThruster::new(vec2(0.0, 10.0), Vec2::Y, 0.0, player_thruster_power, ThrusterKind::Main, player_ship_body));
+    let commander_ship_thruster_left_bottom = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), Vec2::X, -(PI / 2.0), commander_turn_thruster_power, ThrusterKind::Attitude, commander_ship_body));
+    let commander_ship_thuster_right_bottom = world.spawn(ShipThruster::new(vec2(14.0, 4.0), -Vec2::X, PI / 2.0, commander_turn_thruster_power, ThrusterKind::Attitude, commander_ship_body));
 
-    let mut player_ship = world.get::<&mut Ship>(player_ship_body).unwrap();
-    player_ship.thrusters.push(player_ship_thruster_left_top);
-    player_ship.thrusters.push(player_ship_thuster_right_top);
-    player_ship.thrusters.push(player_ship_thruster_left_bottom);
-    player_ship.thrusters.push(player_ship_thuster_right_bottom);
-    player_ship.thrusters.push(player_ship_thruster_main);
+    let commander_ship_thruster_main = world.spawn(ShipThruster::new(vec2(0.0, 10.0), Vec2::Y, 0.0, commander_thruster_power, ThrusterKind::Main, commander_ship_body));
 
-    player_ship_body
+    let mut commander_ship = world.get::<&mut Ship>(commander_ship_body).unwrap();
+    commander_ship.thrusters.push(commander_ship_thruster_left_top);
+    commander_ship.thrusters.push(commander_ship_thuster_right_top);
+    commander_ship.thrusters.push(commander_ship_thruster_left_bottom);
+    commander_ship.thrusters.push(commander_ship_thuster_right_bottom);
+    commander_ship.thrusters.push(commander_ship_thruster_main);
+
+    commander_ship_body
 
 }

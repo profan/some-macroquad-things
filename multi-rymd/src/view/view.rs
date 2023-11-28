@@ -1,15 +1,27 @@
 use std::collections::HashMap;
 
 use macroquad_particles::{EmitterConfig, Emitter};
-use utility::{is_point_inside_rect, draw_texture_centered_with_rotation, set_texture_filter, draw_texture_centered_with_rotation_frame, DebugText, TextPosition, AsVector, RotatedBy, draw_arrow};
-use lockstep_client::step::LockstepClient;
+use utility::{is_point_inside_rect, draw_texture_centered_with_rotation, set_texture_filter, draw_texture_centered_with_rotation_frame, DebugText, TextPosition, AsVector, RotatedBy, draw_arrow, draw_text_centered};
+use lockstep_client::{step::LockstepClient, app::yakui_min_column};
 use macroquad_particles::*;
 use macroquad::prelude::*;
 use hecs::*;
+use yakui::Alignment;
 
-use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind};
+use crate::PlayerID;
+use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Blueprint, Controller, Health, get_entity_position};
 
 use super::calculate_sprite_bounds;
+
+struct ConstructionState {
+
+}
+
+impl ConstructionState {
+    fn new() -> ConstructionState {
+        ConstructionState {  }
+    }
+}
 
 struct OrderingState {
     points: Vec<Vec2>
@@ -51,16 +63,16 @@ impl OrderingState {
 
 }
 
-struct SelectionBox {
+struct SelectionState {
     is_active: bool,
     start: Vec2,
     end: Vec2
 }
 
-impl SelectionBox {
+impl SelectionState {
 
-    fn new() -> SelectionBox {
-        SelectionBox {
+    fn new() -> SelectionState {
+        SelectionState {
             is_active: false,
             start: Vec2::ZERO,
             end: Vec2::ZERO
@@ -105,7 +117,7 @@ struct Bounds {
 
 impl Bounds {
     fn as_radius(&self) -> f32 {
-        self.rect.size().max_element() / 4.0 // #TODO: this is hella magic number tho
+        self.rect.size().max_element() / 2.0 // #TODO: this is hella magic number tho
     }
 }
 
@@ -324,19 +336,27 @@ impl Resources {
 }
 
 pub struct RymdGameView {
-    selection: SelectionBox,
+    player_id: PlayerID,
+    construction: ConstructionState,
+    selection: SelectionState,
     ordering: OrderingState,
-    resources: Resources
+    resources: Resources,
 }
 
 impl RymdGameView {
 
     pub fn new() -> RymdGameView {
         RymdGameView {
+            player_id: 0,
+            construction: ConstructionState::new(),
             ordering: OrderingState::new(),
-            selection: SelectionBox::new(),
+            selection: SelectionState::new(),
             resources: Resources::new()
         }
+    }
+
+    pub fn start(&mut self, player_id: PlayerID) {
+        self.player_id = player_id
     }
 
     pub async fn load_resources(&mut self) {
@@ -383,6 +403,38 @@ impl RymdGameView {
 
     }
 
+    fn get_entity_under_cursor(&self, world: &World) -> Option<Entity> {
+
+        let mut closest_entity = None;
+        let mut closest_distance = f32::MAX;
+        let current_mouse_world_position: Vec2 = mouse_position().into();
+
+        for (e, (transform, bounds)) in world.query::<(&Transform, &Bounds)>().iter() {
+
+            let current_distance_to_mouse = current_mouse_world_position.distance(transform.world_position);
+            let is_position_within_bounds = current_distance_to_mouse < bounds.as_radius();
+            
+            if is_position_within_bounds && current_distance_to_mouse < closest_distance {
+                closest_distance = current_distance_to_mouse;
+                closest_entity = Some(e);
+            }
+
+        }
+
+        closest_entity
+        
+    }
+
+    fn is_entity_attackable(&self, entity: Entity, world: &World) -> bool {
+        let controller = world.get::<&Controller>(entity).expect("must have controller!");
+        controller.id != self.player_id // #TODO: alliances, teams?
+    }
+
+    fn is_entity_friendly(&self, entity: Entity, world: &World) -> bool {
+        let controller = world.get::<&Controller>(entity).expect("must have controller!");
+        controller.id == self.player_id // #TODO: alliances, teams?
+    }
+
     fn handle_order(&mut self, world: &mut World, lockstep: &mut LockstepClient) {
 
         let current_mouse_position: Vec2 = mouse_position().into();
@@ -397,51 +449,103 @@ impl RymdGameView {
             let should_group = is_key_down(KeyCode::LeftControl);
             let current_selection_end_point = self.ordering.points[0];
 
-            // we need to know the number of selected orderables so that we can distribute units along the line we draw for movement
-            let number_of_selected_orderables = world.query_mut::<(&Orderable, &Selectable)>().into_iter().filter(|e| e.1.1.is_selected).count();
+            let entity_under_cursor = self.get_entity_under_cursor(world);
 
-            // order the selectables by their distance from the current selection end point, this way we mostly retain the current arrangement the units are in and they hopefully make sorta-optimal moves
-            let mut selectables_ordered_by_distance_to_end_point: Vec<(Entity, (&Transform, &Orderable, &Selectable))> = world.query_mut::<(&Transform, &Orderable, &Selectable)>().into_iter().collect();
-            selectables_ordered_by_distance_to_end_point.sort_by(|a, b| a.1.0.world_position.distance(current_selection_end_point).total_cmp(&b.1.0.world_position.distance(current_selection_end_point)));
+            if let Some(target_entity) = entity_under_cursor {
 
-            // calculate the centroid so that we can use it to figure out where units should go when moving as a group
-            let centroid_of_selected_orderables = selectables_ordered_by_distance_to_end_point.iter().fold(Vec2::ZERO, |acc, v| acc + v.1.0.world_position) / selectables_ordered_by_distance_to_end_point.len() as f32;
+                if self.is_entity_friendly(target_entity, world) {
 
-            for (idx, (e, (transform, orderable, selectable))) in selectables_ordered_by_distance_to_end_point.into_iter().enumerate() {
-                
-                if selectable.is_selected {
+                    self.handle_build_order(world, target_entity, lockstep, should_add);
 
-                    let current_order_point = if should_group {
-                        let offset_from_centroid = centroid_of_selected_orderables - transform.world_position;
-                        current_mouse_position - offset_from_centroid
-                    }
-                    else
-                    {
-                        if number_of_selected_orderables > 1 {
-                            self.ordering.get_point(number_of_selected_orderables, idx)
-                        } else {
-                            current_mouse_position
-                        }
-                    };
+                } else if self.is_entity_attackable(target_entity, world) {
 
-                    lockstep.send_move_order(e, current_order_point, should_add);
-                    println!("[RymdGameView] ordered: {:?} to move to: {}", e, current_mouse_position);
-
+                    self.handle_attack_order(world, target_entity, lockstep, should_add);
                 }
-                
+
+            } else {
+
+                self.handle_move_order(world, current_selection_end_point, current_mouse_position, lockstep, should_group, should_add);
+
             }
-            
-            self.ordering.clear_points();
 
         }
 
     }
 
+    fn handle_attack_order(&mut self, world: &mut World, target_entity: Entity, lockstep: &mut LockstepClient, should_add: bool) {
+
+    }
+
+    fn handle_build_order(&mut self, world: &mut World, target_entity: Entity, lockstep: &mut LockstepClient, should_add: bool) {
+
+        let target_position = get_entity_position(world, target_entity).expect("target must have position!");
+
+        for (e, (transform, orderable, selectable)) in world.query_mut::<(&Transform, &Orderable, &Selectable)>() {
+    
+            if selectable.is_selected {
+                lockstep.send_repair_order(e, target_position, target_entity, should_add);
+                println!("[RymdGameView] ordered: {:?} to build: {:?}", e, target_entity);
+            }
+    
+        }
+
+    }
+
+    fn handle_move_order(&mut self, world: &mut World, current_selection_end_point: Vec2, current_mouse_world_position: Vec2, lockstep: &mut LockstepClient, should_group: bool, should_add: bool) {
+        
+        // we need to know the number of selected orderables so that we can distribute units along the line we draw for movement
+        let number_of_selected_orderables = world.query_mut::<(&Orderable, &Selectable)>().into_iter().filter(|e| e.1.1.is_selected).count();
+
+        // order the selectables by their distance from the current selection end point, this way we mostly retain the current arrangement the units are in and they hopefully make sorta-optimal moves
+        let mut selectables_ordered_by_distance_to_end_point: Vec<(Entity, (&Transform, &Orderable, &Selectable))> = world.query_mut::<(&Transform, &Orderable, &Selectable)>().into_iter().collect();
+        selectables_ordered_by_distance_to_end_point.sort_by(|a, b| a.1.0.world_position.distance(current_selection_end_point).total_cmp(&b.1.0.world_position.distance(current_selection_end_point)));
+
+        // calculate the centroid so that we can use it to figure out where units should go when moving as a group
+        let centroid_of_selected_orderables = selectables_ordered_by_distance_to_end_point.iter().fold(Vec2::ZERO, |acc, v| acc + v.1.0.world_position) / selectables_ordered_by_distance_to_end_point.len() as f32;
+
+        for (idx, (e, (transform, orderable, selectable))) in selectables_ordered_by_distance_to_end_point.into_iter().enumerate() {
+    
+            if selectable.is_selected {
+
+                let current_order_point = if should_group {
+                    let offset_from_centroid = centroid_of_selected_orderables - transform.world_position;
+                    current_mouse_world_position - offset_from_centroid
+                }
+                else
+                {
+                    if number_of_selected_orderables > 1 {
+                        self.ordering.get_point(number_of_selected_orderables, idx)
+                    } else {
+                        current_mouse_world_position
+                    }
+                };
+
+                lockstep.send_move_order(e, current_order_point, should_add);
+                println!("[RymdGameView] ordered: {:?} to move to: {}", e, current_mouse_world_position);
+
+            }
+    
+        }
+            
+        self.ordering.clear_points();
+
+    }
+
+    fn can_select_unit(&self, controller: &Controller) -> bool {
+        controller.id == self.player_id
+    }
+
     fn perform_select_all(&mut self, world: &mut World) {
 
-        for (e, (transform, orderable, selectable)) in world.query_mut::<(&Transform, &Orderable, &mut Selectable)>() {
+        for (e, (transform, orderable, selectable, controller)) in world.query_mut::<(&Transform, &Orderable, &mut Selectable, &Controller)>() {
+
+            if self.can_select_unit(controller) == false {
+                continue;
+            }
+            
             selectable.is_selected = true;
             println!("[RymdGameView] selected: {:?}", e);
+
         }
 
     }
@@ -452,7 +556,11 @@ impl RymdGameView {
 
         println!("[RymdGameView] attempted to select entities inside: {:?}", selection_rectangle);
 
-        for (e, (transform, orderable, bounds, selectable)) in world.query_mut::<(&Transform, &Orderable, Option<&Bounds>, &mut Selectable)>() {
+        for (e, (transform, orderable, controller, bounds, selectable)) in world.query_mut::<(&Transform, &Orderable, &Controller, Option<&Bounds>, &mut Selectable)>() {
+
+            if self.can_select_unit(controller) == false {
+                continue;
+            }
 
             if let Some(bounds) = bounds {
                 let current_selectable_bounds = bounds.rect.offset(transform.world_position);
@@ -587,8 +695,12 @@ impl RymdGameView {
     }
 
     pub fn tick(&mut self, world: &mut World, lockstep: &mut LockstepClient) {
+
+        if yakui_macroquad::has_input_focus() { return; }
+
         self.handle_selection(world);
         self.handle_order(world, lockstep);
+
     }
 
     fn draw_sprites(&self, world: &World) {
@@ -679,9 +791,10 @@ impl RymdGameView {
 
     }
 
-    fn draw_debug_ui(&self, debug: &mut DebugText) {
+    fn draw_debug_ui(&self, world: &World, debug: &mut DebugText) {
         
         debug.draw_text(format!("mouse position: {:?}", mouse_position()), TextPosition::TopLeft, WHITE);
+        debug.draw_text(format!("number of entities: {}", world.len()), TextPosition::TopLeft, WHITE);
 
     }
 
@@ -711,23 +824,118 @@ impl RymdGameView {
     
     }
 
-    pub fn draw(&mut self, world: &mut World, debug: &mut DebugText) {
+    fn current_selection_has_constructor_unit(&self, world: &World) -> bool {
+
+        for (e, (selectable, constructor)) in world.query::<(&Selectable, &Constructor)>().iter() {
+            if selectable.is_selected {
+                return true;
+            }
+        }
+
+        false
+        
+    }
+
+    fn get_available_blueprints_from_current_selection(&self, world: &World) -> Vec<Blueprint> {
+
+        let mut blueprints = Vec::new();
+
+        for (e, (selectable, constructor)) in world.query::<(&Selectable, &Constructor)>().iter() {
+            if selectable.is_selected {
+                blueprints.extend(constructor.constructibles.clone());
+            }
+        }
+
+        blueprints
+
+    }
+
+    fn order_build_blueprint(&mut self, entity: Entity, world: &mut World) {
+
+    }
+
+    fn draw_construction_ui(&mut self, world: &mut World, lockstep: &mut LockstepClient) {
+
+        let should_add_to_queue = is_key_down(KeyCode::LeftShift);
+        let available_blueprints = self.get_available_blueprints_from_current_selection(world);
+
+        let mut selected_constructors_query = world.query::<(&Transform, &Orderable, &Selectable, &Constructor)>();
+        let selected_constructor_units: Vec<(Entity, (&Transform, &Orderable, &Selectable, &Constructor))> = selected_constructors_query.into_iter().filter(|(q, (t, o, s, c))| s.is_selected).collect();
+        let current_build_position: Vec2 = mouse_position().into();
+
+        yakui::align(Alignment::CENTER_LEFT, || {
+            yakui::colored_box_container(yakui::Color::GRAY, || {
+                yakui::pad(yakui::widgets::Pad::all(4.0), || {
+
+                    yakui_min_column(|| {
+                        for (idx, blueprint) in available_blueprints.into_iter().enumerate() {
+                            if yakui::button(blueprint.name.to_string()).clicked {
+                                
+                                for (e, (t, o, s, c)) in &selected_constructor_units {
+                                    lockstep.send_build_order(*e, current_build_position, idx, should_add_to_queue);
+                                    println!("[RymdGameView] attempted to send build order for position: {} and blueprint: {}", current_build_position, idx);
+                                }
+
+                            }
+                        }
+                    });
+
+                });
+            });
+        });
+
+    }
+
+    fn draw_ui(&mut self, world: &mut World, lockstep: &mut LockstepClient) {
+
+        yakui::align(Alignment::TOP_CENTER, || {
+
+            let current_metal = 100;
+            let current_metal_income = 0;
+            let current_metal_excess = 0;
+
+            let current_energy = 100;
+            let current_energy_income = 0;
+            let current_energy_excess = 0;
+
+            yakui::label(format!("current metal: {}, current energy: {}", current_metal, current_energy));
+
+        });
+
+        if self.current_selection_has_constructor_unit(world) {
+            self.draw_construction_ui(world, lockstep);
+        }
+
+    }
+
+    fn draw_health_labels(&self, world: &World) {
+
+        for (e, (transform, health)) in world.query::<(&Transform, &Health)>().iter() {
+            let health_label_position = transform.world_position + vec2(0.0, -32.0);
+            draw_text_centered(&format!("{}/{}", health.health, health.full_health), health_label_position.x, health_label_position.y, 24.0, WHITE);
+        }
+
+    }
+
+    pub fn draw(&mut self, world: &mut World, debug: &mut DebugText, lockstep: &mut LockstepClient) {
 
         self.update_thrusters(world);
 
         let screen_center: Vec2 = vec2(screen_width(), screen_height()) / 2.0;
         self.draw_background_texture(screen_width(), screen_height(), screen_center);
 
-        self.draw_particles(world);
         self.draw_orders(world);
+        self.draw_selection();
+        self.draw_ordering();
 
         self.draw_sprites(world);
         self.draw_animated_sprites(world);
         self.draw_selectables(world);
-        self.draw_selection();
-        self.draw_ordering();
 
-        self.draw_debug_ui(debug);
+        self.draw_particles(world);
+        self.draw_health_labels(world);
+        self.draw_ui(world, lockstep);
+        self.draw_debug_ui(world, debug);
 
     }
 

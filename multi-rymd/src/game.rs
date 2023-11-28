@@ -2,13 +2,14 @@ use lockstep_client::{game::Game, step::LockstepClient};
 use lockstep_client::step::PeerID;
 use utility::{DebugText, TextPosition};
 
+use crate::PlayerID;
 use crate::measure_scope;
 use crate::model::RymdGameModel;
 use crate::view::RymdGameView;
 
 #[derive(Debug)]
 pub struct RymdGamePlayer {
-    pub id: PeerID
+    pub id: PlayerID
 }
 
 #[derive(Debug)]
@@ -17,7 +18,7 @@ pub struct RymdGameParameters {
 }
 
 pub struct RymdGame {
-    stats: RymdGameFrameStats,
+    pub stats: RymdGameFrameStats,
     model: RymdGameModel,
     view: RymdGameView,
     is_started: bool,
@@ -25,15 +26,16 @@ pub struct RymdGame {
     is_paused: bool
 }
 
-struct RymdGameFrameStats {
-    update_time_ms: f32,
-    update_view_time_ms: f32,
-    draw_time_ms: f32
+pub struct RymdGameFrameStats {
+    pub main_time_ms: f32,
+    pub update_time_ms: f32,
+    pub tick_view_time_ms: f32,
+    pub draw_time_ms: f32
 }
 
 impl RymdGameFrameStats {
     fn new() -> RymdGameFrameStats {
-        RymdGameFrameStats { update_time_ms: 0.0, update_view_time_ms: 0.0, draw_time_ms: 0.0 }
+        RymdGameFrameStats { main_time_ms: 0.0, update_time_ms: 0.0, tick_view_time_ms: 0.0, draw_time_ms: 0.0 }
     }
 }
 
@@ -64,6 +66,7 @@ impl Game for RymdGame {
             };
 
             self.model.start(game_parameters);
+            self.view.start(lockstep.peer_id());
             
             self.is_running = true;
             self.is_started = true;
@@ -98,15 +101,14 @@ impl Game for RymdGame {
         self.view.update(&mut self.model);
     }
 
-    fn update_view(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient) {
-        measure_scope!(self.stats.update_view_time_ms);
-        self.view.tick(&mut self.model.world, lockstep);
-    }
-
-    fn draw(&mut self, debug: &mut DebugText) {
+    fn draw(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+        {
+            measure_scope!(self.stats.tick_view_time_ms);
+            self.view.tick(&mut self.model.world, lockstep);
+        }
         {
             measure_scope!(self.stats.draw_time_ms);
-            self.view.draw(&mut self.model.world, debug);
+            self.view.draw(&mut self.model.world, debug, lockstep);
         }
         self.draw_frame_stats(debug);
     }
@@ -136,8 +138,9 @@ impl RymdGame {
 
     fn draw_frame_stats(&self, debug: &mut DebugText) {
         debug.draw_text("game update", TextPosition::TopRight, macroquad::color::WHITE);
+        debug.draw_text(format!("frame time: {:.2} ms", self.stats.main_time_ms), TextPosition::TopRight, macroquad::color::WHITE);
         debug.draw_text(format!("update tick time: {:.2} ms", self.stats.update_time_ms), TextPosition::TopRight, macroquad::color::WHITE);
-        debug.draw_text(format!("update view time: {:.2} ms", self.stats.update_view_time_ms), TextPosition::TopRight, macroquad::color::WHITE);
+        debug.draw_text(format!("tick view time: {:.2} ms", self.stats.tick_view_time_ms), TextPosition::TopRight, macroquad::color::WHITE);
         debug.draw_text(format!("draw time: {:.2} ms", self.stats.draw_time_ms), TextPosition::TopRight, macroquad::color::WHITE);
     }
 

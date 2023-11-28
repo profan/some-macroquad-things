@@ -2,6 +2,7 @@ use std::collections::VecDeque;
 use hecs::{Entity, World};
 use macroquad::math::Vec2;
 use utility::{Kinematic, RotatedBy};
+use lockstep_client::step::PeerID;
 
 use super::GameOrder;
 
@@ -132,4 +133,20 @@ impl Ship {
     pub fn new(turn_rate: f32) -> Ship {
         Ship { turn_rate, thrusters: Vec::new() }
     }
+}
+
+#[derive(Clone)]
+pub struct Health {
+    pub full_health: i32,
+    pub health: i32
+}
+
+impl Health {
+    pub fn new(health: i32) -> Health {
+        Health { full_health: health, health: health }
+    }
+}
+
+pub struct Controller {
+    pub id: PeerID
 }

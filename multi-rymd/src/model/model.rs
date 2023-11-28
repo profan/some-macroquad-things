@@ -6,7 +6,7 @@ use utility::RotatedBy;
 use crate::EntityID;
 use crate::model::GameMessage;
 use crate::game::RymdGameParameters;
-use super::{create_player_ship, GameOrder, Orderable, Transform, DynamicBody};
+use super::{create_commander_ship, GameOrder, Orderable, Transform, DynamicBody};
 
 pub struct RymdGameModel {
     pub world: World
@@ -29,8 +29,10 @@ impl RymdGameModel {
             let random_x = rand::gen_range(200, 400);
             let random_y = rand::gen_range(200, 400);
 
-            create_player_ship(&mut self.world, vec2(random_x as f32, random_y as f32));
-
+            for i in 0..1 {
+                create_commander_ship(&mut self.world, player.id, vec2(random_x as f32, random_y as f32));
+            }
+            
         }
         
     }
@@ -87,8 +89,8 @@ impl RymdGameModel {
         }
 
         for &e in &in_progress_orders {
-            if let Ok(orderable) = self.world.query_one_mut::<&Orderable>(e).cloned() {
-                if let Some(order) = orderable.orders.front() {
+            if let Ok(mut orderable) = self.world.query_one_mut::<&mut Orderable>(e).cloned() {
+                if let Some(order) = orderable.orders.front_mut() {
                     order.tick(e, &mut self.world, Self::TIME_STEP);
                 }
             }
