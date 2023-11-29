@@ -109,7 +109,7 @@ pub struct Sprite {
 pub struct AnimatedSprite {
     pub texture: String,
     pub current_frame: i32,
-    pub v_frames: i32
+    pub h_frames: i32
 }
 
 #[derive(Clone)]

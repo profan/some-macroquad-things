@@ -2,9 +2,9 @@ use std::f32::consts::PI;
 use macroquad::prelude::*;
 use utility::{AsPerpendicular, AsVector, load_texture_from_image, set_texture_filter};
 
-pub fn calculate_sprite_bounds(texture: Texture2D, centered: bool) -> Rect {
-    let w = texture.width();
-    let h = texture.height();
+pub fn calculate_sprite_bounds(texture: Texture2D, h_frames: i32, v_frames: i32, centered: bool) -> Rect {
+    let w = texture.width() / h_frames as f32;
+    let h = texture.height() / v_frames as f32;
     let x = if centered { -(w / 2.0) } else { 0.0 };
     let y = if centered { -(h / 2.0) } else { 0.0 };
     Rect { x, y, w, h}

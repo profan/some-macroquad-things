@@ -150,6 +150,10 @@ impl RymdGameModel {
 
     }
 
+    fn tick_collision_responses(&mut self) {
+
+    }
+
     fn tick_physics_bodies(&mut self) {
 
         for (e, (transform, body)) in self.world.query_mut::<(&mut Transform, &mut DynamicBody)>() {
@@ -193,6 +197,7 @@ impl RymdGameModel {
         self.tick_orderables();
         self.tick_transforms();
         self.tick_physics_bodies();
+        self.tick_collision_responses();
     }
 
 }

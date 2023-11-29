@@ -531,7 +531,6 @@ impl RymdGameView {
             let should_add = is_key_down(KeyCode::LeftShift);
             let should_group = is_key_down(KeyCode::LeftControl);
             let current_selection_end_point = self.ordering.points[0];
-
             let entity_under_cursor = self.get_entity_under_cursor(world);
 
             if let Some(target_entity) = entity_under_cursor {
@@ -750,16 +749,19 @@ impl RymdGameView {
         for (e, (transform, selectable, sprite, animated_sprite)) in model.world.query::<(&Transform, &Selectable, Option<&Sprite>, Option<&AnimatedSprite>)>().iter() {
 
             if let Some(sprite) = sprite {
+                let sprite_v_frames = 1;
+                let sprite_h_frames = 1;
                 let sprite_is_centered = true;
                 let sprite_texture_handle = self.resources.get_texture_by_name(&sprite.texture);
-                let sprite_texture_bounds = Bounds { rect: calculate_sprite_bounds(sprite_texture_handle, sprite_is_centered) };
+                let sprite_texture_bounds = Bounds { rect: calculate_sprite_bounds(sprite_texture_handle, sprite_h_frames, sprite_v_frames, sprite_is_centered) };
                 bounds_components_to_add.push((e, sprite_texture_bounds));
             }
 
             if let Some(animated_sprite) = animated_sprite {
+                let sprite_v_frames = 1;
                 let sprite_is_centered = true;
                 let sprite_texture_handle = self.resources.get_texture_by_name(&animated_sprite.texture);
-                let sprite_texture_bounds = Bounds { rect: calculate_sprite_bounds(sprite_texture_handle, sprite_is_centered) };
+                let sprite_texture_bounds = Bounds { rect: calculate_sprite_bounds(sprite_texture_handle, animated_sprite.h_frames, sprite_v_frames, sprite_is_centered) };
                 bounds_components_to_add.push((e, sprite_texture_bounds));
             }
 
@@ -800,7 +802,7 @@ impl RymdGameView {
         for (e, (transform, body, sprite)) in world.query::<(&Transform, Option<&DynamicBody>, &AnimatedSprite)>().iter() {
             let is_sprite_flipped = false;
             let sprite_texture_handle = self.resources.get_texture_by_name(&sprite.texture);
-            draw_texture_centered_with_rotation_frame(sprite_texture_handle, transform.world_position.x, transform.world_position.y, WHITE, transform.world_rotation, sprite.current_frame, sprite.v_frames, is_sprite_flipped);
+            draw_texture_centered_with_rotation_frame(sprite_texture_handle, transform.world_position.x, transform.world_position.y, WHITE, transform.world_rotation, sprite.current_frame, sprite.h_frames, is_sprite_flipped);
         }
     }
 
@@ -813,7 +815,7 @@ impl RymdGameView {
                 draw_circle_lines(
                     transform.world_position.x,
                     transform.world_position.y,
-                    bounds.as_radius(),
+                    bounds.as_radius() * 1.5,
                     bounds_thickness,
                     GREEN
                 );

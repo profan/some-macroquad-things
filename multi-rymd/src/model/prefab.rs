@@ -31,7 +31,7 @@ impl AnimatedShipBody {
             transform: Transform::new(position, 0.0, None),
             dynamic_body: DynamicBody { kinematic },
             orderable: Orderable::new(),
-            sprite: AnimatedSprite { texture: texture.to_string(), current_frame: 0, v_frames },
+            sprite: AnimatedSprite { texture: texture.to_string(), current_frame: 0, h_frames: v_frames },
             ship: Ship::new(parameters.turn_rate)
         }
     }
