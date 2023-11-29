@@ -104,11 +104,11 @@ impl Game for RymdGame {
     fn draw(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient) {
         {
             measure_scope!(self.stats.tick_view_time_ms);
-            self.view.tick(&mut self.model.world, lockstep);
+            self.view.tick(&mut self.model, lockstep);
         }
         {
             measure_scope!(self.stats.draw_time_ms);
-            self.view.draw(&mut self.model.world, debug, lockstep);
+            self.view.draw(&mut self.model, debug, lockstep);
         }
         self.draw_frame_stats(debug);
     }

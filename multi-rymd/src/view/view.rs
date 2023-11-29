@@ -9,6 +9,7 @@ use hecs::*;
 use yakui::Alignment;
 
 use crate::PlayerID;
+use crate::model::BlueprintID;
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Blueprint, Controller, Health, get_entity_position};
 
 use super::calculate_sprite_bounds;
@@ -617,9 +618,9 @@ impl RymdGameView {
         }
     }
 
-    fn draw_orders(&self, world: &World) {
+    fn draw_orders(&self, model: &RymdGameModel) {
 
-        for (e, (transform, orderable, selectable)) in world.query::<(&Transform, &Orderable, &Selectable)>().iter() {
+        for (e, (transform, orderable, selectable)) in model.world.query::<(&Transform, &Orderable, &Selectable)>().iter() {
 
             if selectable.is_selected == false {
                 continue;
@@ -631,7 +632,7 @@ impl RymdGameView {
             let order_line_head_size = 8.0;
 
             for (i, order) in orderable.orders.iter().enumerate() {
-                if let Some(target_position) = order.get_target_position(world) {
+                if let Some(target_position) = order.get_target_position(model) {
                     if i == orderable.orders.len() - 1 {
                         draw_arrow(current_line_start.x, current_line_start.y, target_position.x, target_position.y, order_line_thickness, order_line_head_size, GREEN);
                     } else {
@@ -694,12 +695,12 @@ impl RymdGameView {
 
     }
 
-    pub fn tick(&mut self, world: &mut World, lockstep: &mut LockstepClient) {
+    pub fn tick(&mut self, model: &mut RymdGameModel, lockstep: &mut LockstepClient) {
 
         if yakui_macroquad::has_input_focus() { return; }
 
-        self.handle_selection(world);
-        self.handle_order(world, lockstep);
+        self.handle_selection(&mut model.world);
+        self.handle_order(&mut model.world, lockstep);
 
     }
 
@@ -836,7 +837,7 @@ impl RymdGameView {
         
     }
 
-    fn get_available_blueprints_from_current_selection(&self, world: &World) -> Vec<Blueprint> {
+    fn get_available_blueprints_from_current_selection(&self, world: &World) -> Vec<BlueprintID> {
 
         let mut blueprints = Vec::new();
 
@@ -854,12 +855,12 @@ impl RymdGameView {
 
     }
 
-    fn draw_construction_ui(&mut self, world: &mut World, lockstep: &mut LockstepClient) {
+    fn draw_construction_ui(&mut self, model: &mut RymdGameModel, lockstep: &mut LockstepClient) {
 
         let should_add_to_queue = is_key_down(KeyCode::LeftShift);
-        let available_blueprints = self.get_available_blueprints_from_current_selection(world);
+        let available_blueprints = self.get_available_blueprints_from_current_selection(&model.world);
 
-        let mut selected_constructors_query = world.query::<(&Transform, &Orderable, &Selectable, &Constructor)>();
+        let mut selected_constructors_query = model.world.query::<(&Transform, &Orderable, &Selectable, &Constructor)>();
         let selected_constructor_units: Vec<(Entity, (&Transform, &Orderable, &Selectable, &Constructor))> = selected_constructors_query.into_iter().filter(|(q, (t, o, s, c))| s.is_selected).collect();
         let current_build_position: Vec2 = mouse_position().into();
 
@@ -868,7 +869,8 @@ impl RymdGameView {
                 yakui::pad(yakui::widgets::Pad::all(4.0), || {
 
                     yakui_min_column(|| {
-                        for blueprint in available_blueprints.into_iter() {
+                        for id in available_blueprints.into_iter() {
+                            let blueprint = model.blueprint_manager.get_blueprint(id).expect("could not find blueprint? this is a bug!");
                             if yakui::button(blueprint.name.to_string()).clicked {
                                 
                                 for (e, (t, o, s, c)) in &selected_constructor_units {
@@ -886,7 +888,7 @@ impl RymdGameView {
 
     }
 
-    fn draw_ui(&mut self, world: &mut World, lockstep: &mut LockstepClient) {
+    fn draw_ui(&mut self, model: &mut RymdGameModel, lockstep: &mut LockstepClient) {
 
         yakui::align(Alignment::TOP_CENTER, || {
 
@@ -902,8 +904,8 @@ impl RymdGameView {
 
         });
 
-        if self.current_selection_has_constructor_unit(world) {
-            self.draw_construction_ui(world, lockstep);
+        if self.current_selection_has_constructor_unit(&model.world) {
+            self.draw_construction_ui(model, lockstep);
         }
 
     }
@@ -917,25 +919,25 @@ impl RymdGameView {
 
     }
 
-    pub fn draw(&mut self, world: &mut World, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+    pub fn draw(&mut self, model: &mut RymdGameModel, debug: &mut DebugText, lockstep: &mut LockstepClient) {
 
-        self.update_thrusters(world);
+        self.update_thrusters(&model.world);
 
         let screen_center: Vec2 = vec2(screen_width(), screen_height()) / 2.0;
         self.draw_background_texture(screen_width(), screen_height(), screen_center);
 
-        self.draw_orders(world);
+        self.draw_orders(&model);
         self.draw_selection();
         self.draw_ordering();
 
-        self.draw_sprites(world);
-        self.draw_animated_sprites(world);
-        self.draw_selectables(world);
+        self.draw_sprites(&model.world);
+        self.draw_animated_sprites(&model.world);
+        self.draw_selectables(&mut model.world);
 
-        self.draw_particles(world);
-        self.draw_health_labels(world);
-        self.draw_ui(world, lockstep);
-        self.draw_debug_ui(world, debug);
+        self.draw_particles(&mut model.world);
+        self.draw_health_labels(&model.world);
+        self.draw_ui(model, lockstep);
+        self.draw_debug_ui(&model.world, debug);
 
     }
 

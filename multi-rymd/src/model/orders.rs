@@ -8,6 +8,7 @@ use crate::EntityID;
 use crate::model::BlueprintID;
 use crate::model::GameMessage;
 
+use super::RymdGameModel;
 use super::{Transform, DynamicBody, DEFAULT_STEERING_PARAMETERS, Constructor, Controller, Health, Orderable};
 
 fn ship_apply_steering(kinematic: &mut Kinematic, steering_maybe: Option<SteeringOutput>, dt: f32) {
@@ -94,38 +95,38 @@ impl GameOrdersExt for LockstepClient {
 
 trait Order {
 
-    fn is_order_completed(&self, entity: Entity, world: &World) -> bool;
-    fn get_target_position(&self, world: &World) -> Option<Vec2>;
-    fn tick(&self, entity: Entity, world: &mut World, dt: f32);
+    fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool;
+    fn get_target_position(&self, model: &RymdGameModel) -> Option<Vec2>;
+    fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32);
 
 }
 
 impl GameOrder {
 
-    pub fn is_order_completed(&self, entity: Entity, world: &World) -> bool {
+    pub fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
         match self {
-            GameOrder::Move(order) => order.is_order_completed(entity, world),
-            GameOrder::Attack(order) => order.is_order_completed(entity, world),
-            GameOrder::AttackMove(order) => order.is_order_completed(entity, world),
-            GameOrder::Construct(order) => order.is_order_completed(entity, world)
+            GameOrder::Move(order) => order.is_order_completed(entity, model),
+            GameOrder::Attack(order) => order.is_order_completed(entity, model),
+            GameOrder::AttackMove(order) => order.is_order_completed(entity, model),
+            GameOrder::Construct(order) => order.is_order_completed(entity, model)
         }
     }
 
-    pub fn get_target_position(&self, world: &World) -> Option<Vec2> {
+    pub fn get_target_position(&self, model: &RymdGameModel) -> Option<Vec2> {
         match self {
-            GameOrder::Move(order) => order.get_target_position(world),
-            GameOrder::Attack(order) => order.get_target_position(world),
-            GameOrder::AttackMove(order) => order.get_target_position(world),
-            GameOrder::Construct(order) => order.get_target_position(world)
+            GameOrder::Move(order) => order.get_target_position(model),
+            GameOrder::Attack(order) => order.get_target_position(model),
+            GameOrder::AttackMove(order) => order.get_target_position(model),
+            GameOrder::Construct(order) => order.get_target_position(model)
         }
     }
 
-    pub fn tick(&self, entity: Entity, world: &mut World, dt: f32) {
+    pub fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
         match self {
-            GameOrder::Move(order) => order.tick(entity, world, dt),
-            GameOrder::Attack(order) => order.tick(entity, world, dt),
-            GameOrder::AttackMove(order) => order.tick(entity, world, dt),
-            GameOrder::Construct(order) => order.tick(entity, world, dt)
+            GameOrder::Move(order) => order.tick(entity, model, dt),
+            GameOrder::Attack(order) => order.tick(entity, model, dt),
+            GameOrder::AttackMove(order) => order.tick(entity, model, dt),
+            GameOrder::Construct(order) => order.tick(entity, model, dt)
         }
     }
  
@@ -146,18 +147,18 @@ pub struct MoveOrder {
 }
 
 impl Order for MoveOrder {
-    fn is_order_completed(&self, entity: Entity, world: &World) -> bool {
+    fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
         let arbitrary_distance_threshold = 64.0;
-        let position = get_entity_position(world, entity).expect("could not get position for move order, should never happen!");
+        let position = get_entity_position(&model.world, entity).expect("could not get position for move order, should never happen!");
         position.distance(vec2(self.x, self.y)) < arbitrary_distance_threshold
     }
 
-    fn get_target_position(&self, world: &World) -> Option<Vec2> {
+    fn get_target_position(&self, world: &RymdGameModel) -> Option<Vec2> {
         Some(vec2(self.x, self.y))
     }
 
-    fn tick(&self, entity: Entity, world: &mut World, dt: f32) {
-        steer_ship_towards_target(world, entity, self.x, self.y, dt);
+    fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
+        steer_ship_towards_target(&mut model.world, entity, self.x, self.y, dt);
     }
 }
 
@@ -167,15 +168,15 @@ pub struct AttackOrder {
 }
 
 impl Order for AttackOrder {
-    fn is_order_completed(&self, entity: Entity, world: &World) -> bool {
+    fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
         todo!()
     }
 
-    fn get_target_position(&self, world: &World) -> Option<Vec2> {
-        get_entity_position_from_id(world, self.entity_id)
+    fn get_target_position(&self, model: &RymdGameModel) -> Option<Vec2> {
+        get_entity_position_from_id(&model.world, self.entity_id)
     }
 
-    fn tick(&self, entity: Entity, world: &mut World, dt: f32) {
+    fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
         todo!()
     }
 }
@@ -187,15 +188,15 @@ pub struct AttackMoveOrder {
 }
 
 impl Order for AttackMoveOrder {
-    fn is_order_completed(&self, entity: Entity, world: &World) -> bool {
+    fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
         todo!()
     }
 
-    fn get_target_position(&self, world: &World) -> Option<Vec2> {
+    fn get_target_position(&self, model: &RymdGameModel) -> Option<Vec2> {
         Some(vec2(self.x, self.y))
     }
 
-    fn tick(&self, entity: Entity, world: &mut World, dt: f32) {
+    fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
         todo!()
     }
 }
@@ -210,10 +211,10 @@ pub struct ConstructOrder {
 
 impl Order for ConstructOrder {
 
-    fn is_order_completed(&self, entity: Entity, world: &World) -> bool {
+    fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
         
         if let Some(entity_id) = self.entity_id && let Some(constructing_entity) = Entity::from_bits(entity_id) {
-            let entity_health = world.get::<&Health>(constructing_entity).expect("building must have entity health component to be able to construct!");
+            let entity_health = model.world.get::<&Health>(constructing_entity).expect("building must have entity health component to be able to construct!");
             entity_health.health >= entity_health.full_health
         } else {
             false
@@ -221,29 +222,29 @@ impl Order for ConstructOrder {
 
     }
 
-    fn get_target_position(&self, world: &World) -> Option<Vec2> {
+    fn get_target_position(&self, model: &RymdGameModel) -> Option<Vec2> {
         if let Some(entity_id) = self.entity_id {
-            get_entity_position_from_id(world, entity_id)
+            get_entity_position_from_id(&model.world, entity_id)
         } else {
             Some(vec2(self.x, self.y))
         }
     }
 
-    fn tick(&self, entity: Entity, world: &mut World, dt: f32) {
+    fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
 
         // we're building/repairing an existing construction, this could be tick 2 of the "constructing a blueprint" case
         if let Some(entity_id) = self.entity_id && let Some(constructing_entity) = Entity::from_bits(entity_id) {
 
-            let target_position = get_entity_position_from_id(world, entity_id).expect("could not unpack target position?");
-            if self.is_within_constructor_range(entity, world, target_position) == false {
-                steer_ship_towards_target(world, entity, target_position.x, target_position.y, dt);
+            let target_position = get_entity_position_from_id(&model.world, entity_id).expect("could not unpack target position?");
+            if self.is_within_constructor_range(entity, &model.world, target_position) == false {
+                steer_ship_towards_target(&mut model.world, entity, target_position.x, target_position.y, dt);
                 return;
             }
 
-            let constructor = world.get::<&Constructor>(entity).expect("must have constructor to be issuing construct order!");
+            let constructor = model.world.get::<&Constructor>(entity).expect("must have constructor to be issuing construct order!");
 
-            if self.is_order_completed(entity, world) == false {
-                let mut entity_health = world.get::<&mut Health>(constructing_entity).expect("building must have entity health component to be able to construct!");
+            if self.is_order_completed(entity, model) == false {
+                let mut entity_health = model.world.get::<&mut Health>(constructing_entity).expect("building must have entity health component to be able to construct!");
                 entity_health.health = (entity_health.health + (constructor.build_speed as f32 * dt) as i32).min(entity_health.full_health);
             }
 
@@ -254,23 +255,23 @@ impl Order for ConstructOrder {
 
             let construction_position = vec2(self.x, self.y);
 
-            if self.is_within_constructor_range(entity, world, construction_position) == false {
-                steer_ship_towards_target(world, entity, construction_position.x, construction_position.y, dt);
+            if self.is_within_constructor_range(entity, &model.world, construction_position) == false {
+                steer_ship_towards_target(&mut model.world, entity, construction_position.x, construction_position.y, dt);
                 return;
             }
 
-            let controller_id = world.get::<&Controller>(entity).expect("must have controller to be issuing construct order!").id;
-            let blueprint = world.get::<&Constructor>(entity).expect("must have constructor to be issuing construct order!").get_blueprint_clone(blueprint_id);
+            let controller_id = model.world.get::<&Controller>(entity).expect("must have controller to be issuing construct order!").id;
+            let blueprint = model.blueprint_manager.get_blueprint(blueprint_id);
             
             if let Some(blueprint) = blueprint {
 
-                let new_entity_id = (blueprint.constructor)(world, controller_id, construction_position);
+                let new_entity_id = (blueprint.constructor)(&mut model.world, controller_id, construction_position);
 
                 // cancel our current order now
-                self.cancel_current_order(entity, world);
+                self.cancel_current_order(entity, &mut model.world);
     
                 // now that this is created, issue a local order to ourselves to help build this new building
-                self.construct_building(entity, world, new_entity_id, construction_position);
+                self.construct_building(entity, &mut model.world, new_entity_id, construction_position);
 
             }
 

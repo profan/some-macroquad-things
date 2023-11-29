@@ -7,7 +7,7 @@ use utility::{Kinematic, AsAngle};
 use crate::PlayerID;
 use crate::model::{Transform, Orderable, AnimatedSprite, Thruster, DynamicBody, Ship, ThrusterKind};
 
-use super::{Constructor, Blueprint, build_solar_collector, Controller, Health};
+use super::{Constructor, Blueprint, build_solar_collector, Controller, Health, create_solar_collector_blueprint};
 
 #[derive(Bundle)]
 pub struct AnimatedShipBody {
@@ -77,7 +77,7 @@ pub fn create_commander_ship(world: &mut World, owner: PlayerID, position: Vec2)
     };
 
     let commander_ship_controller = Controller { id: owner };
-    let commander_ship_constructor = Constructor { constructibles: vec![Blueprint { id: 0, name: "Solar Collector".to_string(), constructor: build_solar_collector }], build_speed: commander_build_range, build_range: commander_build_speed };
+    let commander_ship_constructor = Constructor { constructibles: vec![0], build_speed: commander_build_range, build_range: commander_build_speed };
     let commander_ship_body = world.spawn(AnimatedShipBody::new(commander_health, position, commander_kinematic_body, commander_ship_parameters, "PLAYER_SHIP", 3));
 
     let _ = world.insert_one(commander_ship_body, commander_ship_controller);

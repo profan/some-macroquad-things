@@ -1,15 +1,44 @@
+use std::collections::HashMap;
+
 use hecs::{World, Entity};
 use macroquad::{*, math::vec2};
 use nanoserde::DeJson;
 use utility::RotatedBy;
 
 use crate::EntityID;
+use crate::model::BlueprintID;
 use crate::model::GameMessage;
 use crate::game::RymdGameParameters;
-use super::{create_commander_ship, GameOrder, Orderable, Transform, DynamicBody};
+use super::create_solar_collector_blueprint;
+use super::{create_commander_ship, GameOrder, Orderable, Transform, DynamicBody, Blueprint};
 
 pub struct RymdGameModel {
+    pub blueprint_manager: BlueprintManager,
     pub world: World
+}
+
+pub struct BlueprintManager {
+    blueprints: HashMap<BlueprintID, Blueprint>
+}
+
+impl BlueprintManager {
+
+    pub fn new() -> BlueprintManager {
+
+        let mut blueprints = HashMap::new();
+        let solar_collector_blueprint = create_solar_collector_blueprint();
+        blueprints.insert(solar_collector_blueprint.id, solar_collector_blueprint);
+
+        BlueprintManager {
+            blueprints
+        }
+
+    }
+
+    pub fn get_blueprint(&self, id: BlueprintID) -> Option<&Blueprint> {
+        self.blueprints.get(&id)
+    }
+
 }
 
 impl RymdGameModel {
@@ -18,6 +47,7 @@ impl RymdGameModel {
 
     pub fn new() -> RymdGameModel {
         RymdGameModel {
+            blueprint_manager: BlueprintManager::new(),
             world: World::new()
         }
     }
@@ -80,7 +110,7 @@ impl RymdGameModel {
 
         for (e, orderable) in self.world.query::<&Orderable>().iter() {
             if let Some(order) = orderable.orders.front() {
-                if order.is_order_completed(e, &self.world) {
+                if order.is_order_completed(e, &self) {
                     completed_orders.push(e);
                 } else {
                     in_progress_orders.push(e);
@@ -91,7 +121,7 @@ impl RymdGameModel {
         for &e in &in_progress_orders {
             if let Ok(mut orderable) = self.world.query_one_mut::<&mut Orderable>(e).cloned() {
                 if let Some(order) = orderable.orders.front_mut() {
-                    order.tick(e, &mut self.world, Self::TIME_STEP);
+                    order.tick(e, self, Self::TIME_STEP);
                 }
             }
         }
