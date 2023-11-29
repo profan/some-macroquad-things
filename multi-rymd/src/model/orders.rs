@@ -5,6 +5,7 @@ use lockstep_client::step::LockstepClient;
 use utility::{Kinematic, arrive_ex, face_ex, SteeringOutput, AsVector};
 
 use crate::EntityID;
+use crate::model::BlueprintID;
 use crate::model::GameMessage;
 
 use super::{Transform, DynamicBody, DEFAULT_STEERING_PARAMETERS, Constructor, Controller, Health, Orderable};
@@ -65,7 +66,7 @@ fn steer_ship_towards_target(world: &mut World, entity: Entity, x: f32, y: f32, 
 
 pub trait GameOrdersExt {
     fn send_move_order(&mut self, entity: Entity, target_position: Vec2, should_add: bool);
-    fn send_build_order(&mut self, entity: Entity, target_position: Vec2, blueprint_idx: usize, should_add: bool);
+    fn send_build_order(&mut self, entity: Entity, target_position: Vec2, blueprint_id: BlueprintID, should_add: bool);
     fn send_repair_order(&mut self, entity: Entity, target_position: Vec2, target: Entity, should_add: bool);
 }
 
@@ -77,14 +78,14 @@ impl GameOrdersExt for LockstepClient {
         self.send_command(move_unit_message.serialize_json());
     }
 
-    fn send_build_order(&mut self, entity: Entity, target_position: Vec2, blueprint_idx: usize, should_add: bool) {
-        let build_order = GameOrder::Construct(ConstructOrder { entity_id: None, blueprint_idx: Some(blueprint_idx), x: target_position.x, y: target_position.y });
+    fn send_build_order(&mut self, entity: Entity, target_position: Vec2, blueprint_id: BlueprintID, should_add: bool) {
+        let build_order = GameOrder::Construct(ConstructOrder { entity_id: None, blueprint_id: Some(blueprint_id), x: target_position.x, y: target_position.y });
         let build_unit_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: build_order, add: should_add };
         self.send_command(build_unit_message.serialize_json());
     }
 
     fn send_repair_order(&mut self, entity: Entity, target_position: Vec2, target: Entity, should_add: bool) {
-        let build_order = GameOrder::Construct(ConstructOrder { entity_id: Some(target.to_bits().get()), blueprint_idx: None, x: target_position.x, y: target_position.y });
+        let build_order = GameOrder::Construct(ConstructOrder { entity_id: Some(target.to_bits().get()), blueprint_id: None, x: target_position.x, y: target_position.y });
         let build_unit_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: build_order, add: should_add };
         self.send_command(build_unit_message.serialize_json());
     }
@@ -202,7 +203,7 @@ impl Order for AttackMoveOrder {
 #[derive(Debug, Copy, Clone, SerJson, DeJson)]
 pub struct ConstructOrder {
     entity_id: Option<EntityID>,
-    blueprint_idx: Option<usize>,
+    blueprint_id: Option<BlueprintID>,
     x: f32,
     y: f32
 }
@@ -249,7 +250,7 @@ impl Order for ConstructOrder {
         }
 
         // we're constructing something new given a blueprint
-        if let Some(blueprint_idx) = self.blueprint_idx {
+        if let Some(blueprint_id) = self.blueprint_id {
 
             let construction_position = vec2(self.x, self.y);
 
@@ -259,14 +260,19 @@ impl Order for ConstructOrder {
             }
 
             let controller_id = world.get::<&Controller>(entity).expect("must have controller to be issuing construct order!").id;
-            let blueprint = world.get::<&Constructor>(entity).expect("must have constructor to be issuing construct order!").constructibles[blueprint_idx].clone();
-            let new_entity_id = (blueprint.constructor)(world, controller_id, construction_position);
+            let blueprint = world.get::<&Constructor>(entity).expect("must have constructor to be issuing construct order!").get_blueprint_clone(blueprint_id);
+            
+            if let Some(blueprint) = blueprint {
 
-            // cancel our current order now
-            self.cancel_current_order(entity, world);
+                let new_entity_id = (blueprint.constructor)(world, controller_id, construction_position);
 
-            // now that this is created, issue a local order to ourselves to help build this new building
-            self.construct_building(entity, world, new_entity_id, construction_position);
+                // cancel our current order now
+                self.cancel_current_order(entity, world);
+    
+                // now that this is created, issue a local order to ourselves to help build this new building
+                self.construct_building(entity, world, new_entity_id, construction_position);
+
+            }
 
         }
 
@@ -292,7 +298,7 @@ impl ConstructOrder {
 
     fn construct_building(&self, entity: Entity, world: &mut World, building_entity: Entity, position: Vec2) {
         let mut orderable = world.get::<&mut Orderable>(entity).expect("must have orderable!");
-        orderable.orders.push_front(GameOrder::Construct(ConstructOrder { entity_id: Some(building_entity.to_bits().get()), blueprint_idx: None, x: position.x, y: position.y }))
+        orderable.orders.push_front(GameOrder::Construct(ConstructOrder { entity_id: Some(building_entity.to_bits().get()), blueprint_id: None, x: position.x, y: position.y }))
     }
 
 }

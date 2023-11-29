@@ -150,3 +150,10 @@ impl Health {
 pub struct Controller {
     pub id: PeerID
 }
+
+#[derive(Clone, Copy)]
+pub enum UnitState {
+    Frozen,
+    Destroyed,
+    Alive
+}

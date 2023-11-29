@@ -868,12 +868,12 @@ impl RymdGameView {
                 yakui::pad(yakui::widgets::Pad::all(4.0), || {
 
                     yakui_min_column(|| {
-                        for (idx, blueprint) in available_blueprints.into_iter().enumerate() {
+                        for blueprint in available_blueprints.into_iter() {
                             if yakui::button(blueprint.name.to_string()).clicked {
                                 
                                 for (e, (t, o, s, c)) in &selected_constructor_units {
-                                    lockstep.send_build_order(*e, current_build_position, idx, should_add_to_queue);
-                                    println!("[RymdGameView] attempted to send build order for position: {} and blueprint: {}", current_build_position, idx);
+                                    lockstep.send_build_order(*e, current_build_position, blueprint.id, should_add_to_queue);
+                                    println!("[RymdGameView] attempted to send build order for position: {} and blueprint: {}", current_build_position, blueprint.id);
                                 }
 
                             }
