@@ -55,12 +55,12 @@ impl ConstructionState {
 
             let should_add_to_queue = is_key_down(KeyCode::LeftShift);
             let current_build_position: Vec2 = mouse_position().into();
-            let mut selected_constructors_query = model.world.query::<(&Transform, &Orderable, &Selectable, &Constructor)>();
-            let selected_constructor_units: Vec<(Entity, (&Transform, &Orderable, &Selectable, &Constructor))> = selected_constructors_query.into_iter().filter(|(q, (t, o, s, c))| s.is_selected).collect();
     
-            for (e, (t, o, s, c)) in &selected_constructor_units {
-                lockstep.send_build_order(*e, current_build_position, blueprint_id, should_add_to_queue);
-                println!("[RymdGameView] attempted to send build order for position: {} and blueprint: {}", current_build_position, blueprint_id);
+            for (e, (_t, _o, s, _c)) in model.world.query::<(&Transform, &Orderable, &Selectable, &Constructor)>().iter() {
+                if s.is_selected {
+                    lockstep.send_build_order(e, current_build_position, blueprint_id, should_add_to_queue);
+                    println!("[RymdGameView] attempted to send build order for position: {} and blueprint: {}", current_build_position, blueprint_id);
+                }
             }
 
             self.current_blueprint_id = None;
