@@ -1,5 +1,5 @@
 use hecs::{Entity, World};
-use macroquad::math::Vec2;
+use macroquad::{math::Vec2, miniquad::KeyCode};
 
 use crate::PlayerID;
 use super::{Controller, Health, Sprite, Transform, Orderable};
@@ -30,12 +30,14 @@ pub struct Blueprint {
     pub id: BlueprintID,
     pub name: String,
     pub texture: String,
+    pub shortcut: KeyCode,
     pub constructor: fn(&mut World, PlayerID, Vec2) -> Entity
 }
 
 pub fn create_solar_collector_blueprint() -> Blueprint {
     Blueprint {
         id: 0,
+        shortcut: KeyCode::S,
         name: String::from("Solar Collector"),
         texture: String::from("POWER_STATION"),
         constructor: build_solar_collector

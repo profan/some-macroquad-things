@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use macroquad_particles::{EmitterConfig, Emitter};
-use utility::{is_point_inside_rect, draw_texture_centered_with_rotation, set_texture_filter, draw_texture_centered_with_rotation_frame, DebugText, TextPosition, AsVector, RotatedBy, draw_arrow, draw_text_centered};
+use utility::{is_point_inside_rect, draw_texture_centered_with_rotation, set_texture_filter, draw_texture_centered_with_rotation_frame, DebugText, TextPosition, AsVector, RotatedBy, draw_arrow, draw_text_centered, draw_texture_centered, WithAlpha};
 use lockstep_client::{step::LockstepClient, app::yakui_min_column};
 use macroquad_particles::*;
 use macroquad::prelude::*;
@@ -9,18 +9,95 @@ use hecs::*;
 use yakui::Alignment;
 
 use crate::PlayerID;
-use crate::model::BlueprintID;
+use crate::model::{BlueprintID, BlueprintManager, Building};
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Blueprint, Controller, Health, get_entity_position};
 
 use super::calculate_sprite_bounds;
 
-struct ConstructionState {
+fn building_state_to_alpha(building: Option<&Building>) -> f32 {
+    if let Some(building) = building {
+        match building.state {
+            crate::model::BuildingState::Ghost => 0.75,
+            crate::model::BuildingState::Destroyed => 1.0,
+            crate::model::BuildingState::Constructed => 1.0,
+        }
+    } else {
+        1.0
+    }
+}
 
+struct ConstructionState {
+    current_blueprint_id: Option<BlueprintID>
 }
 
 impl ConstructionState {
     fn new() -> ConstructionState {
-        ConstructionState {  }
+        ConstructionState {
+            current_blueprint_id: None
+        }
+    }
+
+    fn is_previewing(&self) -> bool {
+        self.current_blueprint_id.is_some()
+    }
+
+    fn preview_blueprint(&mut self, blueprint_id: BlueprintID) {
+        self.current_blueprint_id = Some(blueprint_id)
+    }
+
+    fn cancel_blueprint(&mut self) {
+        self.current_blueprint_id = None
+    }
+
+    fn finalize_blueprint(&mut self, model: &RymdGameModel, lockstep: &mut LockstepClient) {
+        
+        if let Some(blueprint_id) = self.current_blueprint_id {
+
+            let should_add_to_queue = is_key_down(KeyCode::LeftShift);
+            let current_build_position: Vec2 = mouse_position().into();
+            let mut selected_constructors_query = model.world.query::<(&Transform, &Orderable, &Selectable, &Constructor)>();
+            let selected_constructor_units: Vec<(Entity, (&Transform, &Orderable, &Selectable, &Constructor))> = selected_constructors_query.into_iter().filter(|(q, (t, o, s, c))| s.is_selected).collect();
+    
+            for (e, (t, o, s, c)) in &selected_constructor_units {
+                lockstep.send_build_order(*e, current_build_position, blueprint_id, should_add_to_queue);
+                println!("[RymdGameView] attempted to send build order for position: {} and blueprint: {}", current_build_position, blueprint_id);
+            }
+
+            self.current_blueprint_id = None;
+
+        }
+
+    }
+
+    fn tick_and_draw(&mut self, model: &RymdGameModel, resources: &Resources, lockstep: &mut LockstepClient) {
+
+        let should_cancel = is_mouse_button_released(MouseButton::Right) || is_mouse_button_released(MouseButton::Middle);
+        let should_build = is_mouse_button_released(MouseButton::Left);
+        let mouse_world_position: Vec2 = mouse_position().into();
+
+        if let Some(blueprint_id) = self.current_blueprint_id {
+
+            let blueprint = model.blueprint_manager.get_blueprint(blueprint_id).expect("could not find the blueprint in the manager somehow, should be impossible!");
+            let blueprint_preview_texture = resources.get_texture_by_name(&blueprint.texture);
+            let blueprint_preview_position = mouse_world_position;
+
+            draw_texture_centered(
+                blueprint_preview_texture,
+                blueprint_preview_position.x,
+                blueprint_preview_position.y,
+                WHITE.with_alpha(0.5)
+            );
+
+            if should_build {
+                self.finalize_blueprint(model, lockstep);
+            }
+
+            if should_cancel {
+                self.cancel_blueprint()
+            }
+            
+        }
+
     }
 }
 
@@ -357,6 +434,7 @@ impl RymdGameView {
     }
 
     pub fn start(&mut self, player_id: PlayerID) {
+        let _ = std::mem::replace(&mut self.construction, ConstructionState::new());
         self.player_id = player_id
     }
 
@@ -369,6 +447,10 @@ impl RymdGameView {
     }
     
     fn handle_selection(&mut self, world: &mut World) {
+
+        if self.construction.is_previewing() {
+            return;
+        }
 
         // CTRL+A should select all units
         let is_selecting_all = is_key_down(KeyCode::LeftControl) && is_key_down(KeyCode::A);
@@ -705,9 +787,10 @@ impl RymdGameView {
     }
 
     fn draw_sprites(&self, world: &World) {
-        for (e, (transform, sprite)) in world.query::<(&Transform, &Sprite)>().iter() {
+        for (e, (transform, sprite, building)) in world.query::<(&Transform, &Sprite, Option<&Building>)>().iter() {
+            let sprite_texture_alpha = building_state_to_alpha(building);
             let sprite_texture_handle = self.resources.get_texture_by_name(&sprite.texture);
-            draw_texture_centered_with_rotation(sprite_texture_handle, transform.world_position.x, transform.world_position.y, WHITE, transform.world_rotation);
+            draw_texture_centered_with_rotation(sprite_texture_handle, transform.world_position.x, transform.world_position.y, WHITE.with_alpha(sprite_texture_alpha), transform.world_rotation);
         }
     }
 
@@ -843,7 +926,11 @@ impl RymdGameView {
 
         for (e, (selectable, constructor)) in world.query::<(&Selectable, &Constructor)>().iter() {
             if selectable.is_selected {
-                blueprints.extend(constructor.constructibles.clone());
+                for id in &constructor.constructibles {
+                    if blueprints.contains(id) == false {
+                        blueprints.push(*id);
+                    }
+                }
             }
         }
 
@@ -888,7 +975,25 @@ impl RymdGameView {
 
     }
 
-    fn draw_ui(&mut self, model: &mut RymdGameModel, lockstep: &mut LockstepClient) {
+    fn draw_text_construction_ui(&mut self, model: &mut RymdGameModel, debug: &mut DebugText) {
+
+        let available_blueprints = self.get_available_blueprints_from_current_selection(&model.world);
+
+        debug.skip_line(TextPosition::BottomRight);
+
+        for id in available_blueprints {
+            let blueprint = model.blueprint_manager.get_blueprint(id).unwrap();
+            debug.draw_text(format!(" > {} ({:?})", blueprint.name, blueprint.shortcut), TextPosition::BottomRight, WHITE);
+            if is_key_released(blueprint.shortcut) {
+                self.construction.preview_blueprint(id);
+            }
+        }
+
+        debug.draw_text("constructibles", TextPosition::BottomRight, WHITE);
+
+    }
+
+    fn draw_ui(&mut self, model: &mut RymdGameModel, debug: &mut DebugText, lockstep: &mut LockstepClient) {
 
         yakui::align(Alignment::TOP_CENTER, || {
 
@@ -905,7 +1010,8 @@ impl RymdGameView {
         });
 
         if self.current_selection_has_constructor_unit(&model.world) {
-            self.draw_construction_ui(model, lockstep);
+            self.draw_text_construction_ui(model, debug);
+            // self.draw_construction_ui(model, lockstep);
         }
 
     }
@@ -934,9 +1040,11 @@ impl RymdGameView {
         self.draw_animated_sprites(&model.world);
         self.draw_selectables(&mut model.world);
 
+        self.construction.tick_and_draw(model, &self.resources, lockstep);
+
         self.draw_particles(&mut model.world);
         self.draw_health_labels(&model.world);
-        self.draw_ui(model, lockstep);
+        self.draw_ui(model, debug, lockstep);
         self.draw_debug_ui(&model.world, debug);
 
     }
