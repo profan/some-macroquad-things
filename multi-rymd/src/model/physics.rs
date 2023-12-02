@@ -63,9 +63,8 @@ impl PhysicsManager {
                 let should_collide = self.collides_with(body, other_body);
                 if e1 != e2 && intersect_rect(&body.bounds(), &other_body.bounds()) {
                     let new_response = (e1, e2, false);
-                    if self.collision_responses.iter().any(|(a_entity, b_entity, _)| *a_entity == new_response.0 && *b_entity == new_response.1) {
-                        // we already have a pre-existing response, do not add another one
-                    } else {
+                    let pair_already_has_collision_response = self.collision_responses.iter().any(|(a_entity, b_entity, _)| *a_entity == new_response.0 && *b_entity == new_response.1);
+                    if pair_already_has_collision_response == false {
                         self.collision_responses.push(new_response);
                     }
                 }
