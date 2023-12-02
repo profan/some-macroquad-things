@@ -461,6 +461,7 @@ impl RymdGameView {
 
         let mouse_position: Vec2 = mouse_position().into();
         let is_adding_to_selection: bool = is_key_down(KeyCode::LeftShift);
+        let is_removing_from_selection = is_key_down(KeyCode::LeftControl);
         let mut selection_turned_inactive = false;
 
         if is_mouse_button_pressed(MouseButton::Left) {
@@ -481,7 +482,7 @@ impl RymdGameView {
         }
 
         if selection_turned_inactive {
-            self.perform_selection_with_bounds(world, is_adding_to_selection);
+            self.perform_selection_with_bounds(world, is_adding_to_selection, is_removing_from_selection);
         }
 
     }
@@ -634,7 +635,7 @@ impl RymdGameView {
 
     }
 
-    fn perform_selection_with_bounds(&mut self, world: &mut World, is_additive: bool) {
+    fn perform_selection_with_bounds(&mut self, world: &mut World, is_additive: bool, is_removing: bool) {
 
         let selection_rectangle = self.selection.as_rect();
 
@@ -646,12 +647,18 @@ impl RymdGameView {
                 continue;
             }
 
-            if let Some(bounds) = bounds {
+            let intersected_with_selection = if let Some(bounds) = bounds {
                 let current_selectable_bounds = bounds.rect.offset(transform.world_position);
-                selectable.is_selected = (selectable.is_selected && is_additive) || current_selectable_bounds.intersect(selection_rectangle).is_some();
+                current_selectable_bounds.intersect(selection_rectangle).is_some()
             } else {
-                selectable.is_selected = (selectable.is_selected && is_additive) || is_point_inside_rect(&transform.local_position, &selection_rectangle);
+                is_point_inside_rect(&transform.local_position, &selection_rectangle)
             };
+
+            if is_removing && selectable.is_selected {
+                selectable.is_selected = !(selectable.is_selected && intersected_with_selection);
+            } else {
+                selectable.is_selected = (selectable.is_selected && is_additive) || intersected_with_selection;
+            }
 
             if selectable.is_selected {
                 println!("[RymdGameView] selected: {:?}", e);
