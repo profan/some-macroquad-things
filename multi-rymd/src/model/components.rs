@@ -79,8 +79,8 @@ impl Transform {
             parent: self.parent
         };
 
-        while let Ok(mut current_query) = world.query_one::<&Transform>(current_entity) && let Some(current_transform) = current_query.get() && let Some(parent_entity) = current_transform.parent {
-            if let Ok(mut parent_query) = world.query_one::<&Transform>(parent_entity) && let Some(parent_transform) = parent_query.get() {
+        while let Ok(current_transform) = world.get::<&Transform>(current_entity) && let Some(parent_entity) = current_transform.parent {
+            if let Ok(parent_transform) = world.get::<&Transform>(parent_entity) {
                 calculated_transform.world_position = calculated_transform.world_position.rotated_by(parent_transform.local_rotation) + parent_transform.local_position;
                 calculated_transform.world_rotation += parent_transform.local_rotation;
                 current_entity = parent_entity;

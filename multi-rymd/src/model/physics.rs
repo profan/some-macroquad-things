@@ -82,17 +82,15 @@ impl PhysicsManager {
             let resolved_impact_velocity = {
 
                 let other_body = {
-                    let mut other_body_query = world.query_one::<&DynamicBody>(*other).expect("must have dynamic body!");
-                    other_body_query.get().cloned().unwrap()
+                    (*world.get::<&DynamicBody>(*other).expect("must have dynamic body!")).clone()
                 };
 
-                let mut this_body_query = world.query_one::<&mut DynamicBody>(*entity).expect("must have dynamic body!");
-                let this_body = this_body_query.get().unwrap();
+                let mut this_body = world.get::<&mut DynamicBody>(*entity).expect("must have dynamic body!");
 
                 let resolved_impact_velocity = if !(*active) {
-                    Self::collision_response_with_entity(this_body, &other_body, self.timestep)
+                    Self::collision_response_with_entity(&mut this_body, &other_body, self.timestep)
                 } else {
-                    Self::collision_separate_from_entity(this_body, &other_body, self.timestep);
+                    Self::collision_separate_from_entity(&mut this_body, &other_body, self.timestep);
                     Vec2::ZERO
                 };
 
@@ -103,8 +101,7 @@ impl PhysicsManager {
             };
 
             // resolve impact velocity...
-            let mut other_body_query = world.query_one::<&mut DynamicBody>(*other).expect("must have dynamic body!");
-            let other_body = other_body_query.get().unwrap();
+            let mut other_body = world.get::<&mut DynamicBody>(*other).expect("must have dynamic body!");
             let other_body_mass = other_body.mass();
             *other_body.velocity_mut() -= resolved_impact_velocity * other_body_mass;
 

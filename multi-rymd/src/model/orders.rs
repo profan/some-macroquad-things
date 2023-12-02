@@ -319,13 +319,12 @@ impl ConstructOrder {
 
 #[derive(Debug, Copy, Clone, SerJson, DeJson)]
 pub struct CancelOrder {
-    
+
 }
 
 impl Order for CancelOrder {
     fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
-        let mut orderable_query = model.world.query_one::<&Orderable>(entity).expect("entity must have orderable!");
-        let orderable = orderable_query.get().unwrap();
+        let orderable = model.world.get::<&Orderable>(entity).expect("entity must have orderable!");
         orderable.orders.is_empty()
     }
 
@@ -334,8 +333,7 @@ impl Order for CancelOrder {
     }
 
     fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
-        let mut orderable_query = model.world.query_one::<&mut Orderable>(entity).expect("entity must have orderable!");
-        let orderable = orderable_query.get().unwrap();
+        let mut orderable = model.world.get::<&mut Orderable>(entity).expect("entity must have orderable!");
         orderable.orders.clear();
     }
 }
