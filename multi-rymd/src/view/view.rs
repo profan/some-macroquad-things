@@ -879,10 +879,11 @@ impl RymdGameView {
 
     }
 
-    fn draw_debug_ui(&self, world: &World, debug: &mut DebugText) {
+    fn draw_debug_ui(&self, model: &RymdGameModel, debug: &mut DebugText) {
         
         debug.draw_text(format!("mouse position: {:?}", mouse_position()), TextPosition::TopLeft, WHITE);
-        debug.draw_text(format!("number of entities: {}", world.len()), TextPosition::TopLeft, WHITE);
+        debug.draw_text(format!("number of entities: {}", model.world.len()), TextPosition::TopLeft, WHITE);
+        debug.draw_text(format!("collision responses: {}", model.physics_manager.number_of_active_collision_responses()), TextPosition::TopLeft, WHITE);
 
     }
 
@@ -1049,7 +1050,7 @@ impl RymdGameView {
         self.draw_particles(&mut model.world);
         self.draw_health_labels(&model.world);
         self.draw_ui(model, debug, lockstep);
-        self.draw_debug_ui(&model.world, debug);
+        self.draw_debug_ui(model, debug);
 
     }
 

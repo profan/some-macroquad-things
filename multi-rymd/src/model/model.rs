@@ -9,10 +9,13 @@ use crate::EntityID;
 use crate::model::BlueprintID;
 use crate::model::GameMessage;
 use crate::game::RymdGameParameters;
+
+use super::PhysicsManager;
 use super::create_solar_collector_blueprint;
 use super::{create_commander_ship, GameOrder, Orderable, Transform, DynamicBody, Blueprint};
 
 pub struct RymdGameModel {
+    pub physics_manager: PhysicsManager,
     pub blueprint_manager: BlueprintManager,
     pub world: World
 }
@@ -47,6 +50,7 @@ impl RymdGameModel {
 
     pub fn new() -> RymdGameModel {
         RymdGameModel {
+            physics_manager: PhysicsManager::new(Self::TIME_STEP),
             blueprint_manager: BlueprintManager::new(),
             world: World::new()
         }
@@ -56,11 +60,13 @@ impl RymdGameModel {
 
         for player in &parameters.players {
 
-            let random_x = rand::gen_range(200, 400);
-            let random_y = rand::gen_range(200, 400);
+            for i in 0..16 {
 
-            for i in 0..1 {
+                let random_x = rand::gen_range(200, 400);
+                let random_y = rand::gen_range(200, 400);
+
                 create_commander_ship(&mut self.world, player.id, vec2(random_x as f32, random_y as f32));
+
             }
             
         }
@@ -68,6 +74,7 @@ impl RymdGameModel {
     }
 
     pub fn stop(&mut self) {
+        self.physics_manager.clear();
         self.world.clear();
     }
 
@@ -150,22 +157,19 @@ impl RymdGameModel {
 
     }
 
-    fn tick_collision_responses(&mut self) {
+    fn tick_transform_updates(&mut self) {
+
+        for (e, (transform, body)) in self.world.query_mut::<(&mut Transform, &mut DynamicBody)>() {
+            transform.local_position = body.kinematic.position;
+            transform.local_rotation = body.kinematic.orientation;
+        }
 
     }
 
-    fn tick_physics_bodies(&mut self) {
-
-        for (e, (transform, body)) in self.world.query_mut::<(&mut Transform, &mut DynamicBody)>() {
-
-            body.kinematic.integrate(Self::TIME_STEP);
-            body.kinematic.apply_friction(Self::TIME_STEP);
-
-            transform.local_position = body.kinematic.position;
-            transform.local_rotation = body.kinematic.orientation;
-
-        }
-
+    fn tick_physics_engine(&mut self) {
+        self.physics_manager.integrate(&mut self.world);
+        self.physics_manager.handle_overlaps(&mut self.world);
+        self.physics_manager.handle_collisions(&mut self.world);
     }
 
     pub fn calculate_transform(world: &World, entity: Entity, transform: &Transform) -> Transform {
@@ -196,8 +200,8 @@ impl RymdGameModel {
     pub fn tick(&mut self) {
         self.tick_orderables();
         self.tick_transforms();
-        self.tick_physics_bodies();
-        self.tick_collision_responses();
+        self.tick_physics_engine();
+        self.tick_transform_updates();
     }
 
 }

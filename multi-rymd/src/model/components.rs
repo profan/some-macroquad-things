@@ -1,10 +1,10 @@
 use std::collections::VecDeque;
 use hecs::{Entity, World};
-use macroquad::math::Vec2;
+use macroquad::math::{Vec2, Rect};
 use utility::{Kinematic, RotatedBy};
 use lockstep_client::step::PeerID;
 
-use super::GameOrder;
+use super::{GameOrder, PhysicsBody};
 
 #[derive(Clone)]
 pub struct Thruster {
@@ -98,6 +98,59 @@ impl Transform {
 #[derive(Clone)]
 pub struct DynamicBody {
     pub kinematic: Kinematic,
+    pub bounds: Rect
+}
+
+impl PhysicsBody for DynamicBody {
+
+    fn bounds(&self) -> Rect {
+        self.bounds.offset(self.kinematic.position)
+    }
+
+    fn position(&self) -> Vec2 {
+        self.kinematic.position
+    }
+
+    fn velocity(&self) -> Vec2 {
+        self.kinematic.velocity
+    }
+
+    fn angular_velocity(&self) -> f32 {
+        self.kinematic.angular_velocity
+    }
+
+    fn friction(&self) -> f32 {
+        self.kinematic.friction_value
+    }
+
+    fn mass(&self) -> f32 {
+        self.kinematic.mass
+    }
+
+    fn bounds_mut(&mut self) -> &mut Rect {
+        &mut self.bounds
+    }
+
+    fn position_mut(&mut self) -> &mut Vec2 {
+        &mut self.kinematic.position
+    }
+
+    fn velocity_mut(&mut self) -> &mut Vec2 {
+        &mut self.kinematic.velocity
+    }
+
+    fn angular_velocity_mut(&mut self) -> &mut f32 {
+        &mut self.kinematic.angular_velocity
+    }
+
+    fn friction_mut(&mut self) -> &mut f32 {
+        &mut self.kinematic.friction_value
+    }
+
+    fn mass_mut(&mut self) -> &mut f32 {
+        &mut self.kinematic.mass
+    }
+
 }
 
 #[derive(Clone)] 

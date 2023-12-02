@@ -6,8 +6,7 @@ use utility::{Kinematic, AsAngle};
 
 use crate::PlayerID;
 use crate::model::{Transform, Orderable, AnimatedSprite, Thruster, DynamicBody, Ship, ThrusterKind};
-
-use super::{Constructor, Blueprint, build_solar_collector, Controller, Health, create_solar_collector_blueprint};
+use super::{Constructor, Controller, Health};
 
 #[derive(Bundle)]
 pub struct AnimatedShipBody {
@@ -26,10 +25,16 @@ pub struct ShipParameters {
 impl AnimatedShipBody {
 
     pub fn new(health: i32, position: Vec2, kinematic: Kinematic, parameters: ShipParameters, texture: &str, v_frames: i32) -> AnimatedShipBody {
+
+        let standard_size = 32.0;
+
+        // #FIXME: we need to compute the bounds somehow without requiring graphics... maybe that is a fools errand? we'll figure it out i guess, json file maybe?
+        let bounds = Rect { x: -standard_size / 2.0, y: -standard_size / 2.0, w: standard_size, h: standard_size };
+
         AnimatedShipBody {
             health: Health::new(health),
             transform: Transform::new(position, 0.0, None),
-            dynamic_body: DynamicBody { kinematic },
+            dynamic_body: DynamicBody { bounds, kinematic },
             orderable: Orderable::new(),
             sprite: AnimatedSprite { texture: texture.to_string(), current_frame: 0, h_frames: v_frames },
             ship: Ship::new(parameters.turn_rate)

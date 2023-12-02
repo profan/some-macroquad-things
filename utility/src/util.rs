@@ -256,6 +256,30 @@ pub fn frac1(x: f32) -> f32 {
     1.0 - x + x.floor()
 }
 
+/// Returns true if the two rectangles intersect.
+pub fn intersect_rect(a: &Rect, b: &Rect) -> bool {
+
+    let a_pos = vec2(a.x, a.y);
+    let b_pos = vec2(b.x, b.y);
+    
+    let dx = b_pos.x - a_pos.x;
+    let px = (b.w / 2.0) + (a.w / 2.0) - dx.abs();
+    if px <= 0.0 {
+        return false;
+    };
+
+    let dy = b_pos.y - a_pos.y;
+    let py = (b.h / 2.0) + (a.h / 2.0) - dy.abs();
+    if py <= 0.0 {
+        return false;
+    };
+
+    // SAT: both axises must be overlapping for an intersection to have occurred, thus we are here
+
+    return true;
+    
+}
+
 #[cfg(test)]
 mod tests {
 
