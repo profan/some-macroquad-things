@@ -151,7 +151,7 @@ impl PhysicsManager {
 
     pub fn collision_response_with_entity(entity: &mut DynamicBody, other: &DynamicBody, timestep: f32) -> Vec2 {
 
-        let response = if other.is_static == false {
+        let response = if entity.is_static == false {
             Self::standard_collision_response_with_dynamic_entity(entity, other, timestep)
         } else {
             Self::standard_collision_response_with_static_entity(entity, other, timestep)
