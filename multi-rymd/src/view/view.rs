@@ -9,8 +9,8 @@ use hecs::*;
 use yakui::Alignment;
 
 use crate::PlayerID;
-use crate::model::{BlueprintID, BlueprintManager, Building};
-use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Blueprint, Controller, Health, get_entity_position};
+use crate::model::{BlueprintID, Building};
+use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Controller, Health, get_entity_position};
 
 use super::calculate_sprite_bounds;
 
@@ -1054,7 +1054,7 @@ impl RymdGameView {
 
         for (e, (transform, health)) in world.query::<(&Transform, &Health)>().iter() {
             let health_label_position = transform.world_position + vec2(0.0, -32.0);
-            draw_text_centered(&format!("{}/{}", health.health, health.full_health), health_label_position.x, health_label_position.y, 24.0, WHITE);
+            draw_text_centered(&format!("{}/{}", health.current_health, health.full_health), health_label_position.x, health_label_position.y, 24.0, WHITE);
         }
 
     }

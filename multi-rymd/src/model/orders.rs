@@ -228,7 +228,7 @@ impl Order for ConstructOrder {
         
         if let Some(entity_id) = self.entity_id && let Some(constructing_entity) = Entity::from_bits(entity_id) {
             let entity_health = model.world.get::<&Health>(constructing_entity).expect("building must have entity health component to be able to construct!");
-            entity_health.health >= entity_health.full_health
+            entity_health.current_health >= entity_health.full_health
         } else {
             false
         }
@@ -258,7 +258,7 @@ impl Order for ConstructOrder {
 
             if self.is_order_completed(entity, model) == false {
                 let mut entity_health = model.world.get::<&mut Health>(constructing_entity).expect("building must have entity health component to be able to construct!");
-                entity_health.health = (entity_health.health + (constructor.build_speed as f32 * dt) as i32).min(entity_health.full_health);
+                entity_health.current_health = (entity_health.current_health + (constructor.build_speed as f32 * dt) as i32).min(entity_health.full_health);
             }
 
         }

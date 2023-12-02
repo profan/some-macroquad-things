@@ -10,6 +10,9 @@ use crate::model::BlueprintID;
 use crate::model::GameMessage;
 use crate::game::RymdGameParameters;
 
+use super::Building;
+use super::BuildingState;
+use super::Health;
 use super::PhysicsManager;
 use super::create_solar_collector_blueprint;
 use super::{create_commander_ship, GameOrder, Orderable, Transform, DynamicBody, Blueprint};
@@ -110,6 +113,18 @@ impl RymdGameModel {
         }
     }
 
+    fn tick_buildings(&mut self) {
+
+        for (e, (building, health)) in self.world.query_mut::<(&mut Building, &Health)>() {
+            if building.state == BuildingState::Ghost {
+                if health.is_at_full_health() {
+                    building.state = BuildingState::Constructed;
+                }
+            }
+        }
+
+    }
+
     fn tick_orderables(&mut self) {
 
         let mut in_progress_orders = Vec::new();
@@ -198,6 +213,7 @@ impl RymdGameModel {
     }
 
     pub fn tick(&mut self) {
+        self.tick_buildings();
         self.tick_orderables();
         self.tick_transforms();
         self.tick_physics_engine();

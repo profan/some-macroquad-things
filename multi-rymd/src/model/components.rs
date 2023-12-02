@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 use hecs::{Entity, World};
 use macroquad::math::{Vec2, Rect};
-use utility::{Kinematic, RotatedBy};
+use utility::{Kinematic, RotatedBy, SteeringParameters};
 use lockstep_client::step::PeerID;
 
 use super::{GameOrder, PhysicsBody};
@@ -191,12 +191,16 @@ impl Ship {
 #[derive(Clone)]
 pub struct Health {
     pub full_health: i32,
-    pub health: i32
+    pub current_health: i32
 }
 
 impl Health {
     pub fn new(health: i32) -> Health {
-        Health { full_health: health, health: health }
+        Health { full_health: health, current_health: health }
+    }
+
+    pub fn is_at_full_health(&self) -> bool {
+        self.current_health >= self.full_health
     }
 }
 
@@ -209,4 +213,9 @@ pub enum UnitState {
     Frozen,
     Destroyed,
     Alive
+}
+
+#[derive(Clone)]
+pub struct SteeringData {
+    pub parameters: SteeringParameters
 }

@@ -29,7 +29,7 @@ impl AnimatedShipBody {
         let standard_size = 32.0;
 
         // #FIXME: we need to compute the bounds somehow without requiring graphics... maybe that is a fools errand? we'll figure it out i guess, json file maybe?
-        let bounds = Rect { x: -standard_size / 2.0, y: -standard_size / 2.0, w: standard_size, h: standard_size };
+        let bounds = Rect { x: -(standard_size / 2.0), y: -(standard_size / 2.0), w: standard_size, h: standard_size };
 
         AnimatedShipBody {
             health: Health::new(health),
