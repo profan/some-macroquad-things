@@ -49,8 +49,13 @@ impl PhysicsManager {
     pub fn integrate(&mut self, world: &mut World) {
 
         for (e, body) in world.query_mut::<&mut DynamicBody>() {
-            body.kinematic.integrate(self.timestep);
-            body.kinematic.apply_friction(self.timestep);
+            if body.is_static == false {
+                body.kinematic.integrate(self.timestep);
+                body.kinematic.apply_friction(self.timestep);
+            } else {
+                body.kinematic.velocity = Vec2::ZERO;
+                body.kinematic.angular_velocity = 0.0;
+            }
         }
 
     }
@@ -111,7 +116,7 @@ impl PhysicsManager {
 
     }
 
-    pub fn standard_collision_response_with_entity(entity: &mut DynamicBody, other: &DynamicBody, timestep: f32) -> Vec2 {
+    pub fn standard_collision_response_with_dynamic_entity(entity: &mut DynamicBody, other: &DynamicBody, timestep: f32) -> Vec2 {
 
         let average_size = (entity.bounds().w + entity.bounds().h) / 2.0;
     
@@ -137,9 +142,20 @@ impl PhysicsManager {
 
     }
 
+    pub fn standard_collision_response_with_static_entity(entity: &mut DynamicBody, other: &DynamicBody, timestep: f32) -> Vec2 {
+
+        let separating_vector = -(entity.position() - other.position()).normalize();
+        other.velocity() * -other.velocity().normalize().dot(separating_vector)
+
+    }
+
     pub fn collision_response_with_entity(entity: &mut DynamicBody, other: &DynamicBody, timestep: f32) -> Vec2 {
 
-        let response = Self::standard_collision_response_with_entity(entity, other, timestep);
+        let response = if entity.is_static == false {
+            Self::standard_collision_response_with_dynamic_entity(entity, other, timestep)
+        } else {
+            Self::standard_collision_response_with_static_entity(entity, other, timestep)
+        };
 
         if response.is_nan() {
             Vec2::ZERO

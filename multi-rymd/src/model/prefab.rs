@@ -30,11 +30,12 @@ impl AnimatedShipBody {
 
         // #FIXME: we need to compute the bounds somehow without requiring graphics... maybe that is a fools errand? we'll figure it out i guess, json file maybe?
         let bounds = Rect { x: -(standard_size / 2.0), y: -(standard_size / 2.0), w: standard_size, h: standard_size };
+        let is_static = false;
 
         AnimatedShipBody {
             health: Health::new(health),
             transform: Transform::new(position, 0.0, None),
-            dynamic_body: DynamicBody { bounds, kinematic },
+            dynamic_body: DynamicBody { is_static, bounds, kinematic },
             orderable: Orderable::new(),
             sprite: AnimatedSprite { texture: texture.to_string(), current_frame: 0, h_frames: v_frames },
             ship: Ship::new(parameters.turn_rate)

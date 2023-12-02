@@ -97,6 +97,7 @@ impl Transform {
 
 #[derive(Clone)]
 pub struct DynamicBody {
+    pub is_static: bool,
     pub kinematic: Kinematic,
     pub bounds: Rect
 }

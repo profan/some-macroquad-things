@@ -63,7 +63,7 @@ impl RymdGameModel {
 
         for player in &parameters.players {
 
-            for i in 0..16 {
+            for i in 0..1 {
 
                 let random_x = rand::gen_range(200, 400);
                 let random_y = rand::gen_range(200, 400);

@@ -828,10 +828,11 @@ impl RymdGameView {
     }
 
     fn draw_animated_sprites(&self, world: &World) {
-        for (e, (transform, body, sprite)) in world.query::<(&Transform, Option<&DynamicBody>, &AnimatedSprite)>().iter() {
+        for (e, (transform, sprite, building)) in world.query::<(&Transform, &AnimatedSprite, Option<&Building>)>().iter() {
             let is_sprite_flipped = false;
+            let sprite_texture_alpha = building_state_to_alpha(building);
             let sprite_texture_handle = self.resources.get_texture_by_name(&sprite.texture);
-            draw_texture_centered_with_rotation_frame(sprite_texture_handle, transform.world_position.x, transform.world_position.y, WHITE, transform.world_rotation, sprite.current_frame, sprite.h_frames, is_sprite_flipped);
+            draw_texture_centered_with_rotation_frame(sprite_texture_handle, transform.world_position.x, transform.world_position.y, WHITE.with_alpha(sprite_texture_alpha), transform.world_rotation, sprite.current_frame, sprite.h_frames, is_sprite_flipped);
         }
     }
 

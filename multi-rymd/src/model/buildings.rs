@@ -49,6 +49,7 @@ pub fn build_solar_collector(world: &mut World, owner: PlayerID, position: Vec2)
 
     let solar_collector_size = 64.0;
     let bounds = Rect { x: -(solar_collector_size / 2.0), y: -(solar_collector_size / 2.0), w: solar_collector_size, h: solar_collector_size };
+    let is_static = true;
 
     let kinematic = Kinematic {
         position: position,
@@ -67,7 +68,7 @@ pub fn build_solar_collector(world: &mut World, owner: PlayerID, position: Vec2)
     let building = Building { state: BuildingState::Ghost };
     let health = Health { full_health: full_solar_collector_health, current_health: initial_solar_collector_health };
     let sprite = Sprite { texture: "POWER_STATION".to_string() };
-    let dynamic_body = DynamicBody { bounds, kinematic };
+    let dynamic_body = DynamicBody { is_static, bounds, kinematic };
     let orderable = Orderable::new();
 
     world.spawn((controller, transform, building, health, sprite, dynamic_body, orderable))
