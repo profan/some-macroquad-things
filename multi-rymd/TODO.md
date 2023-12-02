@@ -17,6 +17,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] implement construction
 [x] represent health of buildings
 [x] implement "ghosts" of buildings that are about to be built/queued for construction
+[x] transition buildings from ghost state to constructed state when their health reaches 100 % after construction
 
 # multiplayer
 [] implement game state hashing for checking if in sync
