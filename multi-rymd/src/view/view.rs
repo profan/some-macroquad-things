@@ -651,7 +651,7 @@ impl RymdGameView {
                 let current_selectable_bounds = bounds.rect.offset(transform.world_position);
                 current_selectable_bounds.intersect(selection_rectangle).is_some()
             } else {
-                is_point_inside_rect(&transform.local_position, &selection_rectangle)
+                is_point_inside_rect(&transform.world_position, &selection_rectangle)
             };
 
             if is_removing && selectable.is_selected {
