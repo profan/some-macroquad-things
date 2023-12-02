@@ -66,9 +66,12 @@ fn steer_ship_towards_target(world: &mut World, entity: Entity, x: f32, y: f32, 
 }
 
 pub trait GameOrdersExt {
+
     fn send_move_order(&mut self, entity: Entity, target_position: Vec2, should_add: bool);
     fn send_build_order(&mut self, entity: Entity, target_position: Vec2, blueprint_id: BlueprintID, should_add: bool);
     fn send_repair_order(&mut self, entity: Entity, target_position: Vec2, target: Entity, should_add: bool);
+    fn cancel_current_orders(&mut self, entity: Entity);
+
 }
 
 impl GameOrdersExt for LockstepClient {
@@ -91,6 +94,12 @@ impl GameOrdersExt for LockstepClient {
         self.send_command(build_unit_message.serialize_json());
     }
 
+    fn cancel_current_orders(&mut self, entity: Entity) {
+        let cancel_order = GameOrder::Cancel(CancelOrder {});
+        let cancel_order_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: cancel_order, add: false };
+        self.send_command(cancel_order_message.serialize_json());
+    }
+
 }
 
 trait Order {
@@ -108,7 +117,8 @@ impl GameOrder {
             GameOrder::Move(order) => order.is_order_completed(entity, model),
             GameOrder::Attack(order) => order.is_order_completed(entity, model),
             GameOrder::AttackMove(order) => order.is_order_completed(entity, model),
-            GameOrder::Construct(order) => order.is_order_completed(entity, model)
+            GameOrder::Construct(order) => order.is_order_completed(entity, model),
+            GameOrder::Cancel(order) => order.is_order_completed(entity, model)
         }
     }
 
@@ -117,7 +127,8 @@ impl GameOrder {
             GameOrder::Move(order) => order.get_target_position(model),
             GameOrder::Attack(order) => order.get_target_position(model),
             GameOrder::AttackMove(order) => order.get_target_position(model),
-            GameOrder::Construct(order) => order.get_target_position(model)
+            GameOrder::Construct(order) => order.get_target_position(model),
+            GameOrder::Cancel(order) => order.get_target_position(model)
         }
     }
 
@@ -126,7 +137,8 @@ impl GameOrder {
             GameOrder::Move(order) => order.tick(entity, model, dt),
             GameOrder::Attack(order) => order.tick(entity, model, dt),
             GameOrder::AttackMove(order) => order.tick(entity, model, dt),
-            GameOrder::Construct(order) => order.tick(entity, model, dt)
+            GameOrder::Construct(order) => order.tick(entity, model, dt),
+            GameOrder::Cancel(order) => order.tick(entity, model, dt)
         }
     }
  
@@ -137,7 +149,8 @@ pub enum GameOrder {
     Move(MoveOrder),
     Attack(AttackOrder),
     AttackMove(AttackMoveOrder),
-    Construct(ConstructOrder)
+    Construct(ConstructOrder),
+    Cancel(CancelOrder)
 }
 
 #[derive(Debug, Copy, Clone, SerJson, DeJson)]
@@ -302,4 +315,27 @@ impl ConstructOrder {
         orderable.orders.push_front(GameOrder::Construct(ConstructOrder { entity_id: Some(building_entity.to_bits().get()), blueprint_id: None, x: position.x, y: position.y }))
     }
 
+}
+
+#[derive(Debug, Copy, Clone, SerJson, DeJson)]
+pub struct CancelOrder {
+    
+}
+
+impl Order for CancelOrder {
+    fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
+        let mut orderable_query = model.world.query_one::<&Orderable>(entity).expect("entity must have orderable!");
+        let orderable = orderable_query.get().unwrap();
+        orderable.orders.is_empty()
+    }
+
+    fn get_target_position(&self, model: &RymdGameModel) -> Option<Vec2> {
+        None
+    }
+
+    fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
+        let mut orderable_query = model.world.query_one::<&mut Orderable>(entity).expect("entity must have orderable!");
+        let orderable = orderable_query.get().unwrap();
+        orderable.orders.clear();
+    }
 }

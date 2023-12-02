@@ -37,7 +37,7 @@ pub struct Blueprint {
 pub fn create_solar_collector_blueprint() -> Blueprint {
     Blueprint {
         id: 0,
-        shortcut: KeyCode::S,
+        shortcut: KeyCode::Key1,
         name: String::from("Solar Collector"),
         texture: String::from("POWER_STATION"),
         constructor: build_solar_collector

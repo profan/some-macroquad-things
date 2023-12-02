@@ -519,9 +519,14 @@ impl RymdGameView {
         controller.id == self.player_id // #TODO: alliances, teams?
     }
 
+    fn is_entity_controllable(&self, entity: Entity, world: &World) -> bool {
+        self.is_entity_friendly(entity, world)
+    }
+
     fn handle_order(&mut self, world: &mut World, lockstep: &mut LockstepClient) {
 
         let current_mouse_position: Vec2 = mouse_position().into();
+        let should_cancel_current_orders: bool = is_key_released(KeyCode::S);
 
         if is_mouse_button_down(MouseButton::Right) {
             self.ordering.add_point(current_mouse_position);
@@ -551,6 +556,23 @@ impl RymdGameView {
 
             }
 
+        }
+
+        if should_cancel_current_orders {
+            self.cancel_current_orders(world, lockstep);
+        }
+
+    }
+
+    fn cancel_current_orders(&self, world: &mut World, lockstep: &mut LockstepClient,) {
+
+        for (e, (orderable, selectable)) in world.query::<(&Orderable, &Selectable)>().iter() {
+
+            if selectable.is_selected && self.is_entity_controllable(e, world) {
+                lockstep.cancel_current_orders(e);
+                println!("[RymdGameView] cancelled orders for: {:?}", e);
+            }
+    
         }
 
     }
