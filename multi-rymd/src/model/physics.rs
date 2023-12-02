@@ -165,7 +165,7 @@ impl PhysicsManager {
 
     }
 
-    pub fn collision_separate_from_entity(entity: &mut DynamicBody, other: &DynamicBody, timestep: f32) {
+    pub fn standard_dynamic_collision_separate_from_entity(entity: &mut DynamicBody, other: &DynamicBody, timestep: f32) {
 
         let average_size = (entity.bounds().w + entity.bounds().h) / 2.0;
         let separating_vector = -(other.position() - entity.position());
@@ -173,6 +173,20 @@ impl PhysicsManager {
 
         let offset_magnitude = ((separating_vector_length*separating_vector_length) / average_size) * 8.0;
         *entity.velocity_mut() += separating_vector.normalize() * offset_magnitude * timestep;
+
+    }
+
+    pub fn standard_static_collision_separate_from_entity(entity: &mut DynamicBody, other: &DynamicBody, timestep: f32) {
+
+    }
+
+    pub fn collision_separate_from_entity(entity: &mut DynamicBody, other: &DynamicBody, timestep: f32) {
+
+        if entity.is_static == false {
+            Self::standard_dynamic_collision_separate_from_entity(entity, other, timestep);
+        } else {
+            Self::standard_static_collision_separate_from_entity(entity, other, timestep)
+        };
 
     }
 
