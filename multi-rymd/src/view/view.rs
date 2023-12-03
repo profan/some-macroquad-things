@@ -606,33 +606,29 @@ impl RymdGameView {
         let number_of_selected_orderables = world.query_mut::<(&Orderable, &Selectable)>().into_iter().filter(|e| e.1.1.is_selected).count();
 
         // order the selectables by their distance from the current selection end point, this way we mostly retain the current arrangement the units are in and they hopefully make sorta-optimal moves
-        let mut selectables_ordered_by_distance_to_end_point: Vec<(Entity, (&Transform, &Orderable, &Selectable))> = world.query_mut::<(&Transform, &Orderable, &Selectable)>().into_iter().collect();
+        let mut selectables_ordered_by_distance_to_end_point: Vec<(Entity, (&Transform, &Orderable, &Selectable))> = world.query_mut::<(&Transform, &Orderable, &Selectable)>().into_iter().filter(|e| e.1.2.is_selected).collect();
         selectables_ordered_by_distance_to_end_point.sort_by(|a, b| a.1.0.world_position.distance(current_selection_end_point).total_cmp(&b.1.0.world_position.distance(current_selection_end_point)));
 
         // calculate the centroid so that we can use it to figure out where units should go when moving as a group
         let centroid_of_selected_orderables = selectables_ordered_by_distance_to_end_point.iter().fold(Vec2::ZERO, |acc, v| acc + v.1.0.world_position) / selectables_ordered_by_distance_to_end_point.len() as f32;
 
         for (idx, (e, (transform, orderable, selectable))) in selectables_ordered_by_distance_to_end_point.into_iter().enumerate() {
-    
-            if selectable.is_selected {
 
-                let current_order_point = if should_group {
-                    let offset_from_centroid = centroid_of_selected_orderables - transform.world_position;
-                    current_mouse_world_position - offset_from_centroid
-                }
-                else
-                {
-                    if number_of_selected_orderables > 1 {
-                        self.ordering.get_point(number_of_selected_orderables, idx)
-                    } else {
-                        current_mouse_world_position
-                    }
-                };
-
-                lockstep.send_move_order(e, current_order_point, should_add);
-                println!("[RymdGameView] ordered: {:?} to move to: {}", e, current_mouse_world_position);
-
+            let current_order_point = if should_group {
+                let offset_from_centroid = centroid_of_selected_orderables - transform.world_position;
+                current_mouse_world_position - offset_from_centroid
             }
+            else
+            {
+                if number_of_selected_orderables > 1 {
+                    self.ordering.get_point(number_of_selected_orderables, idx)
+                } else {
+                    current_mouse_world_position
+                }
+            };
+
+            lockstep.send_move_order(e, current_order_point, should_add);
+            println!("[RymdGameView] ordered: {:?} to move to: {}", e, current_mouse_world_position);
     
         }
             
@@ -746,16 +742,17 @@ impl RymdGameView {
             let mut current_line_start = transform.world_position;
 
             let order_line_thickness = 1.0;
-            let order_line_head_size = 8.0;
+            let order_line_head_size = self.camera.world_to_screen_scale_v(8.0);
+            let order_line_colour = GREEN.with_alpha(0.5);
 
             for (i, order) in orderable.orders.iter().enumerate() {
                 if let Some(target_position) = order.get_target_position(model) {
                     let current_screen_position = self.camera.world_to_screen(current_line_start);
                     let target_screen_position = self.camera.world_to_screen(target_position);
                     if i == orderable.orders.len() - 1 {
-                        draw_arrow(current_screen_position.x, current_screen_position.y, target_screen_position.x, target_screen_position.y, order_line_thickness, order_line_head_size, GREEN);
+                        draw_arrow(current_screen_position.x, current_screen_position.y, target_screen_position.x, target_screen_position.y, order_line_thickness, order_line_head_size, order_line_colour);
                     } else {
-                        draw_line(current_screen_position.x, current_screen_position.y, target_screen_position.x, target_screen_position.y, order_line_thickness, GREEN);
+                        draw_line(current_screen_position.x, current_screen_position.y, target_screen_position.x, target_screen_position.y, order_line_thickness, order_line_colour);
                     }
                     current_line_start = target_position;
                 }
@@ -846,6 +843,7 @@ impl RymdGameView {
     fn draw_selectables(&self, world: &mut World) {
 
         let bounds_thickness = 1.0;
+        let bounds_colour = GREEN.with_alpha(0.5);
 
         for (e, (transform, selectable, bounds)) in world.query::<(&Transform, &Selectable, &Bounds)>().iter() {
             if selectable.is_selected {
@@ -856,7 +854,7 @@ impl RymdGameView {
                     screen_position.y,
                     screen_radius,
                     bounds_thickness,
-                    GREEN
+                    bounds_colour
                 );
             }
         }

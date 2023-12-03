@@ -15,7 +15,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 
 # rts camera
 [x] implement a simple camera that you can pan around with
-[] fix grouped movement, currently ends up crazily offset when units have moved away from the origin and a grouped move order is issued
+[x] fix grouped movement, currently ends up crazily offset when units have moved away from the origin and a grouped move order is issued
 
 # construction
 [] when constructing buildings, show an eta in seconds/minutes/etc
