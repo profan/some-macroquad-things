@@ -9,6 +9,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] implement adding units to an existing selection (when holding shift)
 [x] implement adding/removing units to an existing selection (when holding ctrl)
 [] implement shift+double click on a unit to select all other units of that type
+[] make ordering by drawing a line distribute units evenly along the line (instead of per point as currently)
 
 # movement
 [] data-drive parameters for stuff like turn-rate?
@@ -16,6 +17,9 @@ rough list of things to work on in the game currently, usually ordered as items 
 # rts camera
 [x] implement a simple camera that you can pan around with
 [x] fix grouped movement, currently ends up crazily offset when units have moved away from the origin and a grouped move order is issued
+[] make movement velocity based (ideally framerate independent)
+[] make zooming velocity based (ideally framerate independent)
+[] make camera variables tweakable (currently hardcoded)
 
 # construction
 [] when constructing buildings, show an eta in seconds/minutes/etc
