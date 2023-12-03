@@ -17,6 +17,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 # rts camera
 [x] implement a simple camera that you can pan around with
 [x] fix grouped movement, currently ends up crazily offset when units have moved away from the origin and a grouped move order is issued
+[] make the camera move towards where the mouse is when you zoom in
 [] make movement velocity based (ideally framerate independent)
 [] make zooming velocity based (ideally framerate independent)
 [] make camera variables tweakable (currently hardcoded)
