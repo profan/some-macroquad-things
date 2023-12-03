@@ -2,11 +2,11 @@ use std::f32::consts::PI;
 
 use hecs::*;
 use macroquad::prelude::*;
-use utility::{Kinematic, AsAngle};
+use utility::{Kinematic, AsAngle, SteeringParameters};
 
 use crate::PlayerID;
 use crate::model::{Transform, Orderable, AnimatedSprite, Thruster, DynamicBody, Ship, ThrusterKind};
-use super::{Constructor, Controller, Health};
+use super::{Constructor, Controller, Health, DEFAULT_STEERING_PARAMETERS, Steering};
 
 #[derive(Bundle)]
 pub struct AnimatedShipBody {
@@ -15,6 +15,7 @@ pub struct AnimatedShipBody {
     dynamic_body: DynamicBody,
     orderable: Orderable,
     sprite: AnimatedSprite,
+    steering: Steering,
     ship: Ship
 }
 
@@ -24,7 +25,7 @@ pub struct ShipParameters {
 
 impl AnimatedShipBody {
 
-    pub fn new(health: i32, position: Vec2, kinematic: Kinematic, parameters: ShipParameters, texture: &str, v_frames: i32) -> AnimatedShipBody {
+    pub fn new(health: i32, position: Vec2, kinematic: Kinematic, parameters: ShipParameters, steering: SteeringParameters, texture: &str, v_frames: i32) -> AnimatedShipBody {
 
         let standard_size = 32.0;
 
@@ -38,6 +39,7 @@ impl AnimatedShipBody {
             dynamic_body: DynamicBody { is_static, bounds, kinematic },
             orderable: Orderable::new(),
             sprite: AnimatedSprite { texture: texture.to_string(), current_frame: 0, h_frames: v_frames },
+            steering: Steering { parameters: steering },
             ship: Ship::new(parameters.turn_rate)
         }
     }
@@ -68,6 +70,8 @@ pub fn create_commander_ship(world: &mut World, owner: PlayerID, position: Vec2)
 
     let commander_thruster_power = 64.0;
     let commander_turn_thruster_power = 16.0;
+
+    let commander_steering_parameters = DEFAULT_STEERING_PARAMETERS;
     
     let commander_kinematic_body = Kinematic {
         position: position,
@@ -84,7 +88,7 @@ pub fn create_commander_ship(world: &mut World, owner: PlayerID, position: Vec2)
 
     let commander_ship_controller = Controller { id: owner };
     let commander_ship_constructor = Constructor { constructibles: vec![0], build_speed: commander_build_range, build_range: commander_build_speed };
-    let commander_ship_body = world.spawn(AnimatedShipBody::new(commander_health, position, commander_kinematic_body, commander_ship_parameters, "PLAYER_SHIP", 3));
+    let commander_ship_body = world.spawn(AnimatedShipBody::new(commander_health, position, commander_kinematic_body, commander_ship_parameters, commander_steering_parameters, "PLAYER_SHIP", 3));
 
     let _ = world.insert_one(commander_ship_body, commander_ship_controller);
     let _ = world.insert_one(commander_ship_body, commander_ship_constructor);

@@ -217,6 +217,6 @@ pub enum UnitState {
 }
 
 #[derive(Clone)]
-pub struct SteeringData {
+pub struct Steering {
     pub parameters: SteeringParameters
 }

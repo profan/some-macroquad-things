@@ -76,7 +76,7 @@ impl Add for SteeringOutput {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct SteeringParameters {
 
     pub acceleration: f32,

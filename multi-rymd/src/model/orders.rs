@@ -8,7 +8,7 @@ use crate::EntityID;
 use crate::model::BlueprintID;
 use crate::model::GameMessage;
 
-use super::RymdGameModel;
+use super::{RymdGameModel, Steering};
 use super::{Transform, DynamicBody, DEFAULT_STEERING_PARAMETERS, Constructor, Controller, Health, Orderable};
 
 fn ship_apply_steering(kinematic: &mut Kinematic, steering_maybe: Option<SteeringOutput>, dt: f32) {
@@ -41,20 +41,26 @@ fn steer_ship_towards_target(world: &mut World, entity: Entity, x: f32, y: f32, 
 
     if let Ok(mut dynamic_body) = world.get::<&mut DynamicBody>(entity) {
 
+        let parameters = if let Ok(steering) = world.get::<&Steering>(entity) {
+            steering.parameters
+        } else {
+            DEFAULT_STEERING_PARAMETERS
+        };
+
         let target_kinematic = Kinematic { position: vec2(x, y), ..Default::default() };
         let time_to_target = 1.0;
 
         let arrive_steering_output = arrive_ex(
             &dynamic_body.kinematic,
             &target_kinematic,
-            DEFAULT_STEERING_PARAMETERS,
+            parameters,
             time_to_target
         ).unwrap_or_default();
 
         let face_steering_output = face_ex(
             &dynamic_body.kinematic,
             &target_kinematic,
-            DEFAULT_STEERING_PARAMETERS,
+            parameters,
             time_to_target
         ).unwrap_or_default();
 
