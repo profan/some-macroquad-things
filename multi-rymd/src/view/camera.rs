@@ -85,10 +85,10 @@ fn handle_camera_movement(active: &mut GameCamera, dt: f32) {
 
     let camera_speed = 256.0 * active.camera_zoom;
 
-    let is_up_pressed = is_key_down(KeyCode::Up) || is_key_down(KeyCode::W);
-    let is_down_pressed = is_key_down(KeyCode::Down) || is_key_down(KeyCode::S);
-    let is_left_pressed = is_key_down(KeyCode::Left) || is_key_down(KeyCode::A);
-    let is_right_pressed = is_key_down(KeyCode::Right) || is_key_down(KeyCode::D);
+    let is_up_pressed = is_key_down(KeyCode::Up);
+    let is_down_pressed = is_key_down(KeyCode::Down);
+    let is_left_pressed = is_key_down(KeyCode::Left);
+    let is_right_pressed = is_key_down(KeyCode::Right);
 
     let mut camera_delta = Vec2::ZERO;
 
