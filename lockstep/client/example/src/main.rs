@@ -86,13 +86,11 @@ impl Game for ExampleGame {
         
     }
 
-    fn update(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient) {
-        if self.is_paused {
-            panic!("should never be called when paused!");
-        }
+    fn update(&mut self, _debug: &mut DebugText, _lockstep: &mut LockstepClient) {
+
     }
 
-    fn draw(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+    fn draw(&mut self, _debug: &mut DebugText, lockstep: &mut LockstepClient, _dt: f32) {
 
         if is_mouse_button_pressed(MouseButton::Left) {
             send_spawn_circle_message(lockstep);
@@ -132,11 +130,13 @@ async fn main() {
 
     loop {
 
+        let dt = get_frame_time();
+
         app.handle_messages();
         clear_background(WHITE);
 
         app.update();
-        app.draw();
+        app.draw(dt);
 
         next_frame().await;
         

@@ -476,12 +476,12 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
     
     }
 
-    pub fn draw(&mut self) {
+    pub fn draw(&mut self, dt: f32) {
 
         yakui_macroquad::start();
 
         if self.game.is_running() && let Some(lockstep) = &mut self.lockstep {
-            self.game.draw(&mut self.debug, lockstep);
+            self.game.draw(&mut self.debug, lockstep, dt);
         }
 
         self.draw_debug_text();
