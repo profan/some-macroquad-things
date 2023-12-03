@@ -57,7 +57,7 @@ pub fn build_solar_collector(world: &mut World, owner: PlayerID, position: Vec2)
         velocity: Vec2::ZERO,
         angular_velocity: 0.0,
         friction_value: 0.975f32,
-        mass: 1000.0
+        mass: 1.0
     };
 
     let full_solar_collector_health = 1000;

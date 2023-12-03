@@ -12,7 +12,7 @@ use crate::PlayerID;
 use crate::model::{BlueprintID, Building};
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Controller, Health, get_entity_position};
 
-use super::calculate_sprite_bounds;
+use super::{calculate_sprite_bounds, GameCamera};
 
 fn building_state_to_alpha(building: Option<&Building>) -> f32 {
     if let Some(building) = building {
@@ -49,12 +49,12 @@ impl ConstructionState {
         self.current_blueprint_id = None
     }
 
-    fn finalize_blueprint(&mut self, model: &RymdGameModel, lockstep: &mut LockstepClient) {
+    fn finalize_blueprint(&mut self, model: &RymdGameModel, camera: &GameCamera, lockstep: &mut LockstepClient) {
         
         if let Some(blueprint_id) = self.current_blueprint_id {
 
             let should_add_to_queue = is_key_down(KeyCode::LeftShift);
-            let current_build_position: Vec2 = mouse_position().into();
+            let current_build_position: Vec2 = camera.mouse_world_position();
     
             for (e, (_t, _o, s, _c)) in model.world.query::<(&Transform, &Orderable, &Selectable, &Constructor)>().iter() {
                 if s.is_selected {
@@ -69,11 +69,11 @@ impl ConstructionState {
 
     }
 
-    fn tick_and_draw(&mut self, model: &RymdGameModel, resources: &Resources, lockstep: &mut LockstepClient) {
+    fn tick_and_draw(&mut self, model: &RymdGameModel, camera: &GameCamera, resources: &Resources, lockstep: &mut LockstepClient) {
 
         let should_cancel = is_mouse_button_released(MouseButton::Right) || is_mouse_button_released(MouseButton::Middle);
         let should_build = is_mouse_button_released(MouseButton::Left);
-        let mouse_world_position: Vec2 = mouse_position().into();
+        let mouse_world_position: Vec2 = camera.mouse_world_position();
 
         if let Some(blueprint_id) = self.current_blueprint_id {
 
@@ -89,7 +89,7 @@ impl ConstructionState {
             );
 
             if should_build {
-                self.finalize_blueprint(model, lockstep);
+                self.finalize_blueprint(model, camera, lockstep);
             }
 
             if should_cancel {
@@ -415,6 +415,7 @@ impl Resources {
 
 pub struct RymdGameView {
     player_id: PlayerID,
+    camera: GameCamera,
     construction: ConstructionState,
     selection: SelectionState,
     ordering: OrderingState,
@@ -426,6 +427,7 @@ impl RymdGameView {
     pub fn new() -> RymdGameView {
         RymdGameView {
             player_id: 0,
+            camera: GameCamera::new(),
             construction: ConstructionState::new(),
             ordering: OrderingState::new(),
             selection: SelectionState::new(),
@@ -459,7 +461,7 @@ impl RymdGameView {
             return;
         }
 
-        let mouse_position: Vec2 = mouse_position().into();
+        let mouse_position: Vec2 = self.camera.mouse_world_position();
         let is_adding_to_selection: bool = is_key_down(KeyCode::LeftShift);
         let is_removing_from_selection = is_key_down(KeyCode::LeftControl);
         let mut selection_turned_inactive = false;
@@ -491,11 +493,11 @@ impl RymdGameView {
 
         let mut closest_entity = None;
         let mut closest_distance = f32::MAX;
-        let current_mouse_world_position: Vec2 = mouse_position().into();
+        let mouse_position: Vec2 = self.camera.mouse_world_position();
 
         for (e, (transform, bounds)) in world.query::<(&Transform, &Bounds)>().iter() {
 
-            let current_distance_to_mouse = current_mouse_world_position.distance(transform.world_position);
+            let current_distance_to_mouse = mouse_position.distance(transform.world_position);
             let is_position_within_bounds = current_distance_to_mouse < bounds.as_radius();
             
             if is_position_within_bounds && current_distance_to_mouse < closest_distance {
@@ -525,11 +527,11 @@ impl RymdGameView {
 
     fn handle_order(&mut self, world: &mut World, lockstep: &mut LockstepClient) {
 
-        let current_mouse_position: Vec2 = mouse_position().into();
+        let mouse_position: Vec2 = self.camera.mouse_world_position();
         let should_cancel_current_orders: bool = is_key_released(KeyCode::S);
 
         if is_mouse_button_down(MouseButton::Right) {
-            self.ordering.add_point(current_mouse_position);
+            self.ordering.add_point(mouse_position);
         }
 
         if is_mouse_button_released(MouseButton::Right) {
@@ -552,7 +554,7 @@ impl RymdGameView {
 
             } else {
 
-                self.handle_move_order(world, current_selection_end_point, current_mouse_position, lockstep, should_group, should_add);
+                self.handle_move_order(world, current_selection_end_point, mouse_position, lockstep, should_group, should_add);
 
             }
 
@@ -810,7 +812,7 @@ impl RymdGameView {
 
     }
 
-    pub fn tick(&mut self, model: &mut RymdGameModel, lockstep: &mut LockstepClient) {
+    pub fn tick(&mut self, model: &mut RymdGameModel, lockstep: &mut LockstepClient, dt: f32) {
 
         if yakui_macroquad::has_input_focus() { return; }
 
@@ -911,7 +913,9 @@ impl RymdGameView {
 
     fn draw_debug_ui(&self, model: &RymdGameModel, debug: &mut DebugText) {
         
-        debug.draw_text(format!("mouse position: {:?}", mouse_position()), TextPosition::TopLeft, WHITE);
+        let mouse_world_position = self.camera.mouse_world_position();
+        debug.draw_text(format!("mouse (screen) position: {:?}", mouse_position()), TextPosition::TopLeft, WHITE);
+        debug.draw_text(format!("mouse (world) position: ({:.1}, {:.1})", mouse_world_position.x, mouse_world_position.y), TextPosition::TopLeft, WHITE);
         debug.draw_text(format!("number of entities: {}", model.world.len()), TextPosition::TopLeft, WHITE);
         debug.draw_text(format!("collision responses: {}", model.physics_manager.number_of_active_collision_responses()), TextPosition::TopLeft, WHITE);
 
@@ -984,7 +988,7 @@ impl RymdGameView {
 
         let mut selected_constructors_query = model.world.query::<(&Transform, &Orderable, &Selectable, &Constructor)>();
         let selected_constructor_units: Vec<(Entity, (&Transform, &Orderable, &Selectable, &Constructor))> = selected_constructors_query.into_iter().filter(|(q, (t, o, s, c))| s.is_selected).collect();
-        let current_build_position: Vec2 = mouse_position().into();
+        let current_build_position: Vec2 = self.camera.mouse_world_position();
 
         yakui::align(Alignment::CENTER_LEFT, || {
             yakui::colored_box_container(yakui::Color::GRAY, || {
@@ -1060,12 +1064,15 @@ impl RymdGameView {
 
     }
 
-    pub fn draw(&mut self, model: &mut RymdGameModel, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+    pub fn draw(&mut self, model: &mut RymdGameModel, debug: &mut DebugText, lockstep: &mut LockstepClient, dt: f32) {
 
+        self.camera.tick(dt);
         self.update_thrusters(&model.world);
 
         let screen_center: Vec2 = vec2(screen_width(), screen_height()) / 2.0;
         self.draw_background_texture(screen_width(), screen_height(), screen_center);
+
+        self.camera.push();
 
         self.draw_orders(&model);
         self.draw_selection();
@@ -1075,10 +1082,13 @@ impl RymdGameView {
         self.draw_animated_sprites(&model.world);
         self.draw_selectables(&mut model.world);
 
-        self.construction.tick_and_draw(model, &self.resources, lockstep);
+        self.construction.tick_and_draw(model, &self.camera, &self.resources, lockstep);
 
         self.draw_particles(&mut model.world);
         self.draw_health_labels(&model.world);
+        
+        self.camera.push();
+
         self.draw_ui(model, debug, lockstep);
         self.draw_debug_ui(model, debug);
 

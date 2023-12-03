@@ -13,7 +13,9 @@ use super::{Transform, DynamicBody, DEFAULT_STEERING_PARAMETERS, Constructor, Co
 
 fn ship_apply_steering(kinematic: &mut Kinematic, steering_maybe: Option<SteeringOutput>, dt: f32) {
 
+    // #FIXME: make this data driven, this should be defined per entity (type?)
     let turn_rate = 4.0;
+
     if let Some(steering) = steering_maybe {
 
         let desired_linear_velocity = steering.linear * dt;
