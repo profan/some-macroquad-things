@@ -52,6 +52,31 @@ impl GameCamera {
         self.camera.world_to_screen(world_position)
     }
 
+    pub fn world_to_screen_scale(&self, v: Vec2) -> Vec2 {
+        v / self.camera_zoom
+    }
+
+    pub fn screen_to_world_scale(&self, v: Vec2) -> Vec2 {
+        v * self.camera_zoom
+    }
+
+    pub fn world_to_screen_scale_v(&self, v: f32) -> f32 {
+        v / self.camera_zoom
+    }
+
+    pub fn screen_to_world_scale_v(&self, v: f32) -> f32 {
+        v * self.camera_zoom
+    }
+
+    pub fn screen_to_world_rect(&self, mut rect: Rect) -> Rect {
+        let world_position = self.screen_to_world(vec2(rect.x, rect.y));
+        let world_scale = self.camera_zoom;
+        rect.scale(world_scale, world_scale);
+        rect.x = world_position.x;
+        rect.y = world_position.y;
+        rect
+    }
+
     pub fn push(&self) {
         push_camera_state();
         set_camera(&self.camera);

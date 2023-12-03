@@ -461,7 +461,7 @@ impl RymdGameView {
             return;
         }
 
-        let mouse_position: Vec2 = self.camera.mouse_world_position();
+        let mouse_position: Vec2 = self.camera.mouse_screen_position();
         let is_adding_to_selection: bool = is_key_down(KeyCode::LeftShift);
         let is_removing_from_selection = is_key_down(KeyCode::LeftControl);
         let mut selection_turned_inactive = false;
@@ -662,6 +662,7 @@ impl RymdGameView {
     fn perform_selection_with_bounds(&mut self, world: &mut World, is_additive: bool, is_removing: bool) {
 
         let selection_rectangle = self.selection.as_rect();
+        let world_selection_rectangle = self.camera.screen_to_world_rect(selection_rectangle);
 
         println!("[RymdGameView] attempted to select entities inside: {:?}", selection_rectangle);
 
@@ -673,9 +674,9 @@ impl RymdGameView {
 
             let intersected_with_selection = if let Some(bounds) = bounds {
                 let current_selectable_bounds = bounds.rect.offset(transform.world_position);
-                current_selectable_bounds.intersect(selection_rectangle).is_some()
+                current_selectable_bounds.intersect(world_selection_rectangle).is_some()
             } else {
-                is_point_inside_rect(&transform.world_position, &selection_rectangle)
+                is_point_inside_rect(&transform.world_position, &world_selection_rectangle)
             };
 
             if is_removing && selectable.is_selected {
@@ -703,11 +704,13 @@ impl RymdGameView {
 
         for p in self.ordering.points.iter().skip(1) {
             if last_point != *p {
+                let current_screen_point = self.camera.world_to_screen(*p);
+                let last_screen_point = self.camera.world_to_screen(last_point);
                 draw_line(
-                    last_point.x,
-                    last_point.y,
-                    p.x,
-                    p.y,
+                    last_screen_point.x,
+                    last_screen_point.y,
+                    current_screen_point.x,
+                    current_screen_point.y,
                     line_thickness,
                     GREEN
                 );
@@ -747,10 +750,12 @@ impl RymdGameView {
 
             for (i, order) in orderable.orders.iter().enumerate() {
                 if let Some(target_position) = order.get_target_position(model) {
+                    let current_screen_position = self.camera.world_to_screen(current_line_start);
+                    let target_screen_position = self.camera.world_to_screen(target_position);
                     if i == orderable.orders.len() - 1 {
-                        draw_arrow(current_line_start.x, current_line_start.y, target_position.x, target_position.y, order_line_thickness, order_line_head_size, GREEN);
+                        draw_arrow(current_screen_position.x, current_screen_position.y, target_screen_position.x, target_screen_position.y, order_line_thickness, order_line_head_size, GREEN);
                     } else {
-                        draw_line(current_line_start.x, current_line_start.y, target_position.x, target_position.y, order_line_thickness, GREEN);
+                        draw_line(current_screen_position.x, current_screen_position.y, target_screen_position.x, target_screen_position.y, order_line_thickness, GREEN);
                     }
                     current_line_start = target_position;
                 }
@@ -844,10 +849,12 @@ impl RymdGameView {
 
         for (e, (transform, selectable, bounds)) in world.query::<(&Transform, &Selectable, &Bounds)>().iter() {
             if selectable.is_selected {
+                let screen_position = self.camera.world_to_screen(transform.world_position);
+                let screen_radius = self.camera.world_to_screen_scale_v(bounds.as_radius() * 1.5);
                 draw_circle_lines(
-                    transform.world_position.x,
-                    transform.world_position.y,
-                    bounds.as_radius() * 1.5,
+                    screen_position.x,
+                    screen_position.y,
+                    screen_radius,
                     bounds_thickness,
                     GREEN
                 );
@@ -1072,15 +1079,15 @@ impl RymdGameView {
         let screen_center: Vec2 = vec2(screen_width(), screen_height()) / 2.0;
         self.draw_background_texture(screen_width(), screen_height(), screen_center);
 
-        self.camera.push();
-
         self.draw_orders(&model);
         self.draw_selection();
+        self.draw_selectables(&mut model.world);
         self.draw_ordering();
+
+        self.camera.push();
 
         self.draw_sprites(&model.world);
         self.draw_animated_sprites(&model.world);
-        self.draw_selectables(&mut model.world);
 
         self.construction.tick_and_draw(model, &self.camera, &self.resources, lockstep);
 
