@@ -1,11 +1,19 @@
 use macroquad::prelude::*;
 use utility::screen_dimensions;
 
+struct GameCameraParameters {
+    min_zoom: f32,
+    max_zoom: f32,
+    move_speed: f32,
+    zoom_speed: f32
+}
+
 pub struct GameCamera {
     size: Vec2,
     camera_zoom: f32,
     camera: Camera2D,
-    last_mouse_position: Vec2
+    last_mouse_position: Vec2,
+    parameters: GameCameraParameters
 }
 
 impl GameCamera {
@@ -19,13 +27,25 @@ impl GameCamera {
 
         let last_mouse_position: Vec2 = mouse_position().into();
 
+        let parameters = GameCameraParameters {
+            min_zoom: 0.5,
+            max_zoom: 4.0,
+            move_speed: 256.0,
+            zoom_speed: 10.0
+        };
+
         GameCamera {
             size: size,
             camera: camera,
             camera_zoom: 1.0,
-            last_mouse_position: mouse_position().into()
+            last_mouse_position: mouse_position().into(),
+            parameters
         }
 
+    }
+
+    pub fn world_position(&self) -> Vec2 {
+        self.camera.target
     }
 
     pub fn mouse_screen_position(&self) -> Vec2 {
@@ -108,7 +128,7 @@ fn handle_camera_input(active: &mut GameCamera, last_mouse_position: Vec2, dt: f
 
 fn handle_camera_movement(active: &mut GameCamera, dt: f32) {
 
-    let camera_speed = 256.0 * active.camera_zoom;
+    let camera_speed = active.parameters.move_speed * active.camera_zoom;
 
     let is_up_pressed = is_key_down(KeyCode::Up);
     let is_down_pressed = is_key_down(KeyCode::Down);
@@ -141,16 +161,23 @@ fn handle_camera_zoom(active: &mut GameCamera, dt: f32) -> bool {
 
     let (mouse_wheel_delta_x, mouse_wheel_delta_y) = mouse_wheel();
 
-    let min_zoom = 0.5;
-    let max_zoom = 4.0;
+    let min_zoom = active.parameters.min_zoom;
+    let max_zoom = active.parameters.max_zoom;
 
-    let new_zoom = (active.camera_zoom - mouse_wheel_delta_y * dt).clamp(min_zoom, max_zoom);
+    let new_zoom = (active.camera_zoom - mouse_wheel_delta_y * active.parameters.zoom_speed * dt).clamp(min_zoom, max_zoom);
     let new_size = active.size * new_zoom;
+
+    let new_target = if new_zoom < active.camera_zoom {
+        let vector_to_mouse_world_position = active.mouse_world_position() - active.world_position();
+        active.world_position() + (vector_to_mouse_world_position / 4.0) / active.camera_zoom
+    } else {
+        active.camera.target
+    };
 
     let new_camera = Camera2D::from_display_rect(
         Rect {
-            x: active.camera.target.x - (new_size.x / 2.0),
-            y: active.camera.target.y - (new_size.y / 2.0),
+            x: new_target.x - (new_size.x / 2.0),
+            y: new_target.y - (new_size.y / 2.0),
             w: new_size.x,
             h: new_size.y
         }
