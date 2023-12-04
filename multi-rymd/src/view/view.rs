@@ -1074,8 +1074,7 @@ impl RymdGameView {
         self.camera.tick(dt);
         self.update_thrusters(&model.world);
 
-        let screen_center: Vec2 = vec2(screen_width(), screen_height()) / 2.0;
-        self.draw_background_texture(screen_width(), screen_height(), screen_center);
+        self.draw_background_texture(screen_width(), screen_height(), self.camera.world_position());
 
         self.draw_orders(&model);
         self.draw_selection();

@@ -39,3 +39,6 @@ rough list of things to work on in the game currently, usually ordered as items 
 
 # multiplayer
 [] implement game state hashing for checking if in sync
+
+# view
+[x] implement parallax background
