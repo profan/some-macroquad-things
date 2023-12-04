@@ -42,3 +42,4 @@ rough list of things to work on in the game currently, usually ordered as items 
 
 # view
 [x] implement parallax background
+[] look at implementing parallax background layers (different levels/depths of stars?)
