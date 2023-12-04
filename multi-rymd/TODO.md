@@ -10,6 +10,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] implement adding/removing units to an existing selection (when holding ctrl)
 [] implement shift+double click on a unit to select all other units of that type
 [] make ordering by drawing a line distribute units evenly along the line (instead of per point as currently)
+[] implement control groups (ctrl+1, etc) for units
 
 # movement
 [] data-drive parameters for stuff like turn-rate?
