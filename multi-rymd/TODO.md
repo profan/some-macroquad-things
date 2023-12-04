@@ -20,7 +20,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] make the camera move towards where the mouse is when you zoom in
 [] make movement velocity based (ideally framerate independent)
 [] make zooming velocity based (ideally framerate independent)
-[] make camera variables tweakable (currently hardcoded)
+[x] make camera variables tweakable (currently hardcoded)
 
 # construction
 [] when constructing buildings, show an eta in seconds/minutes/etc
