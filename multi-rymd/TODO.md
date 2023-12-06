@@ -29,6 +29,11 @@ rough list of things to work on in the game currently, usually ordered as items 
 
 # units
 [x] represent health of units
+[] allow finding all idle units
+[] allow finding all idle constructor units
+
+# environment
+[] add asteroids which are dynamic bodies
 
 # buildings
 [x] implement construction

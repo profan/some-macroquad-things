@@ -40,7 +40,7 @@ pub fn create_solar_collector_blueprint() -> Blueprint {
         id: 0,
         shortcut: KeyCode::Key1,
         name: String::from("Solar Collector"),
-        texture: String::from("POWER_STATION"),
+        texture: String::from("SOLAR_COLLECTOR"),
         constructor: build_solar_collector
     }
 }
@@ -67,10 +67,9 @@ pub fn build_solar_collector(world: &mut World, owner: PlayerID, position: Vec2)
     let transform = Transform::new(position, 0.0, None);
     let building = Building { state: BuildingState::Ghost };
     let health = Health { full_health: full_solar_collector_health, current_health: initial_solar_collector_health };
-    let sprite = Sprite { texture: "POWER_STATION".to_string() };
+    let sprite = Sprite { texture: "SOLAR_COLLECTOR".to_string() };
     let dynamic_body = DynamicBody { is_static, bounds, kinematic };
-    let orderable = Orderable::new();
 
-    world.spawn((controller, transform, building, health, sprite, dynamic_body, orderable))
+    world.spawn((controller, transform, building, health, sprite, dynamic_body))
 
 }

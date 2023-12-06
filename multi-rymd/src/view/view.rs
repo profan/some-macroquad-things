@@ -390,23 +390,38 @@ impl Resources {
         let placeholder_image = Image::gen_image_color(placeholder_size, placeholder_size, WHITE);
         let placeholder_texture = Texture2D::from_image(&placeholder_image);
 
+        // environment, background, etc
         self.load_texture_or_placeholder("BG_TEXTURE", "raw/space.png", FilterMode::Nearest).await;
+
+        // ship types of various kinds
         self.load_texture_or_placeholder("PLAYER_SHIP", "raw/player_ship.png", FilterMode::Nearest).await;
-        self.load_texture_or_placeholder("SIMPLE_BULLET", "raw/simple_bullet.png", FilterMode::Nearest).await;
-        self.load_texture_or_placeholder("SMALL_SIMPLE_BULLET", "raw/small_simple_bullet.png", FilterMode::Nearest).await;
-        self.load_texture_or_placeholder("MUZZLE_FLASH", "raw/muzzle_flash.png", FilterMode::Nearest).await;
-        self.load_texture_or_placeholder("EXPLOSION", "raw/explosion_1_small.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("ENEMY_GRUNT", "raw/enemy_grunt.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("ENEMY_MEDIUM_GRUNT", "raw/enemy_medium_grunt.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("ENEMY_GRUNT_REPAIR", "raw/enemy_grunt_repair.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("HAMMERHEAD", "raw/hammerhead.png", FilterMode::Nearest).await;
+        
+        // buildings of various kinds
+        self.load_texture_or_placeholder("SHIPYARD", "raw/shipyard.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("POWER_STATION", "raw/power_station.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("POWER_STATION_TURRET", "raw/power_station_turret.png", FilterMode::Nearest).await;
+        self.load_texture_or_placeholder("SOLAR_COLLECTOR", "raw/solar_collector.png", FilterMode::Nearest).await;
 
+        // bullets
+        self.load_texture_or_placeholder("SIMPLE_BULLET", "raw/simple_bullet.png", FilterMode::Nearest).await;
+        self.load_texture_or_placeholder("SMALL_SIMPLE_BULLET", "raw/small_simple_bullet.png", FilterMode::Nearest).await;
+
+        // one-off effects (explosions, etc)
+        self.load_texture_or_placeholder("MUZZLE_FLASH", "raw/muzzle_flash.png", FilterMode::Nearest).await;
+        self.load_texture_or_placeholder("EXPLOSION", "raw/explosion_1_small.png", FilterMode::Nearest).await;
+
+        // particle effect textures
         self.load_texture_or_placeholder("EXHAUST", "raw/exhaust.png", FilterMode::Linear).await;
         self.load_texture_or_placeholder("EXHAUST_SMALL", "raw/exhaust_small.png", FilterMode::Linear).await;
 
-        // now create/Load our particle emitters as well
+        // environmental props?
+        self.load_texture_or_placeholder("ASTEROID", "raw/asteroid.png", FilterMode::Nearest).await;
+
+        // now create/load our particle emitters as well
         self.create_particle_emitter_configurations();
         
     }
@@ -642,7 +657,7 @@ impl RymdGameView {
 
     fn perform_select_all(&mut self, world: &mut World) {
 
-        for (e, (transform, orderable, selectable, controller)) in world.query_mut::<(&Transform, &Orderable, &mut Selectable, &Controller)>() {
+        for (e, (transform, selectable, controller)) in world.query_mut::<(&Transform, &mut Selectable, &Controller)>() {
 
             if self.can_select_unit(controller) == false {
                 continue;
@@ -662,7 +677,7 @@ impl RymdGameView {
 
         println!("[RymdGameView] attempted to select entities inside: {:?}", selection_rectangle);
 
-        for (e, (transform, orderable, controller, bounds, selectable)) in world.query_mut::<(&Transform, &Orderable, &Controller, Option<&Bounds>, &mut Selectable)>() {
+        for (e, (transform, controller, bounds, selectable)) in world.query_mut::<(&Transform, &Controller, Option<&Bounds>, &mut Selectable)>() {
 
             if self.can_select_unit(controller) == false {
                 continue;
@@ -768,7 +783,7 @@ impl RymdGameView {
         let mut thruster_components_to_add = Vec::new();
         let mut bounds_components_to_add = Vec::new();
 
-        for (e, (transform, orderable)) in model.world.query::<Without<(&Transform, &Orderable), &Selectable>>().iter() {
+        for (e, (transform, orderable)) in model.world.query::<Without<(&Transform, &Controller), &Selectable>>().iter() {
             let selectable = Selectable { is_selected: false };
             selectable_components_to_add.push((e, selectable));
         }

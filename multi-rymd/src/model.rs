@@ -1,6 +1,7 @@
 mod buildings;
 mod constants;
 mod components;
+mod environment;
 mod message;
 mod model;
 mod orders;
@@ -11,6 +12,7 @@ mod resources;
 pub use buildings::*;
 pub use constants::*;
 pub use components::*;
+pub use environment::*;
 pub use message::*;
 pub use model::*;
 pub use orders::*;

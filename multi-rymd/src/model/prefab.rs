@@ -6,7 +6,7 @@ use utility::{Kinematic, AsAngle, SteeringParameters};
 
 use crate::PlayerID;
 use crate::model::{Transform, Orderable, AnimatedSprite, Thruster, DynamicBody, Ship, ThrusterKind};
-use super::{Constructor, Controller, Health, DEFAULT_STEERING_PARAMETERS, Steering};
+use super::{Constructor, Controller, Health, DEFAULT_STEERING_PARAMETERS, Steering, create_default_kinematic_body};
 
 #[derive(Bundle)]
 pub struct AnimatedShipBody {
@@ -72,16 +72,7 @@ pub fn create_commander_ship(world: &mut World, owner: PlayerID, position: Vec2)
     let commander_turn_thruster_power = 16.0;
 
     let commander_steering_parameters = DEFAULT_STEERING_PARAMETERS;
-    
-    let commander_kinematic_body = Kinematic {
-        position: position,
-        orientation: 0.0,
-        velocity: Vec2::ZERO,
-        angular_velocity: 0.0,
-        friction_value: 0.975f32,
-        mass: 1.0
-    };
-
+    let commander_kinematic_body = create_default_kinematic_body(position, 0.0);
     let commander_ship_parameters = ShipParameters {
         turn_rate: 4.0
     };

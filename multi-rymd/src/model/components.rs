@@ -159,6 +159,14 @@ pub struct Sprite {
     pub texture: String
 }
 
+impl Sprite {
+    pub fn new<T>(texture: T) -> Sprite
+        where T: Into<String>
+    {
+        Sprite { texture: texture.into() }
+    }
+}
+
 #[derive(Clone)]
 pub struct AnimatedSprite {
     pub texture: String,

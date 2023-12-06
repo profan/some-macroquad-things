@@ -1,4 +1,5 @@
-use utility::SteeringParameters;
+use macroquad::prelude::Vec2;
+use utility::{SteeringParameters, Kinematic};
 
 pub const DEFAULT_STEERING_PARAMETERS: SteeringParameters = SteeringParameters {
 
@@ -18,3 +19,14 @@ pub const DEFAULT_STEERING_PARAMETERS: SteeringParameters = SteeringParameters {
     separation_decay_coefficient: 2048.0
 
 };
+
+pub fn create_default_kinematic_body(position: Vec2, orientation: f32) -> Kinematic {
+    Kinematic {
+        position,
+        orientation,
+        velocity: Vec2::ZERO,
+        angular_velocity: 0.0,
+        friction_value: 0.975f32,
+        mass: 1.0
+    }
+}
