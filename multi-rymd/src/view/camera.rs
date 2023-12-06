@@ -169,7 +169,8 @@ fn handle_camera_zoom(active: &mut GameCamera, dt: f32) -> bool {
 
     let new_target = if new_zoom < active.camera_zoom {
         let vector_to_mouse_world_position = active.mouse_world_position() - active.world_position();
-        active.world_position() + (vector_to_mouse_world_position / 4.0) / active.camera_zoom
+        let current_vector_to_world_position = active.world_position() + (vector_to_mouse_world_position / 4.0) / active.camera_zoom;
+        current_vector_to_world_position
     } else {
         active.camera.target
     };

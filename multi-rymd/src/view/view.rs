@@ -451,8 +451,9 @@ impl RymdGameView {
     }
 
     pub fn start(&mut self, player_id: PlayerID) {
-        let _ = std::mem::replace(&mut self.construction, ConstructionState::new());
-        self.player_id = player_id
+        self.construction = ConstructionState::new();
+        self.camera = GameCamera::new();
+        self.player_id = player_id;
     }
 
     pub async fn load_resources(&mut self) {
