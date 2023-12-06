@@ -144,8 +144,8 @@ impl PhysicsManager {
 
     pub fn standard_collision_response_with_static_entity(entity: &mut DynamicBody, other: &DynamicBody, timestep: f32) -> Vec2 {
 
-        let separating_vector = -(entity.position() - other.position()).normalize();
-        other.velocity() * -other.velocity().normalize().dot(separating_vector)
+        let separating_vector = -(entity.position() - other.position()).normalize_or_zero();
+        other.velocity() * -other.velocity().normalize_or_zero().dot(separating_vector)
 
     }
 
@@ -172,7 +172,7 @@ impl PhysicsManager {
         let separating_vector_length = separating_vector.length();
 
         let offset_magnitude = ((separating_vector_length*separating_vector_length) / average_size) * 8.0;
-        *entity.velocity_mut() += separating_vector.normalize() * offset_magnitude * timestep;
+        *entity.velocity_mut() += separating_vector.normalize_or_zero() * offset_magnitude * timestep;
 
     }
 
