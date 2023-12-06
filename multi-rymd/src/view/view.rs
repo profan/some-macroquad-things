@@ -435,6 +435,7 @@ pub struct RymdGameView {
     selection: SelectionState,
     ordering: OrderingState,
     resources: Resources,
+    render_bounds: bool
 }
 
 impl RymdGameView {
@@ -446,7 +447,8 @@ impl RymdGameView {
             construction: ConstructionState::new(),
             ordering: OrderingState::new(),
             selection: SelectionState::new(),
-            resources: Resources::new()
+            resources: Resources::new(),
+            render_bounds: false
         }
     }
 
@@ -932,13 +934,17 @@ impl RymdGameView {
 
     }
 
-    fn draw_debug_ui(&self, model: &RymdGameModel, debug: &mut DebugText) {
+    fn draw_debug_ui(&mut self, model: &RymdGameModel, debug: &mut DebugText) {
         
         let mouse_world_position = self.camera.mouse_world_position();
         debug.draw_text(format!("mouse (screen) position: {:?}", mouse_position()), TextPosition::TopLeft, WHITE);
         debug.draw_text(format!("mouse (world) position: ({:.1}, {:.1})", mouse_world_position.x, mouse_world_position.y), TextPosition::TopLeft, WHITE);
         debug.draw_text(format!("number of entities: {}", model.world.len()), TextPosition::TopLeft, WHITE);
-        debug.draw_text(format!("collision responses: {}", model.physics_manager.number_of_active_collision_responses()), TextPosition::TopLeft, WHITE);
+        debug.draw_text(format!("collision responses: {} (c to toggle bounds)", model.physics_manager.number_of_active_collision_responses()), TextPosition::TopLeft, WHITE);
+
+        if is_key_released(KeyCode::C) && yakui_macroquad::has_keyboard_focus() == false {
+            self.render_bounds = !self.render_bounds;
+        }
 
     }
 
@@ -1106,8 +1112,11 @@ impl RymdGameView {
         self.draw_orders(&model);
         self.draw_selection();
         self.draw_selectables(&mut model.world);
-        self.draw_body_bounds(&model.world);
         self.draw_ordering();
+
+        if self.render_bounds {
+            self.draw_body_bounds(&model.world);
+        }
 
         self.camera.push();
 
