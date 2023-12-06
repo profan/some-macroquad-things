@@ -173,6 +173,12 @@ impl WithY for Vec2 {
     }
 }
 
+impl WithY for Vec3 {
+    fn with_y(&self, y: f32) -> Vec3 {
+        vec3(self.x, y, self.z)
+    }
+}
+
 pub trait FromRotationArcAround {
     fn from_rotation_arc_2d_around_y(from: Vec2, to: Vec2) -> Quat;
 }
