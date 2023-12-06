@@ -48,8 +48,8 @@ pub fn create_solar_collector_blueprint() -> Blueprint {
 pub fn build_solar_collector(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
 
     let solar_collector_size = 64.0;
-    let bounds = Rect { x: -(solar_collector_size / 2.0), y: -(solar_collector_size / 2.0), w: solar_collector_size, h: solar_collector_size };
-    let is_static = true;
+    let bounds = Rect { x: 0.0, y: 0.0, w: solar_collector_size, h: solar_collector_size };
+    let is_static = false;
 
     let kinematic = Kinematic {
         position: position,

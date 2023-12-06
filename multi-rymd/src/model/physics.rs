@@ -15,7 +15,6 @@ pub trait PhysicsBody {
     fn friction(&self) -> f32;
     fn mass(&self) -> f32;
 
-    fn bounds_mut(&mut self) -> &mut Rect;
     fn position_mut(&mut self) -> &mut Vec2;
     fn velocity_mut(&mut self) -> &mut Vec2;
     fn angular_velocity_mut(&mut self) -> &mut f32;
@@ -83,13 +82,14 @@ impl PhysicsManager {
 
         for (entity, other, active) in &mut self.collision_responses {
 
-            let resolved_impact_velocity = {
+            let (resolved_impact_velocity, this_body_mass) = {
 
                 let other_body = {
                     (*world.get::<&DynamicBody>(*other).expect("must have dynamic body!")).clone()
                 };
 
                 let mut this_body = world.get::<&mut DynamicBody>(*entity).expect("must have dynamic body!");
+                let this_body_mass = this_body.mass();
 
                 let resolved_impact_velocity = if !(*active) {
                     Self::collision_response_with_entity(&mut this_body, &other_body, self.timestep)
@@ -100,14 +100,14 @@ impl PhysicsManager {
 
                 *active = intersect_rect(&this_body.bounds(), &other_body.bounds());
 
-                resolved_impact_velocity
+                (resolved_impact_velocity, this_body_mass)
 
             };
 
             // resolve impact velocity...
             let mut other_body = world.get::<&mut DynamicBody>(*other).expect("must have dynamic body!");
             let other_body_mass = other_body.mass();
-            *other_body.velocity_mut() -= resolved_impact_velocity * other_body_mass;
+            *other_body.velocity_mut() -= resolved_impact_velocity * this_body_mass;
 
         }
 
@@ -121,15 +121,15 @@ impl PhysicsManager {
         let average_size = (entity.bounds().w + entity.bounds().h) / 2.0;
     
         let separating_vector = -(other.position() - entity.position());
-        let normalized_offset = separating_vector.normalize();
+        let normalized_offset = separating_vector.normalize_or_zero();
         let offset_magnitude = average_size / separating_vector.length();
 
-        let other_velocity_normal = other.velocity().normalize();
+        let other_velocity_normal = other.velocity().normalize_or_zero();
         let left_of_center_of_mass = other_velocity_normal.dot(normalized_offset.perpendicular()) < 0.0;
         let offset_multiplier = if left_of_center_of_mass { 1.0 } else { -1.0 };
 
-        let their_velocity_normal = other.velocity().normalize();
-        let other_velocity_towards_us_factor = their_velocity_normal.normalize().dot(separating_vector.normalize()).max(0.0);
+        let their_velocity_normal = other.velocity().normalize_or_zero();
+        let other_velocity_towards_us_factor = their_velocity_normal.normalize_or_zero().dot(separating_vector.normalize_or_zero()).max(0.0);
         let their_velocity_projection = other.velocity() * other_velocity_towards_us_factor;
 
         let impact_velocity_vector = other.mass() * their_velocity_projection;

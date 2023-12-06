@@ -128,10 +128,6 @@ impl PhysicsBody for DynamicBody {
         self.kinematic.mass
     }
 
-    fn bounds_mut(&mut self) -> &mut Rect {
-        &mut self.bounds
-    }
-
     fn position_mut(&mut self) -> &mut Vec2 {
         &mut self.kinematic.position
     }

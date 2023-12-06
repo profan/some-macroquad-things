@@ -73,6 +73,32 @@ fn steer_ship_towards_target(world: &mut World, entity: Entity, x: f32, y: f32, 
 
 }
 
+fn point_ship_towards_target(world: &mut World, entity: Entity, x: f32, y: f32, dt: f32) {
+
+    if let Ok(mut dynamic_body) = world.get::<&mut DynamicBody>(entity) {
+
+        let parameters = if let Ok(steering) = world.get::<&Steering>(entity) {
+            steering.parameters
+        } else {
+            DEFAULT_STEERING_PARAMETERS
+        };
+
+        let target_kinematic = Kinematic { position: vec2(x, y), ..Default::default() };
+        let time_to_target = 1.0;
+
+        let face_steering_output = face_ex(
+            &dynamic_body.kinematic,
+            &target_kinematic,
+            parameters,
+            time_to_target
+        ).unwrap_or_default();
+
+        ship_apply_steering(&mut dynamic_body.kinematic, Some(face_steering_output), dt);
+
+    }
+    
+}
+
 pub trait GameOrdersExt {
 
     fn send_move_order(&mut self, entity: Entity, target_position: Vec2, should_add: bool);
@@ -260,6 +286,10 @@ impl Order for ConstructOrder {
             if self.is_within_constructor_range(entity, &model.world, target_position) == false {
                 steer_ship_towards_target(&mut model.world, entity, target_position.x, target_position.y, dt);
                 return;
+            }
+
+            if self.is_within_constructor_range(entity, &model.world, target_position) {
+                point_ship_towards_target(&mut model.world, entity, target_position.x, target_position.y, dt);
             }
 
             let constructor = model.world.get::<&Constructor>(entity).expect("must have constructor to be issuing construct order!");
