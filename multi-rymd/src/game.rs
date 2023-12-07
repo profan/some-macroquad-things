@@ -137,8 +137,9 @@ impl RymdGame {
     }
 
     fn draw_frame_stats(&self, debug: &mut DebugText) {
+        let fps = 1000.0 / self.stats.main_time_ms;
         debug.draw_text("game update", TextPosition::TopRight, macroquad::color::WHITE);
-        debug.draw_text(format!("frame time: {:.2} ms", self.stats.main_time_ms), TextPosition::TopRight, macroquad::color::WHITE);
+        debug.draw_text(format!("frame time: {:.2} ms ({:.0} fps)", self.stats.main_time_ms, fps), TextPosition::TopRight, macroquad::color::WHITE);
         debug.draw_text(format!("update tick time: {:.2} ms", self.stats.update_time_ms), TextPosition::TopRight, macroquad::color::WHITE);
         debug.draw_text(format!("tick view time: {:.2} ms", self.stats.tick_view_time_ms), TextPosition::TopRight, macroquad::color::WHITE);
         debug.draw_text(format!("draw time: {:.2} ms", self.stats.draw_time_ms), TextPosition::TopRight, macroquad::color::WHITE);
