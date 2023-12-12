@@ -1,3 +1,6 @@
+mod curve;
+pub use curve::*;
+
 mod camera;
 pub use camera::*;
 
