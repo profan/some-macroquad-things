@@ -1,7 +1,5 @@
 use macroquad::math::Vec2;
 
-const SHOULD_INTERPOLATE: bool = false;
-
 pub struct AverageLine2D {
     points: Vec<Vec2>,
     min_distance: f32
@@ -53,21 +51,13 @@ impl AverageLine2D {
             
             if current_point_distance >= self.min_distance {
 
-                if SHOULD_INTERPOLATE {
+                let n = (current_point_distance / self.min_distance).max(1.0);
 
-                    let n = (current_point_distance / self.min_distance).max(1.0);
-
-                    for i in 0..n as i32 {
-                        let p = last_point.lerp(point, (n * i as f32) / current_point_distance);
-                        self.points.push(p);
-                    }
-
-                } else {
-
-                    self.points.push(point);
-
+                for i in 0..n as i32 {
+                    let f = ((n * i as f32) / current_point_distance).min(1.0);
+                    let p = last_point.lerp(point, f);
+                    self.points.push(p);
                 }
-
 
             }
 

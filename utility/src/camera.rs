@@ -1,4 +1,4 @@
-use macroquad::{math::Vec3, prelude::{Camera3D, Vec2, Mat4, Camera, vec2, vec3, draw_line_3d, BLACK}, window::{screen_width, screen_height}};
+use macroquad::{math::Vec3, prelude::{Camera3D, Vec2, Mat4, Camera, vec2, vec3}, window::{screen_width, screen_height}};
 
 pub struct GameCameraParameters {
 
