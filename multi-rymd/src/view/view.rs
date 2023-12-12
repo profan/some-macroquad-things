@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use macroquad_particles::{EmitterConfig, Emitter};
-use utility::{is_point_inside_rect, draw_texture_centered_with_rotation, set_texture_filter, draw_texture_centered_with_rotation_frame, DebugText, TextPosition, AsVector, RotatedBy, draw_arrow, draw_text_centered, draw_texture_centered, WithAlpha, draw_rectangle_lines_centered};
+use utility::{is_point_inside_rect, draw_texture_centered_with_rotation, set_texture_filter, draw_texture_centered_with_rotation_frame, DebugText, TextPosition, AsVector, RotatedBy, draw_arrow, draw_text_centered, draw_texture_centered, WithAlpha, draw_rectangle_lines_centered, AverageLine2D};
 use lockstep_client::{step::LockstepClient, app::yakui_min_column};
 use macroquad_particles::*;
 use macroquad::prelude::*;
@@ -102,41 +102,35 @@ impl ConstructionState {
 }
 
 struct OrderingState {
-    points: Vec<Vec2>
+    line: AverageLine2D
 }
 
 impl OrderingState {
 
     fn new() -> OrderingState {
-        OrderingState { points: Vec::new() }
+        let min_point_distance = 16.0;
+        OrderingState { line: AverageLine2D::new(min_point_distance) }
+    }
+
+    fn is_empty(&self) -> bool {
+        self.line.is_empty()
+    }
+
+    fn points(&self) -> &Vec<Vec2> {
+        self.line.points()
     }
 
     fn add_point(&mut self, point: Vec2) {
-
-        let point_add_threshold = 16.0;
-
-        if self.points.len() > 0 {
-            if point.distance(self.points[self.points.len() - 1]) >= point_add_threshold {
-                self.points.push(point);
-            }
-        } else {
-            self.points.push(point);
-        }
-
+        self.line.add_point(point);
     }
 
     fn get_point(&self, count: usize, idx: usize) -> Vec2 {
-        if count > self.points.len() {
-            let partition = count / self.points.len();
-            self.points[(partition * idx) % self.points.len()]
-        } else {
-            let partition = self.points.len() / count;
-            self.points[(partition * idx) % self.points.len()]
-        }
+        let fraction = idx as f32 / count as f32;
+        self.line.get_point(fraction)
     }
     
     fn clear_points(&mut self) {
-        self.points.clear();
+        self.line.clear_points();
     }
 
 }
@@ -556,7 +550,7 @@ impl RymdGameView {
 
             let should_add = is_key_down(KeyCode::LeftShift);
             let should_group = is_key_down(KeyCode::LeftControl);
-            let current_selection_end_point = self.ordering.points[0];
+            let current_selection_end_point = self.ordering.points()[0];
             let entity_under_cursor = self.get_entity_under_cursor(world);
 
             if let Some(target_entity) = entity_under_cursor {
@@ -709,14 +703,14 @@ impl RymdGameView {
 
     fn draw_ordering(&self) {
         
-        if self.ordering.points.is_empty() {
+        if self.ordering.line.is_empty() {
             return;
         }
 
         let line_thickness = 1.0;
-        let mut last_point: Vec2 = self.ordering.points[0];
+        let mut last_point: Vec2 = self.ordering.points()[0];
 
-        for p in self.ordering.points.iter().skip(1) {
+        for p in self.ordering.points().iter().skip(1) {
             if last_point != *p {
                 let current_screen_point = self.camera.world_to_screen(*p);
                 let last_screen_point = self.camera.world_to_screen(last_point);
