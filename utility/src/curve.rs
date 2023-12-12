@@ -85,16 +85,6 @@ impl AverageLine2D {
             return self.points[0]
         }
 
-        // let current_length = self.euclidean_length();
-
-        // let mut last_point = self.points[0];
-        // let mut current_point = self.points[1];
-        // let mut current_distance = 0.0;
-
-        // while current_distance < fraction {
-
-        // }
-
         let current_index = (self.points.len() as f32 * fraction) as usize;
         self.points[current_index]
 
