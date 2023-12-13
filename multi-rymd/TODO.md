@@ -23,7 +23,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [] make movement velocity based (ideally framerate independent)
 [] make zooming velocity based (ideally framerate independent)
 [x] make camera variables tweakable (currently hardcoded)
-[] make camera reset properly when restarting the game
+[x] make camera reset properly when restarting the game
 
 # construction
 [] when constructing buildings, show an eta in seconds/minutes/etc
