@@ -17,8 +17,18 @@ pub struct Kinematic {
 impl Kinematic {
 
     pub fn integrate(&mut self, dt: f32) {
+
+        if self.velocity.is_nan() {
+            self.velocity = Vec2::ZERO;
+        }
+
+        if self.angular_velocity.is_nan() {
+            self.angular_velocity = 0.0;
+        }
+
         self.position += self.velocity * dt;
         self.orientation += self.angular_velocity * dt;
+
     }
     
     pub fn apply_friction(&mut self, dt: f32) {
