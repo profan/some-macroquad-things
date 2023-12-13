@@ -11,6 +11,7 @@ use crate::model::GameMessage;
 
 use super::get_entity_position;
 use super::get_entity_position_from_id;
+use super::get_closest_position_with_entity_bounds;
 use super::point_ship_towards_target;
 use super::steer_ship_towards_target;
 use super::{RymdGameModel, Constructor, Controller, Health, Orderable};
@@ -257,10 +258,14 @@ impl ConstructOrder {
 
     fn is_within_constructor_range(&self, entity: Entity, world: &World, target: Vec2) -> bool {
 
-        let entity_position = get_entity_position_from_id(world, entity.to_bits().get()).expect("must have position!");
-        let constructor = world.get::<&Constructor>(entity).expect("must have constructor to be issuing construct order!");
-
-        (entity_position.distance(target) as i32) < constructor.build_range
+        if let Some((entity_position, bounds)) = get_closest_position_with_entity_bounds(world, entity) {
+            let constructor = world.get::<&Constructor>(entity).expect("must have constructor to be issuing construct order!");
+            (entity_position.distance(target) as i32) < constructor.build_range + (bounds.size().max_element() / 2.0) as i32
+        } else {
+            let entity_position = get_entity_position_from_id(world, entity.to_bits().get()).expect("must have position!");
+            let constructor = world.get::<&Constructor>(entity).expect("must have constructor to be issuing construct order!");
+            (entity_position.distance(target) as i32) < constructor.build_range
+        }
 
     }
 

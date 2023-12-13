@@ -145,8 +145,8 @@ impl RymdGameModel {
         let mut in_progress_orders = Vec::new();
         let mut completed_orders = Vec::new();
 
-        for (e, orderable) in self.world.query::<&Orderable>().iter() {
-            if let Some(order) = orderable.orders.front() {
+        for (e, (orderable, &state)) in self.world.query::<(&Orderable, &EntityState)>().iter() {
+            if let Some(order) = orderable.orders.front() && Self::is_processing_orders(state) {
                 if order.is_order_completed(e, &self) {
                     completed_orders.push(e);
                 } else {
@@ -157,8 +157,7 @@ impl RymdGameModel {
 
         for &e in &in_progress_orders {
             if let Ok(mut orderable) = self.world.query_one_mut::<&mut Orderable>(e).cloned() {
-                let is_processing_orders = self.is_processing_orders(e);
-                if let Some(order) = orderable.orders.front_mut() && is_processing_orders {
+                if let Some(order) = orderable.orders.front_mut() {
                     order.tick(e, self, Self::TIME_STEP);
                 }
             }
@@ -172,12 +171,8 @@ impl RymdGameModel {
 
     }
 
-    fn is_processing_orders(&mut self, e: Entity) -> bool {
-        if let Ok(state) = self.world.get::<&EntityState>(e) && *state == EntityState::Constructed {
-            true
-        } else {
-            false
-        }
+    fn is_processing_orders(state: EntityState) -> bool {
+        state == EntityState::Constructed
     }
 
     fn tick_transforms(&mut self) {

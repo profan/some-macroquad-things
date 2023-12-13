@@ -2,7 +2,7 @@ use macroquad::prelude::*;
 use hecs::{World, Entity};
 
 use utility::{arrive_ex, face_ex, SteeringOutput, Kinematic, AsVector};
-use super::{DEFAULT_STEERING_PARAMETERS, Steering, DynamicBody, Transform};
+use super::{DEFAULT_STEERING_PARAMETERS, Steering, DynamicBody, Transform, PhysicsBody};
 
 pub fn get_entity_position(world: &World, entity: Entity) -> Option<Vec2> {
     world.get::<&Transform>(entity).and_then(|t| Ok(t.world_position)).or(Err(())).ok()
@@ -10,6 +10,24 @@ pub fn get_entity_position(world: &World, entity: Entity) -> Option<Vec2> {
 
 pub fn get_entity_position_from_id(world: &World, entity_id: u64) -> Option<Vec2> {
     world.get::<&Transform>(Entity::from_bits(entity_id).unwrap()).and_then(|t| Ok(t.world_position)).or(Err(())).ok()
+}
+
+pub fn get_closest_position_with_entity_bounds(world: &World, entity: Entity) -> Option<(Vec2, Rect)> {
+    let entity_position = get_entity_position(world, entity)?;
+    if let Ok(entity_bounds) = world.get::<&DynamicBody>(entity) {
+        Some((entity_position, entity_bounds.bounds()))
+    } else {
+        None
+    }
+}
+
+pub fn get_closest_position_with_entity_id_bounds(world: &World, entity_id: u64) -> Option<(Vec2, Rect)> {
+    let entity_position = get_entity_position_from_id(world, entity_id)?;
+    if let Ok(entity_bounds) = world.get::<&DynamicBody>(Entity::from_bits(entity_id).unwrap()) {
+        Some((entity_position, entity_bounds.bounds()))
+    } else {
+        None
+    }
 }
 
 fn ship_apply_steering(kinematic: &mut Kinematic, steering_maybe: Option<SteeringOutput>, dt: f32) {
