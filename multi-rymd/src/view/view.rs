@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use macroquad_particles::{EmitterConfig, Emitter};
-use utility::{is_point_inside_rect, draw_texture_centered_with_rotation, set_texture_filter, draw_texture_centered_with_rotation_frame, DebugText, TextPosition, AsVector, RotatedBy, draw_arrow, draw_text_centered, draw_texture_centered, WithAlpha, draw_rectangle_lines_centered, AverageLine2D};
+use utility::{is_point_inside_rect, draw_texture_centered_with_rotation, set_texture_filter, draw_texture_centered_with_rotation_frame, DebugText, TextPosition, AsVector, RotatedBy, draw_arrow, draw_text_centered, draw_texture_centered, WithAlpha, draw_rectangle_lines_centered, AverageLine2D, intersect_rect};
 use lockstep_client::{step::LockstepClient, app::yakui_min_column};
 use macroquad_particles::*;
 use macroquad::prelude::*;
@@ -531,10 +531,15 @@ impl RymdGameView {
         let mut closest_distance = f32::MAX;
         let mouse_position: Vec2 = self.camera.mouse_world_position();
 
-        for (e, (transform, bounds)) in world.query::<(&Transform, &Bounds)>().iter() {
+        for (e, (transform, bounds, body)) in world.query::<(&Transform, &Bounds, Option<&DynamicBody>)>().iter() {
 
             let current_distance_to_mouse = mouse_position.distance(transform.world_position);
-            let is_position_within_bounds = current_distance_to_mouse < bounds.as_radius();
+            let is_position_within_bounds = if let Some(body) = body {
+                let physics_bounds = body.bounds().offset(-(body.bounds().size() / 2.0));
+                is_point_inside_rect(&mouse_position, &physics_bounds)
+            } else {
+                is_point_inside_rect(&mouse_position, &bounds.rect.offset(transform.world_position))
+            };
             
             if is_position_within_bounds && current_distance_to_mouse < closest_distance {
                 closest_distance = current_distance_to_mouse;
@@ -698,13 +703,16 @@ impl RymdGameView {
 
         println!("[RymdGameView] attempted to select entities inside: {:?}", selection_rectangle);
 
-        for (e, (transform, controller, bounds, selectable)) in world.query_mut::<(&Transform, &Controller, Option<&Bounds>, &mut Selectable)>() {
+        for (e, (transform, controller, bounds, body, selectable)) in world.query_mut::<(&Transform, &Controller, Option<&Bounds>, Option<&DynamicBody>, &mut Selectable)>() {
 
             if self.can_select_unit(controller) == false {
                 continue;
             }
 
-            let intersected_with_selection = if let Some(bounds) = bounds {
+            let intersected_with_selection = if let Some(body) = body {
+                let current_selectable_bounds = body.bounds().offset(-body.bounds.size() / 2.0);
+                current_selectable_bounds.intersect(world_selection_rectangle).is_some()
+            } else if let Some(bounds) = bounds {
                 let current_selectable_bounds = bounds.rect.offset(transform.world_position);
                 current_selectable_bounds.intersect(world_selection_rectangle).is_some()
             } else {

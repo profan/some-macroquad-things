@@ -12,6 +12,9 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] make ordering by drawing a line distribute units evenly along the line (instead of per point as currently)
 [] implement control groups (ctrl+1, etc) for units
 
+# selection
+[x] make selection aware of exact bounds when available, so that you can more precisely select units in construction
+
 # movement
 [] data-drive parameters for stuff like turn-rate?
 
