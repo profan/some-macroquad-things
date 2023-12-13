@@ -2,48 +2,14 @@ use std::f32::consts::PI;
 
 use hecs::*;
 use macroquad::prelude::*;
-use utility::{Kinematic, AsAngle, SteeringParameters};
+use utility::AsAngle;
 
 use crate::PlayerID;
 use crate::model::{Transform, Orderable, AnimatedSprite, Thruster, DynamicBody, Ship, ThrusterKind};
-use super::{Constructor, Controller, Health, DEFAULT_STEERING_PARAMETERS, Steering, create_default_kinematic_body};
-
-#[derive(Bundle)]
-pub struct AnimatedShipBody {
-    health: Health,
-    transform: Transform,
-    dynamic_body: DynamicBody,
-    orderable: Orderable,
-    sprite: AnimatedSprite,
-    steering: Steering,
-    ship: Ship
-}
+use super::{Constructor, Controller, Health, DEFAULT_STEERING_PARAMETERS, Steering, create_default_kinematic_body, Blueprint, EntityState};
 
 pub struct ShipParameters {
     turn_rate: f32
-}
-
-impl AnimatedShipBody {
-
-    pub fn new(health: i32, position: Vec2, kinematic: Kinematic, parameters: ShipParameters, steering: SteeringParameters, texture: &str, v_frames: i32) -> AnimatedShipBody {
-
-        let standard_size = 32.0;
-
-        // #FIXME: we need to compute the bounds somehow without requiring graphics... maybe that is a fools errand? we'll figure it out i guess, json file maybe?
-        let bounds = Rect { x: 0.0, y: 0.0, w: standard_size, h: standard_size };
-        let is_static = false;
-
-        AnimatedShipBody {
-            health: Health::new(health),
-            transform: Transform::new(position, 0.0, None),
-            dynamic_body: DynamicBody { is_static, bounds, kinematic },
-            orderable: Orderable::new(),
-            sprite: AnimatedSprite { texture: texture.to_string(), current_frame: 0, h_frames: v_frames },
-            steering: Steering { parameters: steering },
-            ship: Ship::new(parameters.turn_rate)
-        }
-    }
-
 }
 
 #[derive(Bundle)]
@@ -61,29 +27,53 @@ impl ShipThruster {
     }
 }
 
-pub fn create_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
+pub fn create_commander_ship_blueprint() -> Blueprint {
+    Blueprint {
+        id: 2,
+        shortcut: KeyCode::Key3,
+        name: String::from("Commander Ship"),
+        texture: String::from("PLAYER_SHIP"),
+        constructor: build_commander_ship,
+        is_building: false
+    }
+}
 
+pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
+
+    let commander_ship_size = 32.0;
+    let bounds = Rect { x: 0.0, y: 0.0, w: commander_ship_size, h: commander_ship_size };
+    let is_static = false;
+
+    let initial_commander_health = 100;
     let commander_health = 1000;
 
-    let commander_build_speed = 100;
+    let commander_build_speed = 250;
     let commander_build_range = 100;
 
     let commander_thruster_power = 64.0;
     let commander_turn_thruster_power = 16.0;
 
-    let commander_steering_parameters = DEFAULT_STEERING_PARAMETERS;
-    let commander_kinematic_body = create_default_kinematic_body(position, 0.0);
-    let commander_ship_parameters = ShipParameters {
+    let steering_parameters = DEFAULT_STEERING_PARAMETERS;
+    let kinematic = create_default_kinematic_body(position, 0.0);
+    let ship_parameters = ShipParameters {
         turn_rate: 4.0
     };
 
-    let commander_ship_controller = Controller { id: owner };
-    let commander_ship_constructor = Constructor { constructibles: vec![0], build_speed: commander_build_range, build_range: commander_build_speed };
-    let commander_ship_body = world.spawn(AnimatedShipBody::new(commander_health, position, commander_kinematic_body, commander_ship_parameters, commander_steering_parameters, "PLAYER_SHIP", 3));
+    // assemble the ship
+    let controller = Controller { id: owner };
+    let constructor = Constructor { constructibles: vec![0, 1], build_speed: commander_build_range, build_range: commander_build_speed };
+    let health = Health { full_health: commander_health, current_health: initial_commander_health };
+    let transform = Transform::new(position, 0.0, None);
+    let dynamic_body = DynamicBody { is_static, bounds, kinematic };
+    let sprite = AnimatedSprite { texture: "PLAYER_SHIP".to_string(), current_frame: 0, h_frames: 3 };
+    let steering = Steering { parameters: steering_parameters };
+    let ship = Ship::new(ship_parameters.turn_rate);
+    let orderable = Orderable::new();
+    let state = EntityState::Ghost;
 
-    let _ = world.insert_one(commander_ship_body, commander_ship_controller);
-    let _ = world.insert_one(commander_ship_body, commander_ship_constructor);
+    let commander_ship_body = world.spawn((health, transform, dynamic_body, sprite, steering, ship, orderable, controller, constructor, state));
 
+    // add ship thrusters
     let commander_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), -Vec2::X, -(PI / 2.0), commander_turn_thruster_power, ThrusterKind::Attitude, commander_ship_body));
     let commander_ship_thuster_right_top = world.spawn(ShipThruster::new(vec2(14.0, 4.0), Vec2::X, PI / 2.0, commander_turn_thruster_power, ThrusterKind::Attitude, commander_ship_body));
 

@@ -11,11 +11,13 @@ use crate::model::GameMessage;
 use crate::game::RymdGameParameters;
 
 use super::Building;
-use super::BuildingState;
+use super::EntityState;
 use super::Health;
 use super::PhysicsManager;
+use super::create_commander_ship_blueprint;
+use super::create_shipyard_blueprint;
 use super::create_solar_collector_blueprint;
-use super::{create_commander_ship, GameOrder, Orderable, Transform, DynamicBody, Blueprint};
+use super::{build_commander_ship, GameOrder, Orderable, Transform, DynamicBody, Blueprint};
 
 pub struct RymdGameModel {
     pub physics_manager: PhysicsManager,
@@ -32,8 +34,18 @@ impl BlueprintManager {
     pub fn new() -> BlueprintManager {
 
         let mut blueprints = HashMap::new();
+
+        // buildings
         let solar_collector_blueprint = create_solar_collector_blueprint();
+        let shipyard_blueprint = create_shipyard_blueprint();
+
         blueprints.insert(solar_collector_blueprint.id, solar_collector_blueprint);
+        blueprints.insert(shipyard_blueprint.id, shipyard_blueprint);
+
+        // units
+        let commander_ship_blueprint = create_commander_ship_blueprint();
+
+        blueprints.insert(commander_ship_blueprint.id, commander_ship_blueprint);
 
         BlueprintManager {
             blueprints
@@ -68,7 +80,10 @@ impl RymdGameModel {
                 let random_x = rand::gen_range(200, 400);
                 let random_y = rand::gen_range(200, 400);
 
-                create_commander_ship(&mut self.world, player.id, vec2(random_x as f32, random_y as f32));
+                let commander_ship = build_commander_ship(&mut self.world, player.id, vec2(random_x as f32, random_y as f32));
+                if let Ok(mut state) = self.world.get::<&mut EntityState>(commander_ship) {
+                    *state = EntityState::Constructed;
+                }
 
             }
             
@@ -113,12 +128,12 @@ impl RymdGameModel {
         }
     }
 
-    fn tick_buildings(&mut self) {
+    fn tick_entity_states(&mut self) {
 
-        for (e, (building, health)) in self.world.query_mut::<(&mut Building, &Health)>() {
-            if building.state == BuildingState::Ghost {
+        for (e, (state, health)) in self.world.query_mut::<(&mut EntityState, &Health)>() {
+            if *state == EntityState::Ghost {
                 if health.is_at_full_health() {
-                    building.state = BuildingState::Constructed;
+                    *state = EntityState::Constructed;
                 }
             }
         }
@@ -142,7 +157,8 @@ impl RymdGameModel {
 
         for &e in &in_progress_orders {
             if let Ok(mut orderable) = self.world.query_one_mut::<&mut Orderable>(e).cloned() {
-                if let Some(order) = orderable.orders.front_mut() {
+                let is_processing_orders = self.is_processing_orders(e);
+                if let Some(order) = orderable.orders.front_mut() && is_processing_orders {
                     order.tick(e, self, Self::TIME_STEP);
                 }
             }
@@ -154,6 +170,14 @@ impl RymdGameModel {
             }
         }
 
+    }
+
+    fn is_processing_orders(&mut self, e: Entity) -> bool {
+        if let Ok(state) = self.world.get::<&EntityState>(e) && *state == EntityState::Constructed {
+            true
+        } else {
+            false
+        }
     }
 
     fn tick_transforms(&mut self) {
@@ -213,7 +237,7 @@ impl RymdGameModel {
     }
 
     pub fn tick(&mut self) {
-        self.tick_buildings();
+        self.tick_entity_states();
         self.tick_orderables();
         self.tick_transforms();
         self.tick_physics_engine();

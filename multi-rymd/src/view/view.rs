@@ -9,17 +9,17 @@ use hecs::*;
 use yakui::Alignment;
 
 use crate::PlayerID;
-use crate::model::{BlueprintID, Building, PhysicsBody};
+use crate::model::{BlueprintID, Building, PhysicsBody, Spawner, EntityState};
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Controller, Health, get_entity_position};
 
 use super::{calculate_sprite_bounds, GameCamera};
 
-fn building_state_to_alpha(building: Option<&Building>) -> f32 {
-    if let Some(building) = building {
-        match building.state {
-            crate::model::BuildingState::Ghost => 0.75,
-            crate::model::BuildingState::Destroyed => 1.0,
-            crate::model::BuildingState::Constructed => 1.0,
+fn entity_state_to_alpha(state: Option<&EntityState>) -> f32 {
+    if let Some(state) = state {
+        match state {
+            crate::model::EntityState::Ghost => 0.75,
+            crate::model::EntityState::Destroyed => 1.0,
+            crate::model::EntityState::Constructed => 1.0,
         }
     } else {
         1.0
@@ -54,13 +54,25 @@ impl ConstructionState {
         if let Some(blueprint_id) = self.current_blueprint_id {
 
             let should_add_to_queue = is_key_down(KeyCode::LeftShift);
-            let current_build_position: Vec2 = camera.mouse_world_position();
     
-            for (e, (_t, _o, s, _c)) in model.world.query::<(&Transform, &Orderable, &Selectable, &Constructor)>().iter() {
-                if s.is_selected {
-                    lockstep.send_build_order(e, current_build_position, blueprint_id, should_add_to_queue);
-                    println!("[RymdGameView] attempted to send build order for position: {} and blueprint: {}", current_build_position, blueprint_id);
+            for (e, (transform, _o, selectable, _c, spawner)) in model.world.query::<(&Transform, &Orderable, &Selectable, &Constructor, Option<&Spawner>)>().iter() {
+
+                if selectable.is_selected == false {
+                    continue;
                 }
+
+                if let Some(spawner) = spawner {
+                    let is_self_order = true;
+                    let current_build_position: Vec2 = transform.world_position + spawner.position;
+                    lockstep.send_build_order(e, current_build_position, blueprint_id, should_add_to_queue, is_self_order);
+                    println!("[RymdGameView] attempted to send build order for unit at position: {} and blueprint: {}", current_build_position, blueprint_id);
+                } else {
+                    let is_self_order = false;
+                    let current_build_position: Vec2 = camera.mouse_world_position();
+                    lockstep.send_build_order(e, current_build_position, blueprint_id, should_add_to_queue, is_self_order);
+                    println!("[RymdGameView] attempted to send build order for building at position: {} and blueprint: {}", current_build_position, blueprint_id);
+                }
+
             }
 
             self.current_blueprint_id = None;
@@ -71,34 +83,46 @@ impl ConstructionState {
 
     fn tick_and_draw(&mut self, model: &RymdGameModel, camera: &GameCamera, resources: &Resources, lockstep: &mut LockstepClient) {
 
-        let should_cancel = is_mouse_button_released(MouseButton::Right) || is_mouse_button_released(MouseButton::Middle);
-        let should_build = is_mouse_button_released(MouseButton::Left);
-        let mouse_world_position: Vec2 = camera.mouse_world_position();
-
         if let Some(blueprint_id) = self.current_blueprint_id {
 
             let blueprint = model.blueprint_manager.get_blueprint(blueprint_id).expect("could not find the blueprint in the manager somehow, should be impossible!");
-            let blueprint_preview_texture = resources.get_texture_by_name(&blueprint.texture);
-            let blueprint_preview_position = mouse_world_position;
 
-            draw_texture_centered(
-                blueprint_preview_texture,
-                blueprint_preview_position.x,
-                blueprint_preview_position.y,
-                WHITE.with_alpha(0.5)
-            );
-
-            if should_build {
+            if blueprint.is_building {
+                self.preview_building(resources, blueprint, model, camera, lockstep);
+            } else {
                 self.finalize_blueprint(model, camera, lockstep);
-            }
-
-            if should_cancel {
-                self.cancel_blueprint()
             }
             
         }
 
     }
+
+    fn preview_building(&mut self, resources: &Resources, blueprint: &crate::model::Blueprint, model: &RymdGameModel, camera: &GameCamera, lockstep: &mut LockstepClient) {
+
+        let should_cancel = is_mouse_button_released(MouseButton::Right) || is_mouse_button_released(MouseButton::Middle);
+        let should_build = is_mouse_button_released(MouseButton::Left);
+        let mouse_world_position: Vec2 = camera.mouse_world_position();
+
+        let blueprint_preview_texture = resources.get_texture_by_name(&blueprint.texture);
+        let blueprint_preview_position = mouse_world_position;
+
+        draw_texture_centered(
+            blueprint_preview_texture,
+            blueprint_preview_position.x,
+            blueprint_preview_position.y,
+            WHITE.with_alpha(0.5)
+        );
+
+        if should_build {
+            self.finalize_blueprint(model, camera, lockstep);
+        }
+
+        if should_cancel {
+            self.cancel_blueprint()
+        }
+
+    }
+
 }
 
 struct OrderingState {
@@ -836,17 +860,17 @@ impl RymdGameView {
     }
 
     fn draw_sprites(&self, world: &World) {
-        for (e, (transform, sprite, building)) in world.query::<(&Transform, &Sprite, Option<&Building>)>().iter() {
-            let sprite_texture_alpha = building_state_to_alpha(building);
+        for (e, (transform, sprite, state)) in world.query::<(&Transform, &Sprite, Option<&EntityState>)>().iter() {
+            let sprite_texture_alpha = entity_state_to_alpha(state);
             let sprite_texture_handle = self.resources.get_texture_by_name(&sprite.texture);
             draw_texture_centered_with_rotation(sprite_texture_handle, transform.world_position.x, transform.world_position.y, WHITE.with_alpha(sprite_texture_alpha), transform.world_rotation);
         }
     }
 
     fn draw_animated_sprites(&self, world: &World) {
-        for (e, (transform, sprite, building)) in world.query::<(&Transform, &AnimatedSprite, Option<&Building>)>().iter() {
+        for (e, (transform, sprite, state)) in world.query::<(&Transform, &AnimatedSprite, Option<&EntityState>)>().iter() {
             let is_sprite_flipped = false;
-            let sprite_texture_alpha = building_state_to_alpha(building);
+            let sprite_texture_alpha = entity_state_to_alpha(state);
             let sprite_texture_handle = self.resources.get_texture_by_name(&sprite.texture);
             draw_texture_centered_with_rotation_frame(sprite_texture_handle, transform.world_position.x, transform.world_position.y, WHITE.with_alpha(sprite_texture_alpha), transform.world_rotation, sprite.current_frame, sprite.h_frames, is_sprite_flipped);
         }
@@ -1021,7 +1045,7 @@ impl RymdGameView {
                             if yakui::button(blueprint.name.to_string()).clicked {
                                 
                                 for (e, (t, o, s, c)) in &selected_constructor_units {
-                                    lockstep.send_build_order(*e, current_build_position, blueprint.id, should_add_to_queue);
+                                    lockstep.send_build_order(*e, current_build_position, blueprint.id, should_add_to_queue, blueprint.is_building == false);
                                     println!("[RymdGameView] attempted to send build order for position: {} and blueprint: {}", current_build_position, blueprint.id);
                                 }
 

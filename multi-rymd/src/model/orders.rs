@@ -1,3 +1,5 @@
+use std::f32::consts::E;
+
 use hecs::{Entity, World};
 use macroquad::prelude::*;
 use nanoserde::{SerJson, DeJson};
@@ -16,7 +18,7 @@ use super::{RymdGameModel, Constructor, Controller, Health, Orderable};
 pub trait GameOrdersExt {
 
     fn send_move_order(&mut self, entity: Entity, target_position: Vec2, should_add: bool);
-    fn send_build_order(&mut self, entity: Entity, target_position: Vec2, blueprint_id: BlueprintID, should_add: bool);
+    fn send_build_order(&mut self, entity: Entity, target_position: Vec2, blueprint_id: BlueprintID, should_add: bool, is_self: bool);
     fn send_repair_order(&mut self, entity: Entity, target_position: Vec2, target: Entity, should_add: bool);
     fn cancel_current_orders(&mut self, entity: Entity);
 
@@ -30,14 +32,14 @@ impl GameOrdersExt for LockstepClient {
         self.send_command(move_unit_message.serialize_json());
     }
 
-    fn send_build_order(&mut self, entity: Entity, target_position: Vec2, blueprint_id: BlueprintID, should_add: bool) {
-        let build_order = GameOrder::Construct(ConstructOrder { entity_id: None, blueprint_id: Some(blueprint_id), x: target_position.x, y: target_position.y });
+    fn send_build_order(&mut self, entity: Entity, target_position: Vec2, blueprint_id: BlueprintID, should_add: bool, is_self: bool) {
+        let build_order = GameOrder::Construct(ConstructOrder { entity_id: None, blueprint_id: Some(blueprint_id), is_self_order: is_self, x: target_position.x, y: target_position.y });
         let build_unit_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: build_order, add: should_add };
         self.send_command(build_unit_message.serialize_json());
     }
 
     fn send_repair_order(&mut self, entity: Entity, target_position: Vec2, target: Entity, should_add: bool) {
-        let build_order = GameOrder::Construct(ConstructOrder { entity_id: Some(target.to_bits().get()), blueprint_id: None, x: target_position.x, y: target_position.y });
+        let build_order = GameOrder::Construct(ConstructOrder { entity_id: Some(target.to_bits().get()), blueprint_id: None, is_self_order: false, x: target_position.x, y: target_position.y });
         let build_unit_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: build_order, add: should_add };
         self.send_command(build_unit_message.serialize_json());
     }
@@ -166,6 +168,7 @@ impl Order for AttackMoveOrder {
 pub struct ConstructOrder {
     entity_id: Option<EntityID>,
     blueprint_id: Option<BlueprintID>,
+    is_self_order: bool,
     x: f32,
     y: f32
 }
@@ -197,12 +200,12 @@ impl Order for ConstructOrder {
         if let Some(entity_id) = self.entity_id && let Some(constructing_entity) = Entity::from_bits(entity_id) {
 
             let target_position = get_entity_position_from_id(&model.world, entity_id).expect("could not unpack target position?");
-            if self.is_within_constructor_range(entity, &model.world, target_position) == false {
+            if self.is_self_order == false && self.is_within_constructor_range(entity, &model.world, target_position) == false {
                 steer_ship_towards_target(&mut model.world, entity, target_position.x, target_position.y, dt);
                 return;
             }
 
-            if self.is_within_constructor_range(entity, &model.world, target_position) {
+            if self.is_self_order == false && self.is_within_constructor_range(entity, &model.world, target_position) {
                 point_ship_towards_target(&mut model.world, entity, target_position.x, target_position.y, dt);
             }
 
@@ -220,7 +223,7 @@ impl Order for ConstructOrder {
 
             let construction_position = vec2(self.x, self.y);
 
-            if self.is_within_constructor_range(entity, &model.world, construction_position) == false {
+            if self.is_self_order == false && self.is_within_constructor_range(entity, &model.world, construction_position) == false {
                 steer_ship_towards_target(&mut model.world, entity, construction_position.x, construction_position.y, dt);
                 return;
             }
@@ -235,8 +238,12 @@ impl Order for ConstructOrder {
                 // cancel our current order now
                 self.cancel_current_order(entity, &mut model.world);
     
-                // now that this is created, issue a local order to ourselves to help build this new building
-                self.construct_building(entity, &mut model.world, new_entity_id, construction_position);
+                // now that this is created, issue a local order to ourselves to help build this new entity
+                if self.is_self_order {
+                    self.construct_internal_entity(entity, &mut model.world, new_entity_id, construction_position);
+                } else {
+                    self.construct_external_entity(entity, &mut model.world, new_entity_id, construction_position);
+                }
 
             }
 
@@ -262,9 +269,14 @@ impl ConstructOrder {
         orderable.orders.pop_front();
     }
 
-    fn construct_building(&self, entity: Entity, world: &mut World, building_entity: Entity, position: Vec2) {
+    fn construct_external_entity(&self, entity: Entity, world: &mut World, building_entity: Entity, position: Vec2) {
         let mut orderable = world.get::<&mut Orderable>(entity).expect("must have orderable!");
-        orderable.orders.push_front(GameOrder::Construct(ConstructOrder { entity_id: Some(building_entity.to_bits().get()), blueprint_id: None, x: position.x, y: position.y }))
+        orderable.orders.push_front(GameOrder::Construct(ConstructOrder { entity_id: Some(building_entity.to_bits().get()), blueprint_id: None, is_self_order: false, x: position.x, y: position.y }))
+    }
+
+    fn construct_internal_entity(&self, entity: Entity, world: &mut World, building_entity: Entity, position: Vec2) {
+        let mut orderable = world.get::<&mut Orderable>(entity).expect("must have orderable!");
+        orderable.orders.push_front(GameOrder::Construct(ConstructOrder { entity_id: Some(building_entity.to_bits().get()), blueprint_id: None, is_self_order: true, x: position.x, y: position.y }))  
     }
 
 }
