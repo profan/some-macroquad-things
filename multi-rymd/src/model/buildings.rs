@@ -3,7 +3,7 @@ use macroquad::{math::{Vec2, Rect}, miniquad::KeyCode};
 use utility::Kinematic;
 
 use crate::PlayerID;
-use super::{Controller, Health, Sprite, Transform, Orderable, DynamicBody};
+use super::{Controller, Health, Sprite, Transform, DynamicBody};
 
 pub use i32 as BlueprintID;
 

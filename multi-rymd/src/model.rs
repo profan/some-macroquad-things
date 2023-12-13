@@ -8,6 +8,7 @@ mod orders;
 mod physics;
 mod prefab;
 mod resources;
+mod steering;
 
 pub use buildings::*;
 pub use constants::*;
@@ -19,3 +20,4 @@ pub use orders::*;
 pub use physics::*;
 pub use prefab::*;
 pub use resources::*;
+pub use steering::*;

@@ -2,102 +2,16 @@ use hecs::{Entity, World};
 use macroquad::prelude::*;
 use nanoserde::{SerJson, DeJson};
 use lockstep_client::step::LockstepClient;
-use utility::{Kinematic, arrive_ex, face_ex, SteeringOutput, AsVector};
 
 use crate::EntityID;
 use crate::model::BlueprintID;
 use crate::model::GameMessage;
 
-use super::{RymdGameModel, Steering};
-use super::{Transform, DynamicBody, DEFAULT_STEERING_PARAMETERS, Constructor, Controller, Health, Orderable};
-
-fn ship_apply_steering(kinematic: &mut Kinematic, steering_maybe: Option<SteeringOutput>, dt: f32) {
-
-    // #FIXME: make this data driven, this should be defined per entity (type?)
-    let turn_rate = 4.0;
-
-    if let Some(steering) = steering_maybe {
-
-        let desired_linear_velocity = steering.linear * dt;
-
-        // project our desired velocity along where we're currently pointing first
-        let projected_linear_velocity = desired_linear_velocity * desired_linear_velocity.dot(-kinematic.orientation.as_vector()).max(0.0);
-        kinematic.velocity += projected_linear_velocity;
-
-        let turn_delta = steering.angular * turn_rate * dt;
-        kinematic.angular_velocity += turn_delta;
-
-    }
-
-}
-
-pub fn get_entity_position(world: &World, entity: Entity) -> Option<Vec2> {
-    world.get::<&Transform>(entity).and_then(|t| Ok(t.world_position)).or(Err(())).ok()
-}
-
-pub fn get_entity_position_from_id(world: &World, entity_id: u64) -> Option<Vec2> {
-    world.get::<&Transform>(Entity::from_bits(entity_id).unwrap()).and_then(|t| Ok(t.world_position)).or(Err(())).ok()
-}
-
-fn steer_ship_towards_target(world: &mut World, entity: Entity, x: f32, y: f32, dt: f32) {
-
-    if let Ok(mut dynamic_body) = world.get::<&mut DynamicBody>(entity) {
-
-        let parameters = if let Ok(steering) = world.get::<&Steering>(entity) {
-            steering.parameters
-        } else {
-            DEFAULT_STEERING_PARAMETERS
-        };
-
-        let target_kinematic = Kinematic { position: vec2(x, y), ..Default::default() };
-        let time_to_target = 1.0;
-
-        let arrive_steering_output = arrive_ex(
-            &dynamic_body.kinematic,
-            &target_kinematic,
-            parameters,
-            time_to_target
-        ).unwrap_or_default();
-
-        let face_steering_output = face_ex(
-            &dynamic_body.kinematic,
-            &target_kinematic,
-            parameters,
-            time_to_target
-        ).unwrap_or_default();
-
-        let final_steering_output = arrive_steering_output + face_steering_output;
-        ship_apply_steering(&mut dynamic_body.kinematic, Some(final_steering_output), dt);
-
-    }
-
-}
-
-fn point_ship_towards_target(world: &mut World, entity: Entity, x: f32, y: f32, dt: f32) {
-
-    if let Ok(mut dynamic_body) = world.get::<&mut DynamicBody>(entity) {
-
-        let parameters = if let Ok(steering) = world.get::<&Steering>(entity) {
-            steering.parameters
-        } else {
-            DEFAULT_STEERING_PARAMETERS
-        };
-
-        let target_kinematic = Kinematic { position: vec2(x, y), ..Default::default() };
-        let time_to_target = 1.0;
-
-        let face_steering_output = face_ex(
-            &dynamic_body.kinematic,
-            &target_kinematic,
-            parameters,
-            time_to_target
-        ).unwrap_or_default();
-
-        ship_apply_steering(&mut dynamic_body.kinematic, Some(face_steering_output), dt);
-
-    }
-    
-}
+use super::get_entity_position;
+use super::get_entity_position_from_id;
+use super::point_ship_towards_target;
+use super::steer_ship_towards_target;
+use super::{RymdGameModel, Constructor, Controller, Health, Orderable};
 
 pub trait GameOrdersExt {
 
