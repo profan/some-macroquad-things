@@ -23,7 +23,7 @@ struct Triangle {
 #[derive(Clone, Copy)]
 struct Orb {
     position: Vec3,
-    normal: Vec3
+    _normal: Vec3
 }
 
 struct Game {
