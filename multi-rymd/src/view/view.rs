@@ -830,10 +830,10 @@ impl RymdGameView {
         let mut thruster_components_to_add = Vec::new();
         let mut bounds_components_to_add = Vec::new();
 
-        for (e, (transform, constructor, bounds)) in model.world.query::<Without<(&Transform, &Constructor, &Bounds), &ConstructorBeam>>().iter() {
+        for (e, (transform, constructor)) in model.world.query::<Without<(&Transform, &Constructor), &ConstructorBeam>>().iter() {
             let emitter_config_name = "REPAIR";
             let particle_emitter = Emitter::new(self.resources.get_emitter_config_by_name(emitter_config_name));
-            let constructor_beam = ConstructorBeam { emitter: particle_emitter, offset: vec2(bounds.rect.x / 2.0, 0.0) };
+            let constructor_beam = ConstructorBeam { emitter: particle_emitter, offset: constructor.beam_offset };
             beam_components_to_add.push((e, constructor_beam));
         }
 
@@ -942,8 +942,9 @@ impl RymdGameView {
 
             if constructor.is_constructing && orderable.orders.is_empty() == false {
 
+                let beam_emitter_offset = beam.offset.rotated_by(transform.world_rotation + (PI/2.0));
                 let beam_emit_target = orderable.orders.front().unwrap().get_target_position(model).unwrap();
-                let beam_emit_delta = beam_emit_target - transform.world_position;
+                let beam_emit_delta = beam_emit_target - (transform.world_position + beam_emitter_offset);
                 let beam_emit_direction = beam_emit_delta.normalize();
                 let beam_emit_distance = beam_emit_delta.length();
 
