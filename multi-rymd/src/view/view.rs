@@ -949,7 +949,7 @@ impl RymdGameView {
                 let beam_emit_distance = beam_emit_delta.length();
 
                 beam.emitter.config.initial_direction = beam_emit_direction;
-                beam.emitter.config.initial_velocity = (body.velocity() + beam_emit_direction * 16.0).length();
+                beam.emitter.config.initial_velocity = ((body.velocity() + beam_emit_direction * 16.0).length()).max(48.0);
 
                 // calculate lifetime depending on how far we want the particle to go (preferably reaching our target!)
                 let lifetime = beam_emit_distance / beam.emitter.config.initial_velocity;
