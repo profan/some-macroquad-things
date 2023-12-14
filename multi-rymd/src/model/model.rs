@@ -10,7 +10,6 @@ use crate::model::BlueprintID;
 use crate::model::GameMessage;
 use crate::game::RymdGameParameters;
 
-use super::Building;
 use super::EntityState;
 use super::Health;
 use super::PhysicsManager;
@@ -165,7 +164,9 @@ impl RymdGameModel {
 
         for &e in &completed_orders {
             if let Ok(orderable) = self.world.query_one_mut::<&mut Orderable>(e) {
-                orderable.orders.pop_front();
+                if let Some(mut o) = orderable.orders.pop_front() {
+                    o.on_order_completed(e, self);
+                }
             }
         }
 

@@ -32,6 +32,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [] when constructing buildings, show an eta in seconds/minutes/etc
 [] when constructing buildings, make sure multiple constructors racing to build a single building end up helping to construct the same building, rather than building individual buildings.
 [x] when constructing entities, make the construction range ependent on the (circle) bounds of the item in construction, rather than just the centerpoint
+[x] when constructing buildings with a unit, draw a construction beam
 
 # units
 [x] represent health of units

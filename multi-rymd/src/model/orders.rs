@@ -1,5 +1,3 @@
-use std::f32::consts::E;
-
 use hecs::{Entity, World};
 use macroquad::prelude::*;
 use nanoserde::{SerJson, DeJson};
@@ -58,6 +56,7 @@ trait Order {
     fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool;
     fn get_target_position(&self, model: &RymdGameModel) -> Option<Vec2>;
     fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32);
+    fn completed(&self, entity: Entity, model: &mut RymdGameModel);
 
 }
 
@@ -92,6 +91,16 @@ impl GameOrder {
             GameOrder::Cancel(order) => order.tick(entity, model, dt)
         }
     }
+
+    pub fn on_order_completed(&mut self, entity: Entity, model: &mut RymdGameModel) {
+        match self {
+            GameOrder::Move(order) => order.completed(entity, model),
+            GameOrder::Attack(order) => order.completed(entity, model),
+            GameOrder::AttackMove(order) => order.completed(entity, model),
+            GameOrder::Construct(order) => order.completed(entity, model),
+            GameOrder::Cancel(order) => order.completed(entity, model)
+        }     
+    }
  
 }
 
@@ -124,6 +133,10 @@ impl Order for MoveOrder {
     fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
         steer_ship_towards_target(&mut model.world, entity, self.x, self.y, dt);
     }
+
+    fn completed(&self, entity: Entity, model: &mut RymdGameModel) {
+        
+    }
 }
 
 #[derive(Debug, Copy, Clone, SerJson, DeJson)]
@@ -141,6 +154,10 @@ impl Order for AttackOrder {
     }
 
     fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
+        todo!()
+    }
+
+    fn completed(&self, entity: Entity, model: &mut RymdGameModel) {
         todo!()
     }
 }
@@ -161,6 +178,10 @@ impl Order for AttackMoveOrder {
     }
 
     fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
+        todo!()
+    }
+
+    fn completed(&self, entity: Entity, model: &mut RymdGameModel) {
         todo!()
     }
 }
@@ -210,7 +231,8 @@ impl Order for ConstructOrder {
                 point_ship_towards_target(&mut model.world, entity, target_position.x, target_position.y, dt);
             }
 
-            let constructor = model.world.get::<&Constructor>(entity).expect("must have constructor to be issuing construct order!");
+            let mut constructor = model.world.get::<&mut Constructor>(entity).expect("must have constructor to be issuing construct order!");
+            constructor.is_constructing = true;
 
             if self.is_order_completed(entity, model) == false {
                 let mut entity_health = model.world.get::<&mut Health>(constructing_entity).expect("building must have entity health component to be able to construct!");
@@ -250,6 +272,11 @@ impl Order for ConstructOrder {
 
         }
 
+    }
+
+    fn completed(&self, entity: Entity, model: &mut RymdGameModel) {
+        let mut constructor = model.world.get::<&mut Constructor>(entity).expect("must have constructor to be issuing construct order!");
+        constructor.is_constructing = false;
     }
     
 }
@@ -304,5 +331,9 @@ impl Order for CancelOrder {
     fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
         let mut orderable = model.world.get::<&mut Orderable>(entity).expect("entity must have orderable!");
         orderable.orders.clear();
+    }
+
+    fn completed(&self, entity: Entity, model: &mut RymdGameModel) {
+        
     }
 }

@@ -20,6 +20,7 @@ pub struct Building {
 
 #[derive(Debug, Clone)]
 pub struct Constructor {
+    pub is_constructing: bool,
     pub constructibles: Vec<BlueprintID>,
     pub build_range: i32,
     pub build_speed: i32
@@ -100,7 +101,7 @@ pub fn build_shipyard(world: &mut World, owner: PlayerID, position: Vec2) -> Ent
     let transform = Transform::new(position, 0.0, None);
     let spawner = Spawner { position: vec2(-(shipyard_size / 3.0), 0.0) };
     let orderable = Orderable::new();
-    let constructor = Constructor { constructibles: vec![2], build_range: shipyard_size as i32 / 2, build_speed: 100 };
+    let constructor = Constructor { is_constructing: false, constructibles: vec![2], build_range: shipyard_size as i32 / 2, build_speed: 100 };
     let health = Health { full_health: full_shipyard_health, current_health: initial_shipyard_health };
     let sprite = Sprite { texture: "SHIPYARD".to_string() };
     let dynamic_body = DynamicBody { is_static, bounds, kinematic};

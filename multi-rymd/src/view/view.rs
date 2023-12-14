@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::f32::consts::PI;
 
 use macroquad_particles::{EmitterConfig, Emitter};
 use utility::{is_point_inside_rect, draw_texture_centered_with_rotation, set_texture_filter, draw_texture_centered_with_rotation_frame, DebugText, TextPosition, AsVector, RotatedBy, draw_arrow, draw_text_centered, draw_texture_centered, WithAlpha, draw_rectangle_lines_centered, AverageLine2D, intersect_rect};
@@ -221,6 +222,11 @@ struct Particles {
     emitter: Emitter
 }
 
+struct ConstructorBeam {
+    emitter: Emitter,
+    offset: Vec2
+}
+
 struct Resources {
     placeholder_texture: Texture2D,
     particle_emitters: HashMap<String, Emitter>,
@@ -399,6 +405,17 @@ impl Resources {
 
         self.register_emitter("STANDARD_TURN", ship_turn_emitter);
         self.register_emitter_config("STANDARD_TURN", ship_turn_emitter_config);
+
+        let repair_emitter_config = EmitterConfig {
+            local_coords: false,
+            texture: Some(self.get_texture_by_name("EXHAUST")),
+            ..repair()
+        };
+
+        let repair_emitter = Emitter::new(repair_emitter_config.clone());
+
+        self.register_emitter("REPAIR", repair_emitter);
+        self.register_emitter_config("REPAIR", repair_emitter_config);
 
     }
 
@@ -808,9 +825,17 @@ impl RymdGameView {
 
     pub fn update(&mut self, model: &mut RymdGameModel) {
 
+        let mut beam_components_to_add = Vec::new();
         let mut selectable_components_to_add = Vec::new();
         let mut thruster_components_to_add = Vec::new();
         let mut bounds_components_to_add = Vec::new();
+
+        for (e, (transform, constructor, bounds)) in model.world.query::<Without<(&Transform, &Constructor, &Bounds), &ConstructorBeam>>().iter() {
+            let emitter_config_name = "REPAIR";
+            let particle_emitter = Emitter::new(self.resources.get_emitter_config_by_name(emitter_config_name));
+            let constructor_beam = ConstructorBeam { emitter: particle_emitter, offset: vec2(bounds.rect.x / 2.0, 0.0) };
+            beam_components_to_add.push((e, constructor_beam));
+        }
 
         for (e, (transform, orderable)) in model.world.query::<Without<(&Transform, &Controller), &Selectable>>().iter() {
             let selectable = Selectable { is_selected: false };
@@ -842,6 +867,10 @@ impl RymdGameView {
                 bounds_components_to_add.push((e, sprite_texture_bounds));
             }
 
+        }
+
+        for (e, c) in beam_components_to_add {
+            let _ = model.world.insert_one(e, c);
         }
 
         for (e, c) in selectable_components_to_add {
@@ -905,6 +934,34 @@ impl RymdGameView {
 
     }
 
+    fn update_constructor_beams(&mut self, model: &RymdGameModel) {
+
+        for (e, (transform, body, orderable, constructor, beam)) in model.world.query::<(&Transform, &DynamicBody, &Orderable, &Constructor, &mut ConstructorBeam)>().iter() {
+
+            let center_of_dynamic_body = body.bounds().center();
+
+            if constructor.is_constructing && orderable.orders.is_empty() == false {
+
+                let beam_emit_target = orderable.orders.front().unwrap().get_target_position(model).unwrap();
+                let beam_emit_delta = beam_emit_target - transform.world_position;
+                let beam_emit_direction = beam_emit_delta.normalize();
+                let beam_emit_distance = beam_emit_delta.length();
+
+                beam.emitter.config.initial_direction = beam_emit_direction;
+                beam.emitter.config.initial_velocity = (body.velocity() + beam_emit_direction * 16.0).length();
+
+                // calculate lifetime depending on how far we want the particle to go (preferably reaching our target!)
+                let lifetime = beam_emit_distance / beam.emitter.config.initial_velocity;
+                beam.emitter.config.lifetime = lifetime;
+
+                beam.emitter.emit(beam.offset.rotated_by(transform.world_rotation + (PI/2.0)), (constructor.build_speed / 100) as usize);
+
+            }
+
+        }
+
+    }
+
     fn update_thrusters(&mut self, world: &World) {
 
         for (e, (transform, body, ship)) in world.query::<(&Transform, &DynamicBody, &Ship)>().iter() {
@@ -952,6 +1009,10 @@ impl RymdGameView {
 
         for (_, emitter) in &mut self.resources.particle_emitters {
             emitter.draw(Vec2::ZERO);
+        }
+
+        for (e, (transform, beam)) in world.query_mut::<(&Transform, &mut ConstructorBeam)>() {
+            beam.emitter.draw(transform.world_position);
         }
 
         for (e, (transform, particles)) in world.query_mut::<(&Transform, &mut Particles)>() {
@@ -1131,6 +1192,8 @@ impl RymdGameView {
     pub fn draw(&mut self, model: &mut RymdGameModel, debug: &mut DebugText, lockstep: &mut LockstepClient, dt: f32) {
 
         self.camera.tick(dt);
+
+        self.update_constructor_beams(&model);
         self.update_thrusters(&model.world);
 
         self.draw_background_texture(screen_width(), screen_height(), self.camera.world_position());
