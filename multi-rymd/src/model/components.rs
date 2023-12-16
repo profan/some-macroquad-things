@@ -190,6 +190,16 @@ impl Orderable {
     pub fn first_order(&self) -> Option<&GameOrder> {
         self.orders.front()
     }
+
+    /// Pops and returns the first order in the queue.
+    pub fn pop_first_order(&mut self) -> Option<GameOrder> {
+        self.orders.pop_front()
+    }
+    
+    /// Pops and returns the first order in the queue of canceled orders.
+    pub fn pop_first_canceled_order(&mut self) -> Option<GameOrder> {
+        self.canceled_orders.pop_front()
+    }
     
     /// Returns a reference to the collection of enqueued orders.
     pub fn orders(&self) -> &VecDeque<GameOrder> {
@@ -238,6 +248,11 @@ impl Orderable {
     pub fn cancel_orders(&mut self) {
         self.canceled_orders.extend(self.orders.iter());
         self.orders.clear();
+    }
+
+    /// Clear the queue of canceled orders.
+    pub fn clear_canceled_orders(&mut self) {
+        self.canceled_orders.clear();
     }
 
 }

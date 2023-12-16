@@ -150,7 +150,7 @@ impl RymdGameModel {
 
         for (e, (orderable, &state)) in self.world.query::<(&Orderable, &EntityState)>().iter() {
 
-            if let Some(order) = orderable.orders().front() && Self::is_processing_orders(state) {
+            if let Some(order) = orderable.first_order() && Self::is_processing_orders(state) {
                 if order.is_order_completed(e, &self) {
                     completed_orders.push(e);
                 } else {
@@ -166,7 +166,7 @@ impl RymdGameModel {
 
         for &e in &in_progress_orders {
             if let Ok(orderable) = self.world.query_one_mut::<&mut Orderable>(e) {
-                if let Some(order) = orderable.orders_mut().front_mut().cloned() {
+                if let Some(order) = orderable.first_order().cloned() {
                     order.tick(e, self, Self::TIME_STEP);
                 }
             }
@@ -174,18 +174,18 @@ impl RymdGameModel {
 
         for &e in &completed_orders {
             if let Ok(orderable) = self.world.query_one_mut::<&mut Orderable>(e) {
-                if let Some(order) = orderable.orders_mut().pop_front() {
+                if let Some(order) = orderable.pop_first_order() {
                     order.on_order_completed(e, self);
                 }
             }
         }
 
         for &e in &canceled_orders {
-            while let Ok(orderable) = self.world.query_one_mut::<&mut Orderable>(e) && let Some(order) = orderable.canceled_orders_mut().pop_front() {
+            while let Ok(orderable) = self.world.query_one_mut::<&mut Orderable>(e) && let Some(order) = orderable.pop_first_canceled_order() {
                 order.on_order_completed(e, self);
             }
             if let Ok(orderable) = self.world.query_one_mut::<&mut Orderable>(e) {
-                orderable.canceled_orders_mut().clear();
+                orderable.clear_canceled_orders();
             }
         }
 
