@@ -294,7 +294,6 @@ impl Order for ConstructOrder {
                 let random_angle = rand::gen_range(-PI / 4.0, PI / 4.0);
                 let dir_to_entity = (vec2(self.x, self.y) - body.position()).normalize();
                 let target_position = body.position() + dir_to_entity.rotated_by(random_angle) * body.bounds.size().max_element();
-                println!("moving to: {}", target_position);
                 Some(target_position)
             } else {
                 None
