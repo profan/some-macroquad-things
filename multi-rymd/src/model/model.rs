@@ -103,7 +103,7 @@ impl RymdGameModel {
                 if should_add {
                     orderable.orders.push_back(order);
                 } else {
-                    orderable.orders.clear();
+                    orderable.cancel_orders();
                     orderable.orders.push_back(order);
                 }
             }
@@ -146,8 +146,10 @@ impl RymdGameModel {
 
         let mut in_progress_orders = Vec::new();
         let mut completed_orders = Vec::new();
+        let mut canceled_orders = Vec::new();
 
         for (e, (orderable, &state)) in self.world.query::<(&Orderable, &EntityState)>().iter() {
+
             if let Some(order) = orderable.orders.front() && Self::is_processing_orders(state) {
                 if order.is_order_completed(e, &self) {
                     completed_orders.push(e);
@@ -155,11 +157,16 @@ impl RymdGameModel {
                     in_progress_orders.push(e);
                 }
             }
+
+            if orderable.canceled_orders.is_empty() == false {
+                canceled_orders.push(e);
+            }
+
         }
 
         for &e in &in_progress_orders {
-            if let Ok(mut orderable) = self.world.query_one_mut::<&mut Orderable>(e).cloned() {
-                if let Some(order) = orderable.orders.front_mut() {
+            if let Ok(orderable) = self.world.query_one_mut::<&mut Orderable>(e) {
+                if let Some(order) = orderable.orders.front_mut().cloned() {
                     order.tick(e, self, Self::TIME_STEP);
                 }
             }
@@ -167,9 +174,18 @@ impl RymdGameModel {
 
         for &e in &completed_orders {
             if let Ok(orderable) = self.world.query_one_mut::<&mut Orderable>(e) {
-                if let Some(mut o) = orderable.orders.pop_front() {
-                    o.on_order_completed(e, self);
+                if let Some(order) = orderable.orders.pop_front() {
+                    order.on_order_completed(e, self);
                 }
+            }
+        }
+
+        for &e in &canceled_orders {
+            while let Ok(orderable) = self.world.query_one_mut::<&mut Orderable>(e) && let Some(order) = orderable.canceled_orders.pop_front() {
+                order.on_order_completed(e, self);
+            }
+            if let Ok(orderable) = self.world.query_one_mut::<&mut Orderable>(e) {
+                orderable.canceled_orders.clear();
             }
         }
 

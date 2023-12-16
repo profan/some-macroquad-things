@@ -177,12 +177,18 @@ pub struct AnimatedSprite {
 
 #[derive(Clone)]
 pub struct Orderable {
+    pub canceled_orders: VecDeque<GameOrder>,
     pub orders: VecDeque<GameOrder>
 }
 
 impl Orderable {
     pub fn new() -> Orderable {
-        Orderable { orders: VecDeque::new() }
+        Orderable { canceled_orders: VecDeque::new(), orders: VecDeque::new() }
+    }
+
+    pub fn cancel_orders(&mut self) {
+        self.canceled_orders = self.orders.clone();
+        self.orders.clear();
     }
 }
 

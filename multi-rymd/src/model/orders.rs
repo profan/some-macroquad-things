@@ -97,7 +97,7 @@ impl GameOrder {
         }
     }
 
-    pub fn on_order_completed(&mut self, entity: Entity, model: &mut RymdGameModel) {
+    pub fn on_order_completed(&self, entity: Entity, model: &mut RymdGameModel) {
         match self {
             GameOrder::Move(order) => order.completed(entity, model),
             GameOrder::Attack(order) => order.completed(entity, model),
@@ -365,7 +365,7 @@ impl Order for CancelOrder {
 
     fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
         let mut orderable = model.world.get::<&mut Orderable>(entity).expect("entity must have orderable!");
-        orderable.orders.clear();
+        orderable.cancel_orders();
     }
 
     fn completed(&self, entity: Entity, model: &mut RymdGameModel) {
