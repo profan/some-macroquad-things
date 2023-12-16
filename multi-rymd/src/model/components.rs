@@ -205,20 +205,10 @@ impl Orderable {
     pub fn orders(&self) -> &VecDeque<GameOrder> {
         &self.orders
     }
-    
-    /// Returns a mutable reference to the collection of enqueued orders.
-    pub fn orders_mut(&mut self) -> &mut VecDeque<GameOrder> {
-        &mut self.orders
-    }
 
     /// Returns a reference to the collection of canceled orders.
     pub fn canceled_orders(&self) -> &VecDeque<GameOrder> {
         &self.canceled_orders
-    }
-
-    /// Returns a mutable reference to the collection of canceled orders.
-    pub fn canceled_orders_mut(&mut self) -> &mut VecDeque<GameOrder> {
-        &mut self.canceled_orders
     }
 
     /// Returns true if there's currently no orders to process.
