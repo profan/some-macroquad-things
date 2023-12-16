@@ -908,20 +908,46 @@ impl RymdGameView {
     }
 
     fn draw_sprites(&self, world: &World) {
-        for (e, (transform, sprite, state)) in world.query::<(&Transform, &Sprite, Option<&EntityState>)>().iter() {
-            let sprite_texture_alpha = entity_state_to_alpha(state);
-            let sprite_texture_handle = self.resources.get_texture_by_name(&sprite.texture);
-            draw_texture_centered_with_rotation(sprite_texture_handle, transform.world_position.x, transform.world_position.y, WHITE.with_alpha(sprite_texture_alpha), transform.world_rotation);
+
+        for (e, (transform, sprite, state)) in world.query::<(&Transform, Or<&Sprite, &AnimatedSprite>, Option<&EntityState>)>().iter() {
+            match sprite {
+                Or::Left(sprite) => self.draw_sprite(state, sprite, transform),
+                Or::Right(animated_sprite) => self.draw_animated_sprite(state, animated_sprite, transform),
+                Or::Both(sprite, animated_sprite) => {
+                    self.draw_sprite(state, sprite, transform);
+                    self.draw_animated_sprite(state, animated_sprite, transform);
+                },
+            }
         }
+
     }
 
-    fn draw_animated_sprites(&self, world: &World) {
-        for (e, (transform, sprite, state)) in world.query::<(&Transform, &AnimatedSprite, Option<&EntityState>)>().iter() {
-            let is_sprite_flipped = false;
-            let sprite_texture_alpha = entity_state_to_alpha(state);
-            let sprite_texture_handle = self.resources.get_texture_by_name(&sprite.texture);
-            draw_texture_centered_with_rotation_frame(sprite_texture_handle, transform.world_position.x, transform.world_position.y, WHITE.with_alpha(sprite_texture_alpha), transform.world_rotation, sprite.current_frame, sprite.h_frames, is_sprite_flipped);
-        }
+    fn draw_animated_sprite(&self, state: Option<&EntityState>, sprite: &AnimatedSprite, transform: &Transform) {
+        let is_sprite_flipped = false;
+        let sprite_texture_alpha = entity_state_to_alpha(state);
+        let sprite_texture_handle = self.resources.get_texture_by_name(&sprite.texture);
+        draw_texture_centered_with_rotation_frame(
+            sprite_texture_handle,
+            transform.world_position.x,
+            transform.world_position.y,
+            WHITE.with_alpha(sprite_texture_alpha),
+            transform.world_rotation,
+            sprite.current_frame,
+            sprite.h_frames,
+            is_sprite_flipped
+        );
+    }
+
+    fn draw_sprite(&self, state: Option<&EntityState>, sprite: &Sprite, transform: &Transform) {
+        let sprite_texture_alpha = entity_state_to_alpha(state);
+        let sprite_texture_handle = self.resources.get_texture_by_name(&sprite.texture);
+        draw_texture_centered_with_rotation(
+            sprite_texture_handle,
+            transform.world_position.x,
+            transform.world_position.y,
+            WHITE.with_alpha(sprite_texture_alpha),
+            transform.world_rotation
+        );
     }
 
     fn draw_selectables(&self, world: &mut World) {
@@ -1222,7 +1248,6 @@ impl RymdGameView {
         self.camera.push();
 
         self.draw_sprites(&model.world);
-        self.draw_animated_sprites(&model.world);
 
         self.construction.tick_and_draw(model, &self.camera, &self.resources, lockstep);
 
