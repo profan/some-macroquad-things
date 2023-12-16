@@ -177,13 +177,38 @@ pub struct AnimatedSprite {
 
 #[derive(Clone)]
 pub struct Orderable {
-    pub canceled_orders: VecDeque<GameOrder>,
-    pub orders: VecDeque<GameOrder>
+    canceled_orders: VecDeque<GameOrder>,
+    orders: VecDeque<GameOrder>
 }
 
 impl Orderable {
     pub fn new() -> Orderable {
         Orderable { canceled_orders: VecDeque::new(), orders: VecDeque::new() }
+    }
+
+    /// Returns the order first in the queue, if any.
+    pub fn first_order(&self) -> Option<&GameOrder> {
+        self.orders.front()
+    }
+    
+    /// Returns a reference to the collection of enqueued orders.
+    pub fn orders(&self) -> &VecDeque<GameOrder> {
+        &self.orders
+    }
+    
+    /// Returns a mutable reference to the collection of enqueued orders.
+    pub fn orders_mut(&mut self) -> &mut VecDeque<GameOrder> {
+        &mut self.orders
+    }
+
+    /// Returns a reference to the collection of canceled orders.
+    pub fn canceled_orders(&self) -> &VecDeque<GameOrder> {
+        &self.canceled_orders
+    }
+
+    /// Returns a mutable reference to the collection of canceled orders.
+    pub fn canceled_orders_mut(&mut self) -> &mut VecDeque<GameOrder> {
+        &mut self.canceled_orders
     }
 
     /// Returns true if there's currently no orders to process.
@@ -199,9 +224,14 @@ impl Orderable {
         }
     }
 
-    /// Push a new order to the queue.
+    /// Push a new order to the front of the queue.
     pub fn push_order(&mut self, order: GameOrder) {
         self.orders.push_front(order);
+    }
+
+    /// Enqueues the order at the end of the queue.
+    pub fn queue_order(&mut self, order: GameOrder) {
+        self.orders.push_back(order);
     }
 
     /// Cancel all orders in the queue.
@@ -209,6 +239,7 @@ impl Orderable {
         self.canceled_orders.extend(self.orders.iter());
         self.orders.clear();
     }
+
 }
 
 #[derive(Clone)]

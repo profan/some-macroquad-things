@@ -8,8 +8,9 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] implement orders that arrange the units as the group is currently aligned relative to eachother
 [x] implement adding units to an existing selection (when holding shift)
 [x] implement adding/removing units to an existing selection (when holding ctrl)
-[] implement shift+double click on a unit to select all other units of that type
 [x] make ordering by drawing a line distribute units evenly along the line (instead of per point as currently)
+[] have separate order queues for construction and movement/similar things for units that can both construct things and also move/forward movement orders
+[] implement shift+double click on a unit to select all other units of that type
 [] implement control groups (ctrl+1, etc) for units
 
 # selection
@@ -35,6 +36,12 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] when constructing buildings with a unit, draw a construction beam
 [x] when constructing units, move them out of the way automatically on construction (unless they already have an order)
 [] when constructing units, have the constructed unit inherit any (non-construction) orders the building may have
+[] when constructing entities, display the construction queue when that entity is selected
+
+# resources
+[] allow entities to generate resources
+[] allow entities to depend on resources to function
+[] allow entities to depend on resources to construct things
 
 # units
 [x] represent health of units
