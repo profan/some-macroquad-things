@@ -326,23 +326,23 @@ impl ConstructOrder {
 
     fn cancel_current_order(&self, entity: Entity, world: &mut World) {
         let mut orderable = world.get::<&mut Orderable>(entity).expect("must have orderable!");
-        orderable.orders.pop_front();
+        orderable.pop_order();
     }
 
     fn construct_external_entity(&self, entity: Entity, world: &mut World, building_entity: Entity, position: Vec2) {
         let mut orderable = world.get::<&mut Orderable>(entity).expect("must have orderable!");
-        orderable.orders.push_front(GameOrder::Construct(ConstructOrder { entity_id: Some(building_entity.to_bits().get()), blueprint_id: None, is_self_order: false, x: position.x, y: position.y }))
+        orderable.push_order(GameOrder::Construct(ConstructOrder { entity_id: Some(building_entity.to_bits().get()), blueprint_id: None, is_self_order: false, x: position.x, y: position.y }))
     }
 
     fn construct_internal_entity(&self, entity: Entity, world: &mut World, building_entity: Entity, position: Vec2) {
         let mut orderable = world.get::<&mut Orderable>(entity).expect("must have orderable!");
-        orderable.orders.push_front(GameOrder::Construct(ConstructOrder { entity_id: Some(building_entity.to_bits().get()), blueprint_id: None, is_self_order: true, x: position.x, y: position.y }))  
+        orderable.push_order(GameOrder::Construct(ConstructOrder { entity_id: Some(building_entity.to_bits().get()), blueprint_id: None, is_self_order: true, x: position.x, y: position.y }))  
     }
 
     fn move_entity_to_position_if_empty(&self, new_entity: Entity, world: &mut World, position: Vec2) {
         let mut orderable = world.get::<&mut Orderable>(new_entity).expect("must have orderable!");
-        if orderable.orders.is_empty() {
-            orderable.orders.push_front(GameOrder::Move(MoveOrder { x: position.x, y: position.y }));
+        if orderable.is_queue_empty() {
+            orderable.push_order(GameOrder::Move(MoveOrder { x: position.x, y: position.y }));
         }
     }
 
@@ -356,7 +356,7 @@ pub struct CancelOrder {
 impl Order for CancelOrder {
     fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
         let orderable = model.world.get::<&Orderable>(entity).expect("entity must have orderable!");
-        orderable.orders.is_empty()
+        orderable.is_queue_empty()
     }
 
     fn get_target_position(&self, model: &RymdGameModel) -> Option<Vec2> {

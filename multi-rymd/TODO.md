@@ -34,6 +34,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] when constructing entities, make the construction range ependent on the (circle) bounds of the item in construction, rather than just the centerpoint
 [x] when constructing buildings with a unit, draw a construction beam
 [x] when constructing units, move them out of the way automatically on construction (unless they already have an order)
+[] when constructing units, have the constructed unit inherit any (non-construction) orders the building may have
 
 # units
 [x] represent health of units

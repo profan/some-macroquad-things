@@ -186,8 +186,27 @@ impl Orderable {
         Orderable { canceled_orders: VecDeque::new(), orders: VecDeque::new() }
     }
 
+    /// Returns true if there's currently no orders to process.
+    pub fn is_queue_empty(&self) -> bool {
+        self.orders.is_empty()
+    }
+    
+    /// Cancel the current order.
+    pub fn pop_order(&mut self) {
+        let canceled_order = self.orders.pop_front();
+        if let Some(order) = canceled_order {
+            self.canceled_orders.push_front(order);
+        }
+    }
+
+    /// Push a new order to the queue.
+    pub fn push_order(&mut self, order: GameOrder) {
+        self.orders.push_front(order);
+    }
+
+    /// Cancel all orders in the queue.
     pub fn cancel_orders(&mut self) {
-        self.canceled_orders = self.orders.clone();
+        self.canceled_orders.extend(self.orders.iter());
         self.orders.clear();
     }
 }
