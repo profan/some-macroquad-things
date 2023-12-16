@@ -775,6 +775,17 @@ impl RymdGameView {
             last_point = *p;
         }
 
+        let last_screen_point = self.camera.world_to_screen(last_point);
+        let current_screen_point: Vec2 = mouse_position().into();
+        draw_line(
+            last_screen_point.x,
+            last_screen_point.y,
+            current_screen_point.x,
+            current_screen_point.y,
+            line_thickness,
+            GREEN
+        );
+
     }
 
     fn draw_selection(&self) {
