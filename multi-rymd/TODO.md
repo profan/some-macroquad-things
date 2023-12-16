@@ -37,6 +37,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] when constructing units, move them out of the way automatically on construction (unless they already have an order)
 [] when constructing units, have the constructed unit inherit any (non-construction) orders the building may have
 [] when constructing entities, display the construction queue when that entity is selected
+[] when entities are left not fully constructed, have them slowly decay (health wise)
 
 # resources
 [] allow entities to generate resources
