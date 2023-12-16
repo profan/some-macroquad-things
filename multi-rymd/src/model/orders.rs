@@ -1,12 +1,17 @@
+use std::f32::consts::PI;
+
 use hecs::{Entity, World};
 use macroquad::prelude::*;
 use nanoserde::{SerJson, DeJson};
 use lockstep_client::step::LockstepClient;
+use utility::RotatedBy;
 
 use crate::EntityID;
 use crate::model::BlueprintID;
 use crate::model::GameMessage;
 
+use super::DynamicBody;
+use super::PhysicsBody;
 use super::get_entity_position;
 use super::get_entity_position_from_id;
 use super::get_closest_position_with_entity_bounds;
@@ -275,8 +280,32 @@ impl Order for ConstructOrder {
     }
 
     fn completed(&self, entity: Entity, model: &mut RymdGameModel) {
-        let mut constructor = model.world.get::<&mut Constructor>(entity).expect("must have constructor to be issuing construct order!");
-        constructor.is_constructing = false;
+
+        {
+            let mut constructor = model.world.get::<&mut Constructor>(entity).expect("must have constructor to be issuing construct order!");
+            constructor.is_constructing = false;
+        }
+
+        if let Some(entity_id) = self.entity_id && let Some(new_entity) = Entity::from_bits(entity_id) {
+
+            let has_orderable = model.world.get::<&Orderable>(new_entity).is_ok();
+
+            let target_position = if let Ok(body) = model.world.get::<&DynamicBody>(entity) && has_orderable {
+                let random_angle = rand::gen_range(-PI / 4.0, PI / 4.0);
+                let dir_to_entity = (vec2(self.x, self.y) - body.position()).normalize();
+                let target_position = body.position() + dir_to_entity.rotated_by(random_angle) * body.bounds.size().max_element();
+                println!("moving to: {}", target_position);
+                Some(target_position)
+            } else {
+                None
+            };
+
+            if let Some(target_position) = target_position {
+                self.move_entity_to_position_if_empty(new_entity, &mut model.world, target_position);
+            }
+
+        }
+
     }
     
 }
@@ -309,6 +338,13 @@ impl ConstructOrder {
     fn construct_internal_entity(&self, entity: Entity, world: &mut World, building_entity: Entity, position: Vec2) {
         let mut orderable = world.get::<&mut Orderable>(entity).expect("must have orderable!");
         orderable.orders.push_front(GameOrder::Construct(ConstructOrder { entity_id: Some(building_entity.to_bits().get()), blueprint_id: None, is_self_order: true, x: position.x, y: position.y }))  
+    }
+
+    fn move_entity_to_position_if_empty(&self, new_entity: Entity, world: &mut World, position: Vec2) {
+        let mut orderable = world.get::<&mut Orderable>(new_entity).expect("must have orderable!");
+        if orderable.orders.is_empty() {
+            orderable.orders.push_front(GameOrder::Move(MoveOrder { x: position.x, y: position.y }));
+        }
     }
 
 }

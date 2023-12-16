@@ -42,6 +42,7 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
 
     let commander_ship_size = 32.0;
     let bounds = Rect { x: 0.0, y: 0.0, w: commander_ship_size, h: commander_ship_size };
+    let is_enabled = false;
     let is_static = false;
 
     let initial_commander_health = 100;
@@ -65,7 +66,7 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let constructor = Constructor { is_constructing: false, constructibles: vec![0, 1], build_speed: commander_build_speed, build_range: commander_build_range, beam_offset: commander_build_offset };
     let health = Health { full_health: commander_health, current_health: initial_commander_health };
     let transform = Transform::new(position, 0.0, None);
-    let dynamic_body = DynamicBody { is_static, bounds, kinematic };
+    let dynamic_body = DynamicBody { is_enabled, is_static, bounds, kinematic };
     let sprite = AnimatedSprite { texture: "PLAYER_SHIP".to_string(), current_frame: 0, h_frames: 3 };
     let steering = Steering { parameters: steering_parameters };
     let ship = Ship::new(ship_parameters.turn_rate);

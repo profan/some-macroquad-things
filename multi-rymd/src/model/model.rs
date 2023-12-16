@@ -80,8 +80,8 @@ impl RymdGameModel {
                 let random_y = rand::gen_range(200, 400);
 
                 let commander_ship = build_commander_ship(&mut self.world, player.id, vec2(random_x as f32, random_y as f32));
-                if let Ok(mut state) = self.world.get::<&mut EntityState>(commander_ship) {
-                    *state = EntityState::Constructed;
+                if let Ok(mut health) = self.world.get::<&mut Health>(commander_ship) {
+                    health.current_health = health.full_health;
                 }
 
             }
@@ -129,12 +129,15 @@ impl RymdGameModel {
 
     fn tick_entity_states(&mut self) {
 
-        for (e, (state, health)) in self.world.query_mut::<(&mut EntityState, &Health)>() {
+        for (e, (state, health, body)) in self.world.query_mut::<(&mut EntityState, &Health, Option<&mut DynamicBody>)>() {
             if *state == EntityState::Ghost {
                 if health.is_at_full_health() {
                     *state = EntityState::Constructed;
+                    if let Some(body) = body {
+                        body.is_enabled = true;
+                    }
                 }
-            }
+            }       
         }
 
     }

@@ -8,6 +8,8 @@ const COLLISION_ELASTICITY: f32 = 1.0;
 
 pub trait PhysicsBody {
 
+    fn enabled(&self) -> bool;
+
     fn bounds(&self) -> Rect;
     fn position(&self) -> Vec2;
     fn velocity(&self) -> Vec2;
@@ -61,8 +63,8 @@ impl PhysicsManager {
 
     pub fn handle_overlaps(&mut self, world: &mut World) {
 
-        for (e1, body) in world.query::<&DynamicBody>().iter() {
-            for (e2, other_body) in world.query::<&DynamicBody>().iter() {
+        for (e1, body) in world.query::<&DynamicBody>().iter().filter(|(e, b)| b.is_enabled) {
+            for (e2, other_body) in world.query::<&DynamicBody>().iter().filter(|(e, b)| b.is_enabled) {
 
                 let should_collide = self.collides_with(body, other_body);
                 if e1 != e2 && intersect_rect(&body.bounds(), &other_body.bounds()) {

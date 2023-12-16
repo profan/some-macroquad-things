@@ -98,11 +98,16 @@ impl Transform {
 #[derive(Clone)]
 pub struct DynamicBody {
     pub is_static: bool,
+    pub is_enabled: bool,
     pub kinematic: Kinematic,
     pub bounds: Rect
 }
 
 impl PhysicsBody for DynamicBody {
+
+    fn enabled(&self) -> bool {
+        self.is_enabled
+    }
 
     fn bounds(&self) -> Rect {
         self.bounds.offset(self.kinematic.position)

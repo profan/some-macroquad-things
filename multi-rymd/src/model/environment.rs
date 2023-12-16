@@ -15,6 +15,7 @@ pub fn create_asteroid(world: &mut World, position: Vec2, rotation: f32) -> Enti
     };
 
     let body = DynamicBody {
+        is_enabled: true,
         is_static: false,
         kinematic: create_default_kinematic_body(position, rotation),
         bounds
