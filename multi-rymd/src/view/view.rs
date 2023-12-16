@@ -56,9 +56,9 @@ impl ConstructionState {
 
             let should_add_to_queue = is_key_down(KeyCode::LeftShift);
     
-            for (e, (transform, _o, selectable, _c, spawner)) in model.world.query::<(&Transform, &Orderable, &Selectable, &Constructor, Option<&Spawner>)>().iter() {
+            for (e, (transform, _o, selectable, constructor, spawner)) in model.world.query::<(&Transform, &Orderable, &Selectable, &Constructor, Option<&Spawner>)>().iter() {
 
-                if selectable.is_selected == false {
+                if selectable.is_selected == false || constructor.has_blueprint(blueprint_id) == false {
                     continue;
                 }
 

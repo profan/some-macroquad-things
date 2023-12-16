@@ -27,10 +27,16 @@ pub struct Constructor {
     pub beam_offset: Vec2
 }
 
+impl Constructor {
+    pub fn has_blueprint(&self, id: BlueprintID) -> bool {
+        self.constructibles.contains(&id)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Spawner {
     /// This position is a local offset from the position of the transform this is attached to, and is where units will spawn.
-    pub position: Vec2   
+    pub position: Vec2
 }
 
 #[derive(Debug, Clone)]
