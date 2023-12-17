@@ -588,10 +588,6 @@ impl RymdGameView {
         let mouse_position: Vec2 = self.camera.mouse_world_position();
         let should_cancel_current_orders: bool = is_key_released(KeyCode::S);
 
-        if is_mouse_button_down(MouseButton::Right) {
-            self.ordering.add_point(mouse_position);
-        }
-
         if is_mouse_button_released(MouseButton::Right) {
 
             let should_add = is_key_down(KeyCode::LeftShift);
@@ -616,6 +612,14 @@ impl RymdGameView {
 
             }
 
+        } else {
+
+            if is_mouse_button_down(MouseButton::Right) {
+                self.ordering.add_point(mouse_position);
+            } else {
+                self.ordering.clear_points();
+            }
+            
         }
 
         if should_cancel_current_orders {
@@ -694,6 +698,15 @@ impl RymdGameView {
 
     }
 
+    fn is_anything_selected(&self, world: &World) -> bool {
+        for (e, (transform, selectable, controller)) in world.query::<(&Transform, &Selectable, &Controller)>().iter() {
+            if selectable.is_selected {
+                return true;
+            }
+        }
+        return false;
+    }
+
     fn can_select_unit(&self, controller: &Controller) -> bool {
         controller.id == self.player_id
     }
@@ -750,9 +763,13 @@ impl RymdGameView {
 
     }
 
-    fn draw_ordering(&self) {
+    fn draw_ordering(&self, world: &World) {
         
         if self.ordering.line.is_empty() {
+            return;
+        }
+
+        if self.is_anything_selected(world) == false {
             return;
         }
 
@@ -1240,7 +1257,7 @@ impl RymdGameView {
         self.draw_orders(&model);
         self.draw_selection();
         self.draw_selectables(&mut model.world);
-        self.draw_ordering();
+        self.draw_ordering(&model.world);
 
         if self.render_bounds {
             self.draw_body_bounds(&model.world);
