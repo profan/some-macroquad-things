@@ -6,7 +6,7 @@ mod message;
 mod model;
 mod orders;
 mod physics;
-mod prefab;
+mod ships;
 mod resources;
 mod steering;
 
@@ -18,6 +18,6 @@ pub use message::*;
 pub use model::*;
 pub use orders::*;
 pub use physics::*;
-pub use prefab::*;
+pub use ships::*;
 pub use resources::*;
 pub use steering::*;
