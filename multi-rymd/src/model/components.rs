@@ -261,13 +261,40 @@ impl Ship {
 
 #[derive(Clone)]
 pub struct Health {
-    pub full_health: i32,
-    pub current_health: i32
+    full_health: i32,
+    current_health: i32,
+    last_health: i32
 }
 
 impl Health {
-    pub fn new(health: i32) -> Health {
-        Health { full_health: health, current_health: health }
+    pub fn new(full_health: i32) -> Health {
+        Health { full_health, current_health: full_health, last_health: full_health }
+    }
+
+    pub fn new_with_current_health(full_health: i32, current_health: i32) -> Health {
+        Health { full_health, current_health, last_health: current_health }
+    }
+
+    pub fn heal_to_full_health(&mut self) {
+        self.current_health = self.full_health;
+        self.last_health = self.current_health;
+    }
+
+    pub fn damage(&mut self, value: i32) {
+        self.last_health = self.current_health;
+        self.current_health -= value;
+    }
+
+    pub fn current_health(&self) -> i32 {
+        self.current_health
+    }
+
+    pub fn last_health(&self) -> i32 {
+        self.last_health
+    }
+
+    pub fn full_health(&self) -> i32 {
+        self.full_health
     }
 
     pub fn is_at_full_health(&self) -> bool {

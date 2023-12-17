@@ -439,7 +439,7 @@ impl Resources {
         self.load_texture_or_placeholder("SHIPYARD", "raw/shipyard.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("POWER_STATION", "raw/power_station.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("POWER_STATION_TURRET", "raw/power_station_turret.png", FilterMode::Nearest).await;
-        self.load_texture_or_placeholder("SOLAR_COLLECTOR", "raw/solar_collector.png", FilterMode::Nearest).await;
+        self.load_texture_or_placeholder("SOLAR_COLLECTOR", "raw/solar_collector_light.png", FilterMode::Nearest).await;
 
         // bullets
         self.load_texture_or_placeholder("SIMPLE_BULLET", "raw/simple_bullet.png", FilterMode::Nearest).await;
@@ -1228,7 +1228,27 @@ impl RymdGameView {
 
         for (e, (transform, health)) in world.query::<(&Transform, &Health)>().iter() {
             let health_label_position = transform.world_position + vec2(0.0, -32.0);
-            draw_text_centered(&format!("{}/{}", health.current_health, health.full_health), health_label_position.x, health_label_position.y, 24.0, WHITE);
+            draw_text_centered(&format!("{}/{}", health.current_health(), health.full_health()), health_label_position.x, health_label_position.y, 24.0, WHITE);
+        }
+
+    }
+
+    fn draw_build_time_labels(&self, world: &World) {
+
+        for (e, (transform, health, &state)) in world.query::<(&Transform, &Health, &EntityState)>().iter() {
+
+            if state != EntityState::Ghost {
+                continue
+            }
+
+            let health_difference = health.current_health() - health.last_health();
+            let health_difference_to_max = (health.full_health() - health.current_health()).max(0);
+            let health_difference_per_second = (1.0 / RymdGameModel::TIME_STEP) * health_difference as f32;
+            let time_remaining_seconds = health_difference_to_max as f32 / health_difference_per_second;
+            
+            let time_label_position = transform.world_position + vec2(0.0, -32.0);
+            draw_text_centered(&format!("{:.0}s", time_remaining_seconds), time_label_position.x, time_label_position.y, 24.0, WHITE);
+
         }
 
     }
@@ -1270,7 +1290,8 @@ impl RymdGameView {
         self.construction.tick_and_draw(model, &self.camera, &self.resources, lockstep);
 
         self.draw_particles(&mut model.world);
-        self.draw_health_labels(&model.world);
+        // self.draw_health_labels(&model.world);
+        self.draw_build_time_labels(&model.world);
         
         self.camera.pop();
 

@@ -60,7 +60,7 @@ impl BlueprintManager {
 
 impl RymdGameModel {
 
-    const TIME_STEP: f32 = 1.0 / 60.0;
+    pub const TIME_STEP: f32 = 1.0 / 60.0;
 
     pub fn new() -> RymdGameModel {
         RymdGameModel {
@@ -81,7 +81,7 @@ impl RymdGameModel {
 
                 let commander_ship = build_commander_ship(&mut self.world, player.id, vec2(random_x as f32, random_y as f32));
                 if let Ok(mut health) = self.world.get::<&mut Health>(commander_ship) {
-                    health.current_health = health.full_health;
+                    health.heal_to_full_health();
                 }
 
             }
