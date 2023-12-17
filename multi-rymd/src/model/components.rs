@@ -4,7 +4,7 @@ use macroquad::math::{Vec2, Rect};
 use utility::{Kinematic, RotatedBy, SteeringParameters};
 use lockstep_client::step::PeerID;
 
-use super::{GameOrder, PhysicsBody};
+use super::{GameOrder, PhysicsBody, GameOrderType};
 
 #[derive(Clone)]
 pub struct Thruster {
@@ -177,13 +177,20 @@ pub struct AnimatedSprite {
 
 #[derive(Clone)]
 pub struct Orderable {
+    build_order_queue: OrderQueue,
+    order_queue: OrderQueue
+}
+
+#[derive(Clone)]
+struct OrderQueue {
     canceled_orders: VecDeque<GameOrder>,
     orders: VecDeque<GameOrder>
 }
 
-impl Orderable {
-    pub fn new() -> Orderable {
-        Orderable { canceled_orders: VecDeque::new(), orders: VecDeque::new() }
+impl OrderQueue {
+
+    pub fn new() -> OrderQueue {
+        OrderQueue { canceled_orders: VecDeque::new(), orders: VecDeque::new() }
     }
 
     /// Returns the order first in the queue, if any.
@@ -217,7 +224,7 @@ impl Orderable {
     }
     
     /// Cancel the current order.
-    pub fn pop_order(&mut self) {
+    pub fn cancel_order(&mut self) {
         let canceled_order = self.orders.pop_front();
         if let Some(order) = canceled_order {
             self.canceled_orders.push_front(order);
@@ -243,6 +250,102 @@ impl Orderable {
     /// Clear the queue of canceled orders.
     pub fn clear_canceled_orders(&mut self) {
         self.canceled_orders.clear();
+    }
+
+}
+
+impl Orderable {
+
+    pub fn new() -> Orderable {
+        Orderable { order_queue: OrderQueue::new(), build_order_queue: OrderQueue::new() }
+    }
+
+    /// Returns the order first in the queue, if any.
+    pub fn first_order(&self, order_type: GameOrderType) -> Option<&GameOrder> {
+        match order_type {
+            GameOrderType::Order => self.order_queue.first_order(),
+            GameOrderType::Construct => self.build_order_queue.first_order(),
+        }
+    }
+
+    /// Pops and returns the first order in the queue.
+    pub fn pop_first_order(&mut self, order_type: GameOrderType) -> Option<GameOrder> {
+        match order_type {
+            GameOrderType::Order => self.order_queue.pop_first_order(),
+            GameOrderType::Construct => self.build_order_queue.pop_first_order(),
+        }
+    }
+    
+    /// Pops and returns the first order in the queue of canceled orders.
+    pub fn pop_first_canceled_order(&mut self, order_type: GameOrderType) -> Option<GameOrder> {
+        match order_type {
+            GameOrderType::Order => self.build_order_queue.pop_first_canceled_order(),
+            GameOrderType::Construct => self.build_order_queue.pop_first_canceled_order(),
+        }
+    }
+    
+    /// Returns a reference to the collection of enqueued orders.
+    pub fn orders(&self, order_type: GameOrderType) -> &VecDeque<GameOrder> {
+        match order_type {
+            GameOrderType::Order => self.order_queue.orders(),
+            GameOrderType::Construct => self.build_order_queue.orders(),
+        }
+    }
+
+    /// Returns a reference to the collection of canceled orders.
+    pub fn canceled_orders(&self, order_type: GameOrderType) -> &VecDeque<GameOrder> {
+        match order_type {
+            GameOrderType::Order => self.order_queue.canceled_orders(),
+            GameOrderType::Construct => self.build_order_queue.canceled_orders(),
+        }
+    }
+
+    /// Returns true if there's currently no orders to process.
+    pub fn is_queue_empty(&self, order_type: GameOrderType) -> bool {
+        match order_type {
+            GameOrderType::Order => self.order_queue.is_queue_empty(),
+            GameOrderType::Construct => self.build_order_queue.is_queue_empty(),
+        }
+    }
+    
+    /// Cancel the current order.
+    pub fn cancel_order(&mut self, order_type: GameOrderType) {
+        match order_type {
+            GameOrderType::Order => self.order_queue.cancel_order(),
+            GameOrderType::Construct => self.build_order_queue.cancel_order(),
+        }
+    }
+
+    /// Push a new order to the front of the queue.
+    pub fn push_order(&mut self, order: GameOrder) {
+        match order.order_type() {
+            GameOrderType::Order => self.order_queue.push_order(order),
+            GameOrderType::Construct => self.build_order_queue.push_order(order)
+        }
+    }
+
+    /// Enqueues the order at the end of the queue.
+    pub fn queue_order(&mut self, order: GameOrder) {
+        match order.order_type() {
+            GameOrderType::Order => self.order_queue.queue_order(order),
+            GameOrderType::Construct => self.build_order_queue.queue_order(order),
+        }
+    }
+
+    /// Cancel all orders in the queue.
+    pub fn cancel_orders(&mut self, order_type: GameOrderType) {
+        match order_type {
+            GameOrderType::Order => self.order_queue.cancel_orders(),
+            GameOrderType::Construct => self.build_order_queue.cancel_orders()
+        }
+    }
+
+    /// Clear the queue of canceled orders.
+    pub fn clear_canceled_orders(&mut self, order_type: GameOrderType) {
+        match order_type {
+            GameOrderType::Order => self.order_queue.clear_canceled_orders(),
+            GameOrderType::Construct => self.build_order_queue.clear_canceled_orders(),
+        }
     }
 
 }

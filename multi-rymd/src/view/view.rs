@@ -10,7 +10,7 @@ use hecs::*;
 use yakui::Alignment;
 
 use crate::PlayerID;
-use crate::model::{BlueprintID, PhysicsBody, Spawner, EntityState, GameOrder, Blueprint};
+use crate::model::{BlueprintID, PhysicsBody, Spawner, EntityState, GameOrder, Blueprint, GameOrderType};
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Controller, Health, get_entity_position};
 
 use super::{calculate_sprite_bounds, GameCamera};
@@ -854,11 +854,12 @@ impl RymdGameView {
             let order_line_head_size = self.camera.world_to_screen_scale_v(8.0);
             let order_line_colour = GREEN.with_alpha(0.5);
 
-            for (i, order) in orderable.orders().iter().enumerate() {
+            let current_orders = orderable.orders(GameOrderType::Order);
+            for (i, order) in current_orders.iter().enumerate() {
                 if let Some(target_position) = order.get_target_position(model) {
                     let current_screen_position = self.camera.world_to_screen(current_line_start);
                     let target_screen_position = self.camera.world_to_screen(target_position);
-                    if i == orderable.orders().len() - 1 {
+                    if i == current_orders.len() - 1 {
                         draw_arrow(current_screen_position.x, current_screen_position.y, target_screen_position.x, target_screen_position.y, order_line_thickness, order_line_head_size, order_line_colour);
                     } else {
                         draw_line(current_screen_position.x, current_screen_position.y, target_screen_position.x, target_screen_position.y, order_line_thickness, order_line_colour);
@@ -952,7 +953,7 @@ impl RymdGameView {
                 continue
             }
 
-            for order in orderable.orders() {
+            for order in orderable.orders(GameOrderType::Order) {
                 if let GameOrder::Construct(order) = order
                     && let Some(blueprint_id) = order.blueprint_id
                     && order.is_self_order == false
@@ -1037,10 +1038,10 @@ impl RymdGameView {
 
             let center_of_dynamic_body = body.bounds().center();
 
-            if constructor.is_constructing && orderable.is_queue_empty() == false {
+            if let Some(current_order @ GameOrder::Construct(_)) = orderable.first_order(GameOrderType::Order) && constructor.is_constructing {
 
                 let beam_emitter_offset = beam.offset.rotated_by(transform.world_rotation + (PI/2.0));
-                let beam_emit_target = orderable.first_order().unwrap().get_target_position(model).unwrap();
+                let beam_emit_target = current_order.get_target_position(model).unwrap();
                 let beam_emit_delta = beam_emit_target - (transform.world_position + beam_emitter_offset);
                 let beam_emit_direction = beam_emit_delta.normalize();
                 let beam_emit_distance = beam_emit_delta.length();

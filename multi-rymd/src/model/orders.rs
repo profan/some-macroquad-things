@@ -19,6 +19,12 @@ use super::point_ship_towards_target;
 use super::steer_ship_towards_target;
 use super::{RymdGameModel, Constructor, Controller, Health, Orderable};
 
+#[derive(Clone, Copy)]
+pub enum GameOrderType {
+    Order,
+    Construct,
+}
+
 pub trait GameOrdersExt {
 
     fn send_move_order(&mut self, entity: Entity, target_position: Vec2, should_add: bool);
@@ -105,6 +111,16 @@ impl GameOrder {
             GameOrder::Construct(order) => order.completed(entity, model),
             GameOrder::Cancel(order) => order.completed(entity, model)
         }     
+    }
+
+    pub fn order_type(&self) -> GameOrderType {
+        match self {
+            GameOrder::Move(_) => GameOrderType::Order,
+            GameOrder::Attack(_) => GameOrderType::Order,
+            GameOrder::AttackMove(_) => GameOrderType::Order,
+            GameOrder::Construct(order) => if order.is_self_order { GameOrderType::Construct } else { GameOrderType::Order },
+            GameOrder::Cancel(_) => GameOrderType::Order
+        }
     }
  
 }
@@ -265,7 +281,8 @@ impl Order for ConstructOrder {
                 let new_entity_id = (blueprint.constructor)(&mut model.world, controller_id, construction_position);
 
                 // cancel our current order now
-                self.cancel_current_order(entity, &mut model.world);
+                let order_type = if self.is_self_order { GameOrderType::Construct } else { GameOrderType::Order };
+                self.cancel_current_order(entity, &mut model.world, order_type);
     
                 // now that this is created, issue a local order to ourselves to help build this new entity
                 if self.is_self_order {
@@ -288,22 +305,7 @@ impl Order for ConstructOrder {
         }
 
         if let Some(entity_id) = self.entity_id && let Some(new_entity) = Entity::from_bits(entity_id) {
-
-            let has_orderable = model.world.get::<&Orderable>(new_entity).is_ok();
-
-            let target_position = if let Ok(body) = model.world.get::<&DynamicBody>(entity) && has_orderable {
-                let random_angle = rand::gen_range(-PI / 4.0, PI / 4.0);
-                let dir_to_entity = (vec2(self.x, self.y) - body.position()).normalize();
-                let target_position = body.position() + dir_to_entity.rotated_by(random_angle) * body.bounds.size().max_element();
-                Some(target_position)
-            } else {
-                None
-            };
-
-            if let Some(target_position) = target_position {
-                self.move_entity_to_position_if_empty(new_entity, &mut model.world, target_position);
-            }
-
+            self.inherit_orders_from_constructor_if_empty(entity, new_entity, model);
         }
 
     }
@@ -325,9 +327,9 @@ impl ConstructOrder {
 
     }
 
-    fn cancel_current_order(&self, entity: Entity, world: &mut World) {
+    fn cancel_current_order(&self, entity: Entity, world: &mut World, order_type: GameOrderType) {
         let mut orderable = world.get::<&mut Orderable>(entity).expect("must have orderable!");
-        orderable.pop_order();
+        orderable.cancel_order(order_type);
     }
 
     fn construct_external_entity(&self, entity: Entity, world: &mut World, building_entity: Entity, position: Vec2) {
@@ -340,11 +342,42 @@ impl ConstructOrder {
         orderable.push_order(GameOrder::Construct(ConstructOrder { entity_id: Some(building_entity.to_bits().get()), blueprint_id: None, is_self_order: true, x: position.x, y: position.y }))  
     }
 
-    fn move_entity_to_position_if_empty(&self, new_entity: Entity, world: &mut World, position: Vec2) {
+    fn move_entity_to_position(&self, new_entity: Entity, world: &mut World, position: Vec2) {
         let mut orderable = world.get::<&mut Orderable>(new_entity).expect("must have orderable!");
-        if orderable.is_queue_empty() {
-            orderable.push_order(GameOrder::Move(MoveOrder { x: position.x, y: position.y }));
+        orderable.push_order(GameOrder::Move(MoveOrder { x: position.x, y: position.y }));
+    }
+
+    fn inherit_orders_from_constructor_if_empty(&self, constructor_entity: Entity, new_entity: Entity, model: &mut RymdGameModel) {
+
+        if let Ok(constructor_orderable) = model.world.get::<&Orderable>(constructor_entity)
+            && let Ok(mut new_orderable) = model.world.get::<&mut Orderable>(new_entity)
+            && constructor_orderable.is_queue_empty(GameOrderType::Order) == false
+        {
+            for order in constructor_orderable.orders(GameOrderType::Order) {
+                new_orderable.queue_order(*order);
+            }
         }
+
+        let our_position = vec2(self.x, self.y);
+        let has_orderable = model.world.get::<&Orderable>(new_entity).is_ok();
+        let target_position = Self::calculate_movement_position_out_of_constructor(our_position, model, constructor_entity, has_orderable);
+
+        if let Some(target_position) = target_position {
+            self.move_entity_to_position(new_entity, &mut model.world, target_position);
+        }
+    }
+
+    fn calculate_movement_position_out_of_constructor(position: Vec2, model: &mut RymdGameModel, entity: Entity, has_orderable: bool) -> Option<Vec2> {
+        let target_position = if let Ok(body) = model.world.get::<&DynamicBody>(entity) && has_orderable {
+            let angle_range = PI / 4.0;
+            let random_angle = rand::gen_range(-angle_range, angle_range);
+            let dir_to_entity = (position - body.position()).normalize();
+            let target_position = body.position() + dir_to_entity.rotated_by(random_angle) * body.bounds.size().max_element();
+            Some(target_position)
+        } else {
+            None
+        };
+        target_position
     }
 
 }
@@ -357,7 +390,7 @@ pub struct CancelOrder {
 impl Order for CancelOrder {
     fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
         let orderable = model.world.get::<&Orderable>(entity).expect("entity must have orderable!");
-        orderable.is_queue_empty()
+        orderable.is_queue_empty(GameOrderType::Order)
     }
 
     fn get_target_position(&self, model: &RymdGameModel) -> Option<Vec2> {
@@ -366,7 +399,7 @@ impl Order for CancelOrder {
 
     fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
         let mut orderable = model.world.get::<&mut Orderable>(entity).expect("entity must have orderable!");
-        orderable.cancel_orders();
+        orderable.cancel_orders(GameOrderType::Order);
     }
 
     fn completed(&self, entity: Entity, model: &mut RymdGameModel) {

@@ -9,7 +9,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] implement adding units to an existing selection (when holding shift)
 [x] implement adding/removing units to an existing selection (when holding ctrl)
 [x] make ordering by drawing a line distribute units evenly along the line (instead of per point as currently)
-[] have separate order queues for construction and movement/similar things for units that can both construct things and also move/forward movement orders
+[x] have separate order queues for construction and movement/similar things for units that can both construct things and also move/forward movement orders
 [] implement shift+double click on a unit to select all other units of that type
 [] implement control groups (ctrl+1, etc) for units
 
@@ -30,13 +30,13 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] make camera reset properly when restarting the game
 
 # construction
-[] when constructing buildings, show an eta in seconds/minutes/etc
+[x] when constructing buildings, show an eta in seconds/minutes/etc
 [] when constructing buildings, make sure multiple constructors racing to build a single building end up helping to construct the same building, rather than building individual buildings.
 [x] when constructing entities, make the construction range ependent on the (circle) bounds of the item in construction, rather than just the centerpoint
 [x] when constructing buildings with a unit, draw a construction beam
 [x] when constructing units, move them out of the way automatically on construction (unless they already have an order)
 [x] when constructing buildings, show the entire build queue visually (probably by walking over the build order queue)
-[] when constructing units, have the constructed unit inherit any (non-construction) orders the building may have
+[x] when constructing units, have the constructed unit inherit any (non-construction) orders the building may have
 [] when constructing entities, display the construction queue when that entity is selected
 [] when entities are left not fully constructed, have them slowly decay (health wise)
 [x] when entities are being constructed, show the time they have left until done
