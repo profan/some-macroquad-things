@@ -1235,7 +1235,7 @@ impl RymdGameView {
 
     fn draw_build_time_labels(&self, world: &World) {
 
-        for (e, (transform, health, &state)) in world.query::<(&Transform, &Health, &EntityState)>().iter() {
+        for (e, (transform, bounds, health, &state)) in world.query::<(&Transform, &Bounds, &Health, &EntityState)>().iter() {
 
             if state != EntityState::Ghost {
                 continue
@@ -1246,7 +1246,7 @@ impl RymdGameView {
             let health_difference_per_second = (1.0 / RymdGameModel::TIME_STEP) * health_difference as f32;
             let time_remaining_seconds = health_difference_to_max as f32 / health_difference_per_second;
             
-            let time_label_position = transform.world_position + vec2(0.0, -32.0);
+            let time_label_position = transform.world_position + vec2(0.0, -bounds.as_radius());
             draw_text_centered(&format!("{:.0}s", time_remaining_seconds), time_label_position.x, time_label_position.y, 24.0, WHITE);
 
         }
