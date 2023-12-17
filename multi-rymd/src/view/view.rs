@@ -10,7 +10,7 @@ use hecs::*;
 use yakui::Alignment;
 
 use crate::PlayerID;
-use crate::model::{BlueprintID, PhysicsBody, Spawner, EntityState};
+use crate::model::{BlueprintID, PhysicsBody, Spawner, EntityState, GameOrder, Blueprint};
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Controller, Health, get_entity_position};
 
 use super::{calculate_sprite_bounds, GameCamera};
@@ -98,21 +98,29 @@ impl ConstructionState {
 
     }
 
-    fn preview_building(&mut self, resources: &Resources, blueprint: &crate::model::Blueprint, model: &RymdGameModel, camera: &GameCamera, lockstep: &mut LockstepClient) {
+    fn draw_building(resources: &Resources, blueprint: &Blueprint, position: Vec2) {
 
-        let should_cancel = is_mouse_button_released(MouseButton::Right) || is_mouse_button_released(MouseButton::Middle);
-        let should_build = is_mouse_button_released(MouseButton::Left);
-        let mouse_world_position: Vec2 = camera.mouse_world_position();
-
+        let blueprint_preview_alpha = 0.5;
         let blueprint_preview_texture = resources.get_texture_by_name(&blueprint.texture);
-        let blueprint_preview_position = mouse_world_position;
+        let blueprint_preview_position = position;
 
         draw_texture_centered(
             blueprint_preview_texture,
             blueprint_preview_position.x,
             blueprint_preview_position.y,
-            WHITE.with_alpha(0.5)
+            WHITE.with_alpha(blueprint_preview_alpha)
         );
+        
+    }
+
+    fn preview_building(&mut self, resources: &Resources, blueprint: &Blueprint, model: &RymdGameModel, camera: &GameCamera, lockstep: &mut LockstepClient) {
+
+        let should_cancel = is_mouse_button_released(MouseButton::Right) || is_mouse_button_released(MouseButton::Middle);
+        let should_build = is_mouse_button_released(MouseButton::Left);
+        let mouse_world_position: Vec2 = camera.mouse_world_position();
+
+        let blueprint_preview_position = mouse_world_position;
+        Self::draw_building(resources, blueprint, blueprint_preview_position);
 
         if should_build {
             self.finalize_blueprint(model, camera, lockstep);
@@ -569,14 +577,26 @@ impl RymdGameView {
         
     }
 
+    fn is_controller_attackable(&self, controller: &Controller) -> bool {
+        controller.id != self.player_id
+    }
+
+    fn is_controller_friendly(&self, controller: &Controller) -> bool {
+        controller.id == self.player_id // #TODO: alliances, teams?
+    }
+
+    fn is_controller_controllable(&self, controller: &Controller) -> bool {
+        controller.id == self.player_id // #TODO: alliances, teams?
+    }
+
     fn is_entity_attackable(&self, entity: Entity, world: &World) -> bool {
         let controller = world.get::<&Controller>(entity).expect("must have controller!");
-        controller.id != self.player_id // #TODO: alliances, teams?
+        self.is_controller_attackable(&controller)
     }
 
     fn is_entity_friendly(&self, entity: Entity, world: &World) -> bool {
         let controller = world.get::<&Controller>(entity).expect("must have controller!");
-        controller.id == self.player_id // #TODO: alliances, teams?
+        self.is_controller_friendly(&controller)
     }
 
     fn is_entity_controllable(&self, entity: Entity, world: &World) -> bool {
@@ -921,6 +941,29 @@ impl RymdGameView {
 
         self.handle_selection(&mut model.world);
         self.handle_order(&mut model.world, lockstep);
+
+    }
+
+    fn draw_build_queue(&self, model: &RymdGameModel) {
+
+        for (e, (orderable, controller)) in model.world.query::<(&Orderable, &Controller)>().iter() {
+
+            if self.is_controller_friendly(controller) == false {
+                continue
+            }
+
+            for order in orderable.orders() {
+                if let GameOrder::Construct(order) = order
+                    && let Some(blueprint_id) = order.blueprint_id
+                    && order.is_self_order == false
+                {
+                    let position = vec2(order.x, order.y);
+                    if let Some(blueprint) = model.blueprint_manager.get_blueprint(blueprint_id) {
+                        ConstructionState::draw_building(&self.resources, blueprint, position);
+                    }
+                }
+            }
+        }
 
     }
 
@@ -1286,6 +1329,7 @@ impl RymdGameView {
         self.camera.push();
 
         self.draw_sprites(&model.world);
+        self.draw_build_queue(model);
 
         self.construction.tick_and_draw(model, &self.camera, &self.resources, lockstep);
 

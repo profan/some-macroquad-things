@@ -35,6 +35,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] when constructing entities, make the construction range ependent on the (circle) bounds of the item in construction, rather than just the centerpoint
 [x] when constructing buildings with a unit, draw a construction beam
 [x] when constructing units, move them out of the way automatically on construction (unless they already have an order)
+[x] when constructing buildings, show the entire build queue visually (probably by walking over the build order queue)
 [] when constructing units, have the constructed unit inherit any (non-construction) orders the building may have
 [] when constructing entities, display the construction queue when that entity is selected
 [] when entities are left not fully constructed, have them slowly decay (health wise)

@@ -193,11 +193,11 @@ impl Order for AttackMoveOrder {
 
 #[derive(Debug, Copy, Clone, SerJson, DeJson)]
 pub struct ConstructOrder {
-    entity_id: Option<EntityID>,
-    blueprint_id: Option<BlueprintID>,
-    is_self_order: bool,
-    x: f32,
-    y: f32
+    pub entity_id: Option<EntityID>,
+    pub blueprint_id: Option<BlueprintID>,
+    pub is_self_order: bool,
+    pub x: f32,
+    pub y: f32
 }
 
 impl Order for ConstructOrder {
