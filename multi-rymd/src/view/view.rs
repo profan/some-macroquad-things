@@ -1221,8 +1221,9 @@ impl RymdGameView {
         let bounds_line_thickness = 2.0;
 
         for (e, body) in world.query::<&DynamicBody>().iter() {
+            let bounds_colour = if body.is_enabled { GREEN } else { YELLOW };
             let screen_bounds = self.camera.world_to_screen_rect(body.bounds());
-            draw_rectangle_lines_centered(screen_bounds.x, screen_bounds.y, screen_bounds.w, screen_bounds.h, bounds_line_thickness, GREEN);
+            draw_rectangle_lines_centered(screen_bounds.x, screen_bounds.y, screen_bounds.w, screen_bounds.h, bounds_line_thickness, bounds_colour);
         }
 
     }
