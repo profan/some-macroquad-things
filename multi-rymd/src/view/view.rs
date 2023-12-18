@@ -10,7 +10,7 @@ use hecs::*;
 use yakui::Alignment;
 
 use crate::PlayerID;
-use crate::model::{BlueprintID, PhysicsBody, Spawner, EntityState, GameOrder, Blueprint, GameOrderType};
+use crate::model::{BlueprintID, PhysicsBody, Spawner, EntityState, GameOrder, Blueprint, GameOrderType, BlueprintIdentity};
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Controller, Health, get_entity_position};
 
 use super::{calculate_sprite_bounds, GameCamera};
@@ -1245,6 +1245,59 @@ impl RymdGameView {
 
     }
 
+    fn draw_text_construction_queue_ui(&mut self, model: &mut RymdGameModel, debug: &mut DebugText) {
+
+        for (e, (constructor, orderable)) in model.world.query::<(&Constructor, &Orderable)>().iter() {
+
+            if orderable.is_queue_empty(GameOrderType::Construct) {
+                continue
+            }
+
+            debug.skip_line(TextPosition::BottomRight);
+
+            let mut blueprints_in_construction = Vec::new();
+
+            for order in orderable.orders(GameOrderType::Construct) {
+                if let GameOrder::Construct(construct_order) = order {
+                    
+                    let current_blueprint_id = if let Some(blueprint_id) = construct_order.blueprint_id {
+                        Some(blueprint_id)
+                    } else if let Some(entity) = construct_order.entity() && let Ok(blueprint_identity) = model.world.get::<&BlueprintIdentity>(entity)
+                    {
+                        Some(blueprint_identity.blueprint_id)
+                    } else {
+                        None
+                    };
+
+                    if let Some(current_blueprint_id) = current_blueprint_id {
+
+                        if let Some((last_id, last_count)) = blueprints_in_construction.last().cloned() {
+                            if last_id == current_blueprint_id {
+                                blueprints_in_construction.pop();
+                                blueprints_in_construction.push((current_blueprint_id, last_count + 1));
+                            } else {
+                                blueprints_in_construction.push((current_blueprint_id, 1));
+                            }
+                        } else {
+                            blueprints_in_construction.push((current_blueprint_id, 1));
+                        }
+
+                    }
+
+                }
+            }
+
+            for (blueprint_id, blueprint_count) in blueprints_in_construction {
+                let Some(blueprint) = model.blueprint_manager.get_blueprint(blueprint_id) else { continue };
+                debug.draw_text(format!(" - {}x {}", blueprint_count, blueprint.name), TextPosition::BottomRight, WHITE);
+            }
+
+            debug.draw_text("construction queue", TextPosition::BottomRight, WHITE);
+
+        }
+
+    }
+
     fn draw_ui(&mut self, model: &mut RymdGameModel, debug: &mut DebugText, lockstep: &mut LockstepClient) {
 
         yakui::align(Alignment::TOP_CENTER, || {
@@ -1263,7 +1316,7 @@ impl RymdGameView {
 
         if self.current_selection_has_constructor_unit(&model.world) {
             self.draw_text_construction_ui(model, debug);
-            // self.draw_construction_ui(model, lockstep);
+            self.draw_text_construction_queue_ui(model, debug);
         }
 
     }

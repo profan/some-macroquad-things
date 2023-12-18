@@ -216,11 +216,17 @@ pub struct ConstructOrder {
     pub y: f32
 }
 
+impl ConstructOrder {
+    pub fn entity(&self) -> Option<Entity> {
+        Entity::from_bits(self.entity_id?)
+    }
+}
+
 impl Order for ConstructOrder {
 
     fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
         
-        if let Some(entity_id) = self.entity_id && let Some(constructing_entity) = Entity::from_bits(entity_id) {
+        if let Some(constructing_entity) = self.entity() {
             let entity_health = model.world.get::<&Health>(constructing_entity).expect("building must have entity health component to be able to construct!");
             entity_health.is_at_full_health()
         } else {

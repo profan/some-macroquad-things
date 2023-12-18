@@ -4,6 +4,7 @@ use macroquad::math::{Vec2, Rect};
 use utility::{Kinematic, RotatedBy, SteeringParameters};
 use lockstep_client::step::PeerID;
 
+use crate::model::BlueprintID;
 use super::{GameOrder, PhysicsBody, GameOrderType};
 
 #[derive(Clone)]
@@ -419,4 +420,9 @@ pub enum UnitState {
 #[derive(Clone)]
 pub struct Steering {
     pub parameters: SteeringParameters
+}
+
+#[derive(Clone)]
+pub struct BlueprintIdentity {
+    pub blueprint_id: BlueprintID
 }
