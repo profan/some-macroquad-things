@@ -64,7 +64,7 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     // assemble the ship
     let controller = Controller { id: owner };
     let blueprint_identity = BlueprintIdentity { blueprint_id: 2 };
-    let constructor = Constructor { is_constructing: false, constructibles: vec![0, 1], build_speed: commander_build_speed, build_range: commander_build_range, beam_offset: commander_build_offset };
+    let constructor = Constructor { is_constructing: false, constructibles: vec![0, 1], build_speed: commander_build_speed, build_range: commander_build_range, beam_offset: commander_build_offset, can_assist: true };
     let health = Health::new_with_current_health(full_commander_health, initial_commander_health);
     let transform = Transform::new(position, 0.0, None);
     let dynamic_body = DynamicBody { is_enabled, is_static, bounds, kinematic };

@@ -672,8 +672,9 @@ impl RymdGameView {
         for (e, (transform, orderable, selectable, constructor)) in world.query_mut::<(&Transform, &Orderable, &Selectable, &Constructor)>() {
     
             let is_target_self = target_entity == e;
+            let is_capable_of_assisting = constructor.can_assist;
 
-            if selectable.is_selected && is_target_self == false {
+            if selectable.is_selected && is_target_self == false && is_capable_of_assisting {
                 lockstep.send_repair_order(e, target_position, target_entity, should_add);
                 println!("[RymdGameView] ordered: {:?} to repair: {:?}", e, target_entity);
             }
