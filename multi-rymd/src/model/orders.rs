@@ -64,6 +64,10 @@ impl GameOrdersExt for LockstepClient {
 
 trait Order {
 
+    fn is_order_valid(&self, entity: Entity, model: &RymdGameModel) -> bool {
+        self.is_order_completed(entity, model) == false
+    }
+
     fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool;
     fn get_target_position(&self, model: &RymdGameModel) -> Option<Vec2>;
     fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32);
@@ -72,6 +76,16 @@ trait Order {
 }
 
 impl GameOrder {
+
+    pub fn is_order_valid(&self, entity: Entity, model: &RymdGameModel) -> bool {
+        match self {
+            GameOrder::Move(order) => order.is_order_valid(entity, model),
+            GameOrder::Attack(order) => order.is_order_valid(entity, model),
+            GameOrder::AttackMove(order) => order.is_order_valid(entity, model),
+            GameOrder::Construct(order) => order.is_order_valid(entity, model),
+            GameOrder::Cancel(order) => order.is_order_valid(entity, model)
+        }
+    }
 
     pub fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
         match self {
@@ -310,7 +324,7 @@ impl Order for ConstructOrder {
             constructor.is_constructing = false;
         }
 
-        if let Some(entity_id) = self.entity_id && let Some(new_entity) = Entity::from_bits(entity_id) {
+        if let Some(new_entity) = self.entity() && entity != new_entity {
             self.inherit_orders_from_constructor_if_empty(entity, new_entity, model);
         }
 
@@ -355,13 +369,26 @@ impl ConstructOrder {
 
     fn inherit_orders_from_constructor_if_empty(&self, constructor_entity: Entity, new_entity: Entity, model: &mut RymdGameModel) {
 
-        if let Ok(constructor_orderable) = model.world.get::<&Orderable>(constructor_entity)
-            && let Ok(mut new_orderable) = model.world.get::<&mut Orderable>(new_entity)
-            && constructor_orderable.is_queue_empty(GameOrderType::Order) == false
+        if constructor_entity == new_entity {
+            warn!("ConstructOrder - inherit_orders_from_constructor_if_empty: tried to inherit orders from self?");
+            return;
+        }
+
         {
-            for order in constructor_orderable.orders(GameOrderType::Order) {
-                new_orderable.queue_order(*order);
+
+            let mut orderable_query = model.world.query::<&mut Orderable>();
+            let mut orderable_view = orderable_query.view();
+            let [constructor_orderable, new_orderable] = orderable_view.get_mut_n([constructor_entity, new_entity]);
+
+            if let Some(constructor_orderable) = constructor_orderable
+                && let Some(new_orderable) = new_orderable
+                && constructor_orderable.is_queue_empty(GameOrderType::Order) == false
+            {
+                for order in constructor_orderable.orders(GameOrderType::Order) {
+                    new_orderable.queue_order(*order);
+                }
             }
+
         }
 
         let our_position = vec2(self.x, self.y);
@@ -371,6 +398,7 @@ impl ConstructOrder {
         if let Some(target_position) = target_position {
             self.move_entity_to_position(new_entity, &mut model.world, target_position);
         }
+
     }
 
     fn calculate_movement_position_out_of_constructor(position: Vec2, model: &mut RymdGameModel, entity: Entity, has_orderable: bool) -> Option<Vec2> {

@@ -258,7 +258,10 @@ impl OrderQueue {
 impl Orderable {
 
     pub fn new() -> Orderable {
-        Orderable { order_queue: OrderQueue::new(), build_order_queue: OrderQueue::new() }
+        Orderable {
+            order_queue: OrderQueue::new(),
+            build_order_queue: OrderQueue::new()
+        }
     }
 
     /// Returns the order first in the queue, if any.

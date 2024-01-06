@@ -173,19 +173,31 @@ impl RymdGameModel {
         }
 
         for &e in &in_progress_orders {
-            if let Ok(orderable) = self.world.query_one_mut::<&mut Orderable>(e) {
-                if let Some(order) = orderable.first_order(order_type).cloned() {
-                    order.tick(e, self, Self::TIME_STEP);
-                }
+
+            let maybe_order = if let Ok(orderable) = self.world.query_one_mut::<&mut Orderable>(e) {
+                orderable.first_order(order_type).cloned()
+            } else {
+                None
+            };
+
+            if let Some(order) = maybe_order {
+                order.tick(e, self, Self::TIME_STEP);
             }
+
         }
 
         for &e in &completed_orders {
-            if let Ok(orderable) = self.world.query_one_mut::<&mut Orderable>(e) {
-                if let Some(order) = orderable.pop_first_order(order_type) {
-                    order.on_order_completed(e, self);
-                }
+
+            let maybe_order = if let Ok(orderable) = self.world.query_one_mut::<&mut Orderable>(e) {
+                orderable.pop_first_order(order_type)
+            } else {
+                None
+            };
+
+            if let Some(order) = maybe_order {
+                order.on_order_completed(e, self);
             }
+
         }
 
         for &e in &canceled_orders {
@@ -196,6 +208,7 @@ impl RymdGameModel {
                 orderable.clear_canceled_orders(order_type);
             }
         }
+
     }
 
     fn is_processing_orders(state: EntityState) -> bool {

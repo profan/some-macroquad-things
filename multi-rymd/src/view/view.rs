@@ -849,12 +849,12 @@ impl RymdGameView {
             }
 
             let mut current_line_start = transform.world_position;
+            let current_orders = orderable.orders(GameOrderType::Order);
 
             let order_line_thickness = 1.0;
             let order_line_head_size = self.camera.world_to_screen_scale_v(8.0);
             let order_line_colour = GREEN.with_alpha(0.5);
 
-            let current_orders = orderable.orders(GameOrderType::Order);
             for (i, order) in current_orders.iter().enumerate() {
                 if let Some(target_position) = order.get_target_position(model) {
                     let current_screen_position = self.camera.world_to_screen(current_line_start);
