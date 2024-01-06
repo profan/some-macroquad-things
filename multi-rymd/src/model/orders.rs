@@ -383,6 +383,7 @@ impl ConstructOrder {
             if let Some(constructor_orderable) = constructor_orderable
                 && let Some(new_orderable) = new_orderable
                 && constructor_orderable.is_queue_empty(GameOrderType::Order) == false
+                && new_orderable.is_queue_empty(GameOrderType::Order)
             {
                 for order in constructor_orderable.orders(GameOrderType::Order) {
                     new_orderable.queue_order(*order);
