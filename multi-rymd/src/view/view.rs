@@ -10,7 +10,7 @@ use hecs::*;
 use yakui::Alignment;
 
 use crate::PlayerID;
-use crate::model::{BlueprintID, PhysicsBody, Spawner, EntityState, GameOrder, Blueprint, GameOrderType, BlueprintIdentity};
+use crate::model::{BlueprintID, PhysicsBody, Spawner, EntityState, GameOrder, Blueprint, GameOrderType, BlueprintIdentity, Player, Energy, Metal};
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Controller, Health, get_entity_position};
 
 use super::{calculate_sprite_bounds, GameCamera};
@@ -1299,15 +1299,43 @@ impl RymdGameView {
 
     }
 
+    fn current_metal(&self, world: &World) -> i64 {
+
+        if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().filter(|(e, p)| p.id == self.player_id).nth(0) {
+            if let Ok(metal) = world.get::<&Metal>(current_player_entity) {
+                metal.current
+            } else {
+                0
+            }
+        } else {
+            0
+        }
+
+    }
+    
+    fn current_energy(&self, world: &World) -> i64 {
+
+        if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().filter(|(e, p)| p.id == self.player_id).nth(0) {
+            if let Ok(energy) = world.get::<&Energy>(current_player_entity) {
+                energy.current
+            } else {
+                0
+            }
+        } else {
+            0
+        }
+
+    }
+
     fn draw_ui(&mut self, model: &mut RymdGameModel, debug: &mut DebugText, lockstep: &mut LockstepClient) {
 
         yakui::align(Alignment::TOP_CENTER, || {
 
-            let current_metal = 100;
+            let current_metal = self.current_metal(&model.world);
             let current_metal_income = 0;
             let current_metal_excess = 0;
 
-            let current_energy = 100;
+            let current_energy = self.current_energy(&model.world);
             let current_energy_income = 0;
             let current_energy_excess = 0;
 

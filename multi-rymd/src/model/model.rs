@@ -15,6 +15,7 @@ use super::GameOrderType;
 use super::Health;
 use super::PhysicsManager;
 use super::create_commander_ship_blueprint;
+use super::create_player_entity;
 use super::create_shipyard_blueprint;
 use super::create_solar_collector_blueprint;
 use super::{build_commander_ship, GameOrder, Orderable, Transform, DynamicBody, Blueprint};
@@ -74,6 +75,8 @@ impl RymdGameModel {
     pub fn start(&mut self, parameters: RymdGameParameters) {
 
         for player in &parameters.players {
+
+            create_player_entity(&mut self.world, player.id);
 
             for i in 0..1 {
 
@@ -230,6 +233,10 @@ impl RymdGameModel {
         }
 
     }
+    
+    fn tick_resources(&mut self) {
+
+    }
 
     fn tick_transform_updates(&mut self) {
 
@@ -275,6 +282,7 @@ impl RymdGameModel {
         self.tick_entity_states();
         self.tick_orderables();
         self.tick_transforms();
+        self.tick_resources();
         self.tick_physics_engine();
         self.tick_transform_updates();
     }
