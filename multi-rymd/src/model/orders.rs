@@ -273,13 +273,7 @@ impl Order for ConstructOrder {
             }
 
             let mut constructor = model.world.get::<&mut Constructor>(entity).expect("must have constructor to be issuing construct order!");
-            constructor.is_constructing = true;
-
-            if self.is_order_completed(entity, model) == false {
-                let mut entity_health = model.world.get::<&mut Health>(constructing_entity).expect("building must have entity health component to be able to construct!");
-                let entity_repair_health = ((constructor.build_speed as f32 * dt) as i32).min(entity_health.full_health());
-                entity_health.damage(-entity_repair_health);
-            }
+            constructor.current_target = Some(constructing_entity);
 
         }
 
@@ -321,7 +315,7 @@ impl Order for ConstructOrder {
 
         {
             let mut constructor = model.world.get::<&mut Constructor>(entity).expect("must have constructor to be issuing construct order!");
-            constructor.is_constructing = false;
+            constructor.current_target = None;
         }
 
         if let Some(new_entity) = self.entity() && entity != new_entity {

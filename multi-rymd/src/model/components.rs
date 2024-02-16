@@ -392,6 +392,10 @@ impl Health {
         self.current_health -= value;
     }
 
+    pub fn heal(&mut self, value: i32) {
+        self.damage(-value);
+    }
+
     pub fn current_health(&self) -> i32 {
         self.current_health
     }
@@ -428,4 +432,12 @@ pub struct Steering {
 #[derive(Clone)]
 pub struct BlueprintIdentity {
     pub blueprint_id: BlueprintID
+}
+
+pub fn current_health(world: &World, entity: Entity) -> i32 {
+    world.get::<&Health>(entity).unwrap().current_health
+}
+
+pub fn max_health(world: &World, entity: Entity) -> i32 {
+    world.get::<&Health>(entity).unwrap().full_health
 }

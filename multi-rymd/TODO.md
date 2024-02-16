@@ -45,7 +45,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 # resources
 [] allow entities to generate resources
 [] allow entities to depend on resources to function
-[] allow entities to depend on resources to construct things
+[x] allow entities to depend on resources to construct things
 
 # units
 [x] represent health of units

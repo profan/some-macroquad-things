@@ -10,14 +10,22 @@ use crate::model::BlueprintID;
 use crate::model::GameMessage;
 use crate::game::RymdGameParameters;
 
+use super::BlueprintIdentity;
+use super::Constructor;
+use super::Controller;
 use super::EntityState;
 use super::GameOrderType;
 use super::Health;
 use super::PhysicsManager;
+use super::consume_energy;
+use super::consume_metal;
 use super::create_commander_ship_blueprint;
 use super::create_player_entity;
 use super::create_shipyard_blueprint;
 use super::create_solar_collector_blueprint;
+use super::current_energy;
+use super::current_metal;
+use super::max_health;
 use super::{build_commander_ship, GameOrder, Orderable, Transform, DynamicBody, Blueprint};
 
 pub struct RymdGameModel {
@@ -233,6 +241,51 @@ impl RymdGameModel {
         }
 
     }
+
+    fn tick_constructors(&mut self) {
+
+        for (e, (controller, constructor)) in self.world.query::<(&Controller, &mut Constructor)>().iter() {
+
+            if let Some(constructing_entity) = constructor.current_target {
+                let mut entity_health = self.world.get::<&mut Health>(constructing_entity).expect("entity must have health component to be possible to repair!");
+                let entity_blueprint_identity = self.world.get::<&BlueprintIdentity>(constructing_entity).expect("entity must have blueprint identity to be able to identify cost!");
+                let entity_blueprint = self.blueprint_manager.get_blueprint(entity_blueprint_identity.blueprint_id).expect("entity must have blueprint!");
+
+                let entity_metal_cost = entity_blueprint.cost.metal;
+                let entity_energy_cost = entity_blueprint.cost.energy;
+                let entity_total_cost = entity_metal_cost + entity_energy_cost;
+
+                let entity_metal_proportion = entity_metal_cost as f32 / entity_total_cost as f32;
+                let entity_energy_proportion = entity_energy_cost as f32 / entity_total_cost as f32;
+
+                let build_power_metal_cost = constructor.build_speed as f32 * entity_metal_proportion;
+                let build_power_energy_cost = constructor.build_speed as f32 * entity_energy_proportion;
+
+                let available_metal = current_metal(controller.id, &self.world);
+                let available_energy = current_energy(controller.id, &self.world);
+
+                let available_metal_proportion = (available_metal as f32 / build_power_metal_cost as f32).min(1.0);
+                let available_energy_proportion = (available_energy as f32 / build_power_energy_cost as f32).min(1.0);
+                let min_available_proportion = available_energy_proportion.min(available_metal_proportion);
+                
+                let metal_to_consume = build_power_metal_cost * available_metal_proportion;
+                let energy_to_consume = build_power_energy_cost * available_energy_proportion;
+
+                if metal_to_consume > available_metal as f32 || energy_to_consume > available_energy as f32 {
+                    continue;
+                }
+
+                consume_metal(controller.id, &self.world, (metal_to_consume * Self::TIME_STEP) as i64);
+                consume_energy(controller.id, &self.world, (energy_to_consume * Self::TIME_STEP) as i64);
+
+                let entity_health_regain_amount = entity_health.full_health() as f32 * min_available_proportion;
+                let entity_repair_health = ((entity_health_regain_amount * Self::TIME_STEP) as i32).min(entity_health.full_health());
+                entity_health.heal(entity_repair_health);
+            }
+            
+        }
+
+    }
     
     fn tick_resources(&mut self) {
 
@@ -283,6 +336,7 @@ impl RymdGameModel {
         self.tick_orderables();
         self.tick_transforms();
         self.tick_resources();
+        self.tick_constructors();
         self.tick_physics_engine();
         self.tick_transform_updates();
     }
