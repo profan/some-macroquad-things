@@ -411,6 +411,10 @@ impl Health {
     pub fn is_at_full_health(&self) -> bool {
         self.current_health >= self.full_health
     }
+
+    pub fn current_health_fraction(&self) -> f32 {
+        self.full_health as f32 / self.current_health as f32
+    }
 }
 
 pub struct Controller {

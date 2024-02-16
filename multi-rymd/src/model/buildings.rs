@@ -62,7 +62,7 @@ pub fn create_solar_collector_blueprint() -> Blueprint {
         name: String::from("Solar Collector"),
         texture: String::from("SOLAR_COLLECTOR"),
         constructor: build_solar_collector,
-        cost: Cost { metal: 25, energy: 25 },
+        cost: Cost { metal: 25.0, energy: 25.0 },
         is_building: true
     }
 }
@@ -74,7 +74,7 @@ pub fn create_shipyard_blueprint() -> Blueprint {
         name: String::from("Shipyard"),
         texture: String::from("SHIPYARD"),
         constructor: build_shipyard,
-        cost: Cost { metal: 50, energy: 25 },
+        cost: Cost { metal: 50.0, energy: 25.0 },
         is_building: true
     }
 }

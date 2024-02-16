@@ -34,7 +34,7 @@ pub fn create_commander_ship_blueprint() -> Blueprint {
         name: String::from("Commander Ship"),
         texture: String::from("PLAYER_SHIP"),
         constructor: build_commander_ship,
-        cost: Cost { metal: 25, energy: 25 },
+        cost: Cost { metal: 25.0, energy: 25.0 },
         is_building: false
     }
 }
@@ -49,7 +49,7 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let initial_commander_health = 100;
     let full_commander_health = 1000;
 
-    let commander_build_speed = 250;
+    let commander_build_speed = 100;
     let commander_build_range = 100;
     let commander_build_offset = -vec2(bounds.w / 8.0, 0.0);
 

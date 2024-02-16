@@ -1311,7 +1311,7 @@ impl RymdGameView {
             let current_energy_income = 0;
             let current_energy_excess = 0;
 
-            yakui::label(format!("current metal: {}, current energy: {}", current_metal, current_energy));
+            yakui::label(format!("current metal: {:.0}, current energy: {:.0}", current_metal, current_energy));
 
         });
 

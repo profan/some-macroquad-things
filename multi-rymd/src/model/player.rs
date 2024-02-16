@@ -10,8 +10,8 @@ pub struct Player {
 
 pub fn create_player_entity(world: &mut World, id: PeerID) -> Entity {
 
-    let default_metal = 1000;
-    let default_energy = 1000;
+    let default_metal = 1000.0;
+    let default_energy = 1000.0;
 
     let metal = Metal { current: default_metal };
     let energy = Energy { current: default_energy };
