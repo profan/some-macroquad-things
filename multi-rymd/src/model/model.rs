@@ -26,6 +26,7 @@ use super::Producer;
 use super::Storage;
 use super::consume_energy;
 use super::consume_metal;
+use super::create_arrowhead_ship_blueprint;
 use super::create_commander_ship_blueprint;
 use super::create_energy_storage_blueprint;
 use super::create_metal_storage_blueprint;
@@ -67,8 +68,10 @@ impl BlueprintManager {
 
         // units
         let commander_ship_blueprint = create_commander_ship_blueprint();
+        let arrowhead_ship_blueprint = create_arrowhead_ship_blueprint();
 
         blueprints.insert(commander_ship_blueprint.id, commander_ship_blueprint);
+        blueprints.insert(arrowhead_ship_blueprint.id, arrowhead_ship_blueprint);
 
         BlueprintManager {
             blueprints

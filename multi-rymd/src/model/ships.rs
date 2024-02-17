@@ -39,6 +39,18 @@ pub fn create_commander_ship_blueprint() -> Blueprint {
     }
 }
 
+pub fn create_arrowhead_ship_blueprint() -> Blueprint {
+    Blueprint {
+        id: Blueprints::Arrowhead as i32,
+        shortcut: KeyCode::Key6,
+        name: String::from("Arrowhead (Fighter)"),
+        texture: String::from("ARROWHEAD"),
+        constructor: build_arrowhead_ship,
+        cost: Cost { metal: 25.0, energy: 25.0 },
+        is_building: false
+    }
+}
+
 pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
 
     let commander_ship_size = 32.0;
@@ -99,5 +111,58 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     commander_ship.thrusters.push(commander_ship_thruster_main);
 
     commander_ship_body
+
+}
+
+pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
+
+    let arrowhead_ship_size = 32.0;
+    let bounds = Rect { x: 0.0, y: 0.0, w: arrowhead_ship_size, h: arrowhead_ship_size };
+    let is_enabled = false;
+    let is_static = false;
+
+    let initial_arrowhead_health = 100;
+    let full_arrowhead_health = 250;
+
+    let arrowhead_thruster_power = 64.0;
+    let arrowhead_turn_thruster_power = 16.0;
+
+    let steering_parameters = DEFAULT_STEERING_PARAMETERS;
+    let kinematic = create_default_kinematic_body(position, 0.0);
+    let ship_parameters = ShipParameters {
+        turn_rate: 4.0
+    };
+
+    // assemble the ship
+    let controller = Controller { id: owner };
+    let blueprint_identity = BlueprintIdentity::new(Blueprints::Commander);
+    let health = Health::new_with_current_health(full_arrowhead_health, initial_arrowhead_health);
+    let transform = Transform::new(position, 0.0, None);
+    let dynamic_body = DynamicBody { is_enabled, is_static, bounds, kinematic };
+    let sprite = AnimatedSprite { texture: "ARROWHEAD".to_string(), current_frame: 0, h_frames: 1 };
+    let steering = Steering { parameters: steering_parameters };
+    let ship = Ship::new(ship_parameters.turn_rate);
+    let orderable = Orderable::new();
+    let state = EntityState::Ghost;
+
+    let arrowhead_ship_body = world.spawn((health, transform, dynamic_body, sprite, steering, ship, orderable, controller, blueprint_identity, state));
+
+    // add ship thrusters
+    let arrowhead_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), -Vec2::X, -(PI / 2.0), arrowhead_turn_thruster_power, ThrusterKind::Attitude, arrowhead_ship_body));
+    let arrowhead_ship_thuster_right_top = world.spawn(ShipThruster::new(vec2(14.0, 4.0), Vec2::X, PI / 2.0, arrowhead_turn_thruster_power, ThrusterKind::Attitude, arrowhead_ship_body));
+
+    let arrowhead_ship_thruster_left_bottom = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), Vec2::X, -(PI / 2.0), arrowhead_turn_thruster_power, ThrusterKind::Attitude, arrowhead_ship_body));
+    let arrowhead_ship_thuster_right_bottom = world.spawn(ShipThruster::new(vec2(14.0, 4.0), -Vec2::X, PI / 2.0, arrowhead_turn_thruster_power, ThrusterKind::Attitude, arrowhead_ship_body));
+
+    let arrowhead_ship_thruster_main = world.spawn(ShipThruster::new(vec2(0.0, 10.0), Vec2::Y, 0.0, arrowhead_thruster_power, ThrusterKind::Main, arrowhead_ship_body));
+
+    let mut arrowhead_ship = world.get::<&mut Ship>(arrowhead_ship_body).unwrap();
+    arrowhead_ship.thrusters.push(arrowhead_ship_thruster_left_top);
+    arrowhead_ship.thrusters.push(arrowhead_ship_thuster_right_top);
+    arrowhead_ship.thrusters.push(arrowhead_ship_thruster_left_bottom);
+    arrowhead_ship.thrusters.push(arrowhead_ship_thuster_right_bottom);
+    arrowhead_ship.thrusters.push(arrowhead_ship_thruster_main);
+
+    arrowhead_ship_body
 
 }

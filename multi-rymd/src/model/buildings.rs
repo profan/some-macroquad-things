@@ -140,7 +140,7 @@ pub fn build_shipyard(world: &mut World, owner: PlayerID, position: Vec2) -> Ent
 
     let full_shipyard_health = 1000;
     let initial_shipyard_health = 10;
-    let shipyard_blueprints = vec![Blueprints::Commander as i32];
+    let shipyard_blueprints = vec![Blueprints::Commander as i32, Blueprints::Arrowhead as i32];
 
     let controller = Controller { id: owner };
     let transform = Transform::new(position, 0.0, None);

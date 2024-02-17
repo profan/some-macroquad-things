@@ -443,6 +443,7 @@ impl Resources {
         self.load_texture_or_placeholder("ENEMY_MEDIUM_GRUNT", "raw/enemy_medium_grunt.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("ENEMY_GRUNT_REPAIR", "raw/enemy_grunt_repair.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("HAMMERHEAD", "raw/hammerhead.png", FilterMode::Nearest).await;
+        self.load_texture_or_placeholder("ARROWHEAD", "raw/arrowhead.png", FilterMode::Nearest).await;
         
         // buildings of various kinds
         self.load_texture_or_placeholder("SHIPYARD", "raw/shipyard.png", FilterMode::Nearest).await;

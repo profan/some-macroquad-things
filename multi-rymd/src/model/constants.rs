@@ -6,7 +6,8 @@ pub enum Blueprints {
     SolarCollector = 2,
     EnergyStorage = 3,
     MetalStorage = 4,
-    Commander = 5
+    Commander = 5,
+    Arrowhead = 6
 }
 
 pub const DEFAULT_STEERING_PARAMETERS: SteeringParameters = SteeringParameters {
