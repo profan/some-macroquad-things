@@ -8,8 +8,8 @@ pub fn create_asteroid(world: &mut World, position: Vec2, rotation: f32) -> Enti
 
     let size = 64.0;
     let bounds = Rect {
-        x: -size / 2.0,
-        y: -size / 2.0,
+        x: 0.0,
+        y: 0.0,
         w: size,
         h: size
     };
