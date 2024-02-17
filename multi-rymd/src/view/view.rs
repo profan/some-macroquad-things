@@ -450,6 +450,7 @@ impl Resources {
         self.load_texture_or_placeholder("POWER_STATION_TURRET", "raw/power_station_turret.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("SOLAR_COLLECTOR", "raw/solar_collector_light.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("ENERGY_STORAGE", "raw/energy_storage_small.png", FilterMode::Nearest).await;
+        self.load_texture_or_placeholder("METAL_STORAGE", "raw/metal_storage_small.png", FilterMode::Nearest).await;
 
         // bullets
         self.load_texture_or_placeholder("SIMPLE_BULLET", "raw/simple_bullet.png", FilterMode::Nearest).await;

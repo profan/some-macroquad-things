@@ -52,7 +52,7 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let commander_build_speed = 100;
     let commander_build_range = 100;
     let commander_build_offset = -vec2(bounds.w / 8.0, 0.0);
-    let commander_blueprints = vec![Blueprints::Shipyard as i32, Blueprints::SolarCollector as i32, Blueprints::EnergyStorage as i32];
+    let commander_blueprints = vec![Blueprints::Shipyard as i32, Blueprints::SolarCollector as i32, Blueprints::EnergyStorage as i32, Blueprints::MetalStorage as i32];
 
     let commander_thruster_power = 64.0;
     let commander_turn_thruster_power = 16.0;

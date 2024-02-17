@@ -28,6 +28,7 @@ use super::consume_energy;
 use super::consume_metal;
 use super::create_commander_ship_blueprint;
 use super::create_energy_storage_blueprint;
+use super::create_metal_storage_blueprint;
 use super::create_player_entity;
 use super::create_shipyard_blueprint;
 use super::create_solar_collector_blueprint;
@@ -54,10 +55,12 @@ impl BlueprintManager {
         let mut blueprints = HashMap::new();
 
         // buildings
+        let metal_storage_blueprint = create_metal_storage_blueprint();
         let energy_storage_blueprint = create_energy_storage_blueprint();
         let solar_collector_blueprint = create_solar_collector_blueprint();
         let shipyard_blueprint = create_shipyard_blueprint();
 
+        blueprints.insert(metal_storage_blueprint.id, metal_storage_blueprint);
         blueprints.insert(energy_storage_blueprint.id, energy_storage_blueprint);
         blueprints.insert(solar_collector_blueprint.id, solar_collector_blueprint);
         blueprints.insert(shipyard_blueprint.id, shipyard_blueprint);
