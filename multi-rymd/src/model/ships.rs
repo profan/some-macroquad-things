@@ -6,7 +6,7 @@ use utility::AsAngle;
 
 use crate::PlayerID;
 use crate::model::{Transform, Orderable, AnimatedSprite, Thruster, DynamicBody, Ship, ThrusterKind};
-use super::{Constructor, Controller, Health, DEFAULT_STEERING_PARAMETERS, Steering, create_default_kinematic_body, Blueprint, EntityState, BlueprintIdentity, Cost, Producer};
+use super::{Constructor, Controller, Health, DEFAULT_STEERING_PARAMETERS, Steering, create_default_kinematic_body, Blueprint, EntityState, BlueprintIdentity, Cost, Producer, Blueprints};
 
 pub struct ShipParameters {
     turn_rate: f32
@@ -29,7 +29,7 @@ impl ShipThruster {
 
 pub fn create_commander_ship_blueprint() -> Blueprint {
     Blueprint {
-        id: 2,
+        id: Blueprints::Commander as i32,
         shortcut: KeyCode::Key3,
         name: String::from("Commander Ship"),
         texture: String::from("PLAYER_SHIP"),
@@ -52,6 +52,7 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let commander_build_speed = 100;
     let commander_build_range = 100;
     let commander_build_offset = -vec2(bounds.w / 8.0, 0.0);
+    let commander_blueprints = vec![Blueprints::Shipyard as i32, Blueprints::SolarCollector as i32, Blueprints::EnergyStorage as i32];
 
     let commander_thruster_power = 64.0;
     let commander_turn_thruster_power = 16.0;
@@ -67,8 +68,8 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
 
     // assemble the ship
     let controller = Controller { id: owner };
-    let blueprint_identity = BlueprintIdentity { blueprint_id: 2 };
-    let constructor = Constructor { current_target: None, constructibles: vec![0, 1, 3], build_speed: commander_build_speed, build_range: commander_build_range, beam_offset: commander_build_offset, can_assist: true };
+    let blueprint_identity = BlueprintIdentity::new(Blueprints::Commander);
+    let constructor = Constructor { current_target: None, constructibles: commander_blueprints, build_speed: commander_build_speed, build_range: commander_build_range, beam_offset: commander_build_offset, can_assist: true };
     let health = Health::new_with_current_health(full_commander_health, initial_commander_health);
     let transform = Transform::new(position, 0.0, None);
     let dynamic_body = DynamicBody { is_enabled, is_static, bounds, kinematic };

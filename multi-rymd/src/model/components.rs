@@ -5,7 +5,7 @@ use utility::{Kinematic, RotatedBy, SteeringParameters};
 use lockstep_client::step::PeerID;
 
 use crate::model::BlueprintID;
-use super::{GameOrder, PhysicsBody, GameOrderType};
+use super::{GameOrder, PhysicsBody, GameOrderType, Blueprints};
 
 #[derive(Clone)]
 pub struct Thruster {
@@ -436,6 +436,12 @@ pub struct Steering {
 #[derive(Clone)]
 pub struct BlueprintIdentity {
     pub blueprint_id: BlueprintID
+}
+
+impl BlueprintIdentity {
+    pub fn new(id: Blueprints) -> BlueprintIdentity {
+        BlueprintIdentity { blueprint_id: id as i32 }
+    }
 }
 
 pub fn current_health(world: &World, entity: Entity) -> i32 {

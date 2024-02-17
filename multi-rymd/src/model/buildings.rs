@@ -2,7 +2,7 @@ use hecs::{Entity, World};
 use macroquad::{math::{Vec2, Rect, vec2}, miniquad::KeyCode};
 
 use crate::PlayerID;
-use super::{Controller, Health, Sprite, Transform, DynamicBody, create_default_kinematic_body, Orderable, Cost, BlueprintIdentity, Producer, Storage};
+use super::{Controller, Health, Sprite, Transform, DynamicBody, create_default_kinematic_body, Orderable, Cost, BlueprintIdentity, Producer, Storage, Blueprints};
 
 pub use i32 as BlueprintID;
 
@@ -58,7 +58,7 @@ pub struct Blueprint {
 
 pub fn create_solar_collector_blueprint() -> Blueprint {
     Blueprint {
-        id: 0,
+        id: Blueprints::SolarCollector as i32,
         shortcut: KeyCode::Key1,
         name: String::from("Solar Collector"),
         texture: String::from("SOLAR_COLLECTOR"),
@@ -70,7 +70,7 @@ pub fn create_solar_collector_blueprint() -> Blueprint {
 
 pub fn create_shipyard_blueprint() -> Blueprint {
     Blueprint {
-        id: 1,
+        id: Blueprints::Shipyard as i32,
         shortcut: KeyCode::Key2,
         name: String::from("Shipyard"),
         texture: String::from("SHIPYARD"),
@@ -82,7 +82,7 @@ pub fn create_shipyard_blueprint() -> Blueprint {
 
 pub fn create_energy_storage_blueprint() -> Blueprint {
     Blueprint {
-        id: 3,
+        id: Blueprints::EnergyStorage as i32,
         shortcut: KeyCode::Key4,
         name: String::from("Energy Storage"),
         texture: String::from("ENERGY_STORAGE"),
@@ -106,7 +106,7 @@ pub fn build_solar_collector(world: &mut World, owner: PlayerID, position: Vec2)
 
     let controller = Controller { id: owner };
     let transform = Transform::new(position, 0.0, None);
-    let blueprint_identity = BlueprintIdentity { blueprint_id: 0 };
+    let blueprint_identity = BlueprintIdentity::new(Blueprints::SolarCollector);
     let health = Health::new_with_current_health(full_solar_collector_health, initial_solar_collector_health);
     let sprite = Sprite { texture: "SOLAR_COLLECTOR".to_string() };
     let dynamic_body = DynamicBody { is_enabled, is_static, bounds, kinematic };
@@ -131,7 +131,7 @@ pub fn build_shipyard(world: &mut World, owner: PlayerID, position: Vec2) -> Ent
 
     let controller = Controller { id: owner };
     let transform = Transform::new(position, 0.0, None);
-    let blueprint_identity = BlueprintIdentity { blueprint_id: 1 };
+    let blueprint_identity = BlueprintIdentity::new(Blueprints::Shipyard);
     let spawner = Spawner { position: vec2(-(shipyard_size / 5.0), 0.0) };
     let orderable = Orderable::new();
     let constructor = Constructor { current_target: None, constructibles: vec![2], build_range: shipyard_size as i32 / 2, build_speed: 100, beam_offset: -vec2(0.0, 8.0), can_assist: false };
@@ -159,7 +159,7 @@ pub fn build_energy_storage(world: &mut World, owner: PlayerID, position: Vec2) 
 
     let controller = Controller { id: owner };
     let transform = Transform::new(position, 0.0, None);
-    let blueprint_identity = BlueprintIdentity { blueprint_id: 3 };
+    let blueprint_identity = BlueprintIdentity::new(Blueprints::EnergyStorage);
     let health = Health::new_with_current_health(full_energy_storage_health, initial_energy_storage_health);
     let sprite = Sprite { texture: "ENERGY_STORAGE".to_string() };
     let dynamic_body = DynamicBody { is_enabled, is_static, bounds, kinematic };
