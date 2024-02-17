@@ -43,8 +43,8 @@ rough list of things to work on in the game currently, usually ordered as items 
 [] when entities are being constructed in a building, allow constructors to assist the building
 
 # resources
-[] allow entities to generate resources
-[] allow entities to depend on resources to function
+[x] allow entities to generate resources
+[x] allow entities to depend on resources to function
 [x] allow entities to depend on resources to construct things
 
 # units

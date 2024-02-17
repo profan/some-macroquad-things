@@ -13,10 +13,16 @@ use crate::game::RymdGameParameters;
 use super::BlueprintIdentity;
 use super::Constructor;
 use super::Controller;
+use super::Energy;
 use super::EntityState;
 use super::GameOrderType;
 use super::Health;
+use super::Metal;
 use super::PhysicsManager;
+use super::Player;
+use super::Consumer;
+use super::Powered;
+use super::Producer;
 use super::consume_energy;
 use super::consume_metal;
 use super::create_commander_ship_blueprint;
@@ -26,6 +32,8 @@ use super::create_solar_collector_blueprint;
 use super::current_energy;
 use super::current_metal;
 use super::max_health;
+use super::provide_energy;
+use super::provide_metal;
 use super::{build_commander_ship, GameOrder, Orderable, Transform, DynamicBody, Blueprint};
 
 pub struct RymdGameModel {
@@ -139,7 +147,7 @@ impl RymdGameModel {
         }
     }
 
-    fn tick_entity_states(&mut self) {
+    fn tick_constructing_entities(&mut self) {
 
         for (e, (state, health, body)) in self.world.query_mut::<(&mut EntityState, &Health, Option<&mut DynamicBody>)>() {
             if *state == EntityState::Ghost {
@@ -148,6 +156,20 @@ impl RymdGameModel {
                     if let Some(body) = body {
                         body.is_enabled = true;
                     }
+                }
+            }       
+        }
+
+    }
+
+    fn tick_powered_entities(&mut self) {
+
+        for (e, (state, controller, consumer, _powered)) in self.world.query::<(&mut EntityState, &Controller, &Consumer, &Powered)>().iter() {
+            if *state == EntityState::Constructed {
+                if consumer.energy >= current_energy(controller.id, &self.world) {
+                    *state = EntityState::Inactive
+                } else {
+                    *state = EntityState::Constructed;
                 }
             }       
         }
@@ -293,6 +315,39 @@ impl RymdGameModel {
     
     fn tick_resources(&mut self) {
 
+        let mut energy_incomes_per_player = HashMap::new();
+
+        for (e, (controller, &state, consumer, producer)) in self.world.query::<(&Controller, &EntityState, Option<&Consumer>, Option<&Producer>)>().iter() {
+
+            let mut total_metal_income = 0.0;
+            let mut total_energy_income = 0.0;
+
+            if let Some(consumer) = consumer && state == EntityState::Constructed {
+                consume_metal(controller.id, &self.world, consumer.metal * Self::TIME_STEP);
+                consume_energy(controller.id, &self.world, consumer.energy * Self::TIME_STEP);
+                total_metal_income -= consumer.metal;
+                total_energy_income -= consumer.energy;
+            }
+
+            if let Some(producer) = producer && state == EntityState::Constructed {
+                provide_metal(controller.id, &self.world, producer.metal * Self::TIME_STEP);
+                provide_energy(controller.id, &self.world, producer.energy * Self::TIME_STEP);
+                total_metal_income += producer.metal;
+                total_energy_income += producer.energy;
+            }
+
+            let entry = energy_incomes_per_player.entry(controller.id).or_insert((0.0, 0.0));
+            entry.0 += total_metal_income;
+            entry.1 += total_energy_income;
+
+        }
+
+        for (e, (player, metal, energy)) in self.world.query_mut::<(&Player, &mut Metal, &mut Energy)>() {
+            let (metal_income, energy_income) = energy_incomes_per_player[&player.id];
+            metal.income = metal_income;
+            energy.income = energy_income;
+        }
+
     }
 
     fn tick_transform_updates(&mut self) {
@@ -336,7 +391,8 @@ impl RymdGameModel {
     }
 
     pub fn tick(&mut self) {
-        self.tick_entity_states();
+        self.tick_constructing_entities();
+        self.tick_powered_entities();
         self.tick_orderables();
         self.tick_transforms();
         self.tick_resources();

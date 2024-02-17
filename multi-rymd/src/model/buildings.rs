@@ -2,7 +2,7 @@ use hecs::{Entity, World};
 use macroquad::{math::{Vec2, Rect, vec2}, miniquad::KeyCode};
 
 use crate::PlayerID;
-use super::{Controller, Health, Sprite, Transform, DynamicBody, create_default_kinematic_body, Orderable, Cost, BlueprintIdentity};
+use super::{Controller, Health, Sprite, Transform, DynamicBody, create_default_kinematic_body, Orderable, Cost, BlueprintIdentity, Producer};
 
 pub use i32 as BlueprintID;
 
@@ -10,7 +10,8 @@ pub use i32 as BlueprintID;
 pub enum EntityState {
     Ghost,
     Destroyed,
-    Constructed
+    Constructed,
+    Inactive
 }
 
 #[derive(Debug, Clone)]
@@ -97,9 +98,10 @@ pub fn build_solar_collector(world: &mut World, owner: PlayerID, position: Vec2)
     let health = Health::new_with_current_health(full_solar_collector_health, initial_solar_collector_health);
     let sprite = Sprite { texture: "SOLAR_COLLECTOR".to_string() };
     let dynamic_body = DynamicBody { is_enabled, is_static, bounds, kinematic };
+    let resource_producer = Producer { metal: 0.0, energy: 10.0 };
     let state = EntityState::Ghost;
 
-    world.spawn((controller, transform, blueprint_identity, health, sprite, dynamic_body, state))
+    world.spawn((controller, transform, blueprint_identity, health, sprite, dynamic_body, resource_producer, state))
 
 }
 
