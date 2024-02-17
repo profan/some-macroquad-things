@@ -140,13 +140,14 @@ pub fn build_shipyard(world: &mut World, owner: PlayerID, position: Vec2) -> Ent
 
     let full_shipyard_health = 1000;
     let initial_shipyard_health = 10;
+    let shipyard_blueprints = vec![Blueprints::Commander as i32];
 
     let controller = Controller { id: owner };
     let transform = Transform::new(position, 0.0, None);
     let blueprint_identity = BlueprintIdentity::new(Blueprints::Shipyard);
     let spawner = Spawner { position: vec2(-(shipyard_size / 5.0), 0.0) };
     let orderable = Orderable::new();
-    let constructor = Constructor { current_target: None, constructibles: vec![2], build_range: shipyard_size as i32 / 2, build_speed: 100, beam_offset: -vec2(0.0, 8.0), can_assist: false };
+    let constructor = Constructor { current_target: None, constructibles: shipyard_blueprints, build_range: shipyard_size as i32 / 2, build_speed: 100, beam_offset: -vec2(0.0, 8.0), can_assist: false };
     let health = Health::new_with_current_health(full_shipyard_health, initial_shipyard_health);
     let sprite = Sprite { texture: "SHIPYARD".to_string() };
     let dynamic_body = DynamicBody { is_enabled, is_static, bounds, kinematic};
