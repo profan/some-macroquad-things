@@ -37,12 +37,16 @@ pub struct Powered;
 
 pub struct Energy {
     pub current: f32,
-    pub income: f32
+    pub income: f32,
+    pub base_size: f32,
+    pub pool_size: f32
 }
 
 pub struct Metal {
     pub current: f32,
-    pub income: f32
+    pub income: f32,
+    pub base_size: f32,
+    pub pool_size: f32
 }
 
 /// Attempts to provide this amount of metal to the given player's energy pool.
@@ -110,6 +114,36 @@ pub fn current_energy(player_id: PeerID, world: &World) -> f32 {
     if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().filter(|(e, p)| p.id == player_id).nth(0) {
         if let Ok(energy) = world.get::<&Energy>(current_player_entity) {
             energy.current
+        } else {
+            0.0
+        }
+    } else {
+        0.0
+    }
+
+}
+
+/// Returns the maximum amount of metal the given player's resource pool can hold.
+pub fn max_metal(player_id: PeerID, world: &World) -> f32 {
+
+    if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().filter(|(e, p)| p.id == player_id).nth(0) {
+        if let Ok(metal) = world.get::<&Metal>(current_player_entity) {
+            metal.base_size + metal.pool_size
+        } else {
+            0.0
+        }
+    } else {
+        0.0
+    }
+
+}
+
+/// Returns the maximum amount of energy the given player's resource pool can hold.
+pub fn max_energy(player_id: PeerID, world: &World) -> f32 {
+
+    if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().filter(|(e, p)| p.id == player_id).nth(0) {
+        if let Ok(energy) = world.get::<&Energy>(current_player_entity) {
+            energy.base_size + energy.pool_size
         } else {
             0.0
         }

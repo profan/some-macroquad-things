@@ -23,6 +23,7 @@ use super::Player;
 use super::Consumer;
 use super::Powered;
 use super::Producer;
+use super::Storage;
 use super::consume_energy;
 use super::consume_metal;
 use super::create_commander_ship_blueprint;
@@ -316,6 +317,34 @@ impl RymdGameModel {
         }
 
     }
+
+    fn tick_resource_storage(&mut self) {
+
+        let mut energy_pools_per_player = HashMap::new();
+
+        for (e, (controller, storage, &state)) in self.world.query_mut::<(&Controller, &Storage, &EntityState)>() {
+
+            if state != EntityState::Constructed {
+                continue
+            }
+
+            let entry = energy_pools_per_player.entry(controller.id).or_insert((0.0, 0.0));
+            entry.0 += storage.metal;
+            entry.1 += storage.energy;
+
+        }
+
+        for (e, (player, metal, energy)) in self.world.query_mut::<(&Player, &mut Metal, &mut Energy)>() {
+            if let Some(&(metal_pool_size, energy_pool_size)) = energy_pools_per_player.get(&player.id) {
+                metal.pool_size = metal_pool_size;
+                energy.pool_size = energy_pool_size;
+            } else {
+                metal.pool_size = 0.0;
+                energy.pool_size = 0.0;
+            }
+        }
+
+    }
     
     fn tick_resources(&mut self) {
 
@@ -397,6 +426,7 @@ impl RymdGameModel {
     pub fn tick(&mut self) {
         self.tick_constructing_entities();
         self.tick_powered_entities();
+        self.tick_resource_storage();
         self.tick_orderables();
         self.tick_transforms();
         self.tick_resources();

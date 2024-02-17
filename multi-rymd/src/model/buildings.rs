@@ -153,7 +153,7 @@ pub fn build_energy_storage(world: &mut World, owner: PlayerID, position: Vec2) 
 
     let kinematic = create_default_kinematic_body(position, 0.0);
 
-    let full_energy_storage_health = 100;
+    let full_energy_storage_health = 250;
     let initial_energy_storage_health = 10;
     let energy_storage_amount = 1000.0;
 

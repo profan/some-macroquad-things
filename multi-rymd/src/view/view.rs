@@ -10,7 +10,7 @@ use hecs::*;
 use yakui::Alignment;
 
 use crate::PlayerID;
-use crate::model::{BlueprintID, PhysicsBody, Spawner, EntityState, GameOrder, Blueprint, GameOrderType, BlueprintIdentity, Player, Energy, Metal, current_metal, current_energy, current_energy_income, current_metal_income};
+use crate::model::{BlueprintID, PhysicsBody, Spawner, EntityState, GameOrder, Blueprint, GameOrderType, BlueprintIdentity, Player, Energy, Metal, current_metal, current_energy, current_energy_income, current_metal_income, max_metal, max_energy};
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Controller, Health, get_entity_position};
 
 use super::{calculate_sprite_bounds, GameCamera};
@@ -1306,14 +1306,16 @@ impl RymdGameView {
         yakui::align(Alignment::TOP_CENTER, || {
 
             let current_metal = current_metal(self.player_id, &model.world);
+            let maximum_metal = max_metal(self.player_id, &model.world);
             let current_metal_income = current_metal_income(self.player_id, &model.world);
             let current_metal_excess = 0;
 
             let current_energy = current_energy(self.player_id, &model.world);
+            let maximum_energy = max_energy(self.player_id, &model.world);
             let current_energy_income = current_energy_income(self.player_id, &model.world);
             let current_energy_excess = 0;
 
-            yakui::label(format!("current metal: {:.0} ({:.0}), current energy: {:.0} ({:.0})", current_metal, current_metal_income, current_energy, current_energy_income));
+            yakui::label(format!("current metal: {:.0}/{:.0} ({:.0}), current energy: {:.0}/{:.0} ({:.0})", current_metal, maximum_metal, current_metal_income, current_energy, maximum_energy, current_energy_income));
 
         });
 
