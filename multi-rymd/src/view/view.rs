@@ -10,7 +10,7 @@ use hecs::*;
 use yakui::Alignment;
 
 use crate::PlayerID;
-use crate::model::{BlueprintID, PhysicsBody, Spawner, EntityState, GameOrder, Blueprint, GameOrderType, BlueprintIdentity, Player, Energy, Metal, current_metal, current_energy, current_energy_income, current_metal_income, max_metal, max_energy};
+use crate::model::{BlueprintID, PhysicsBody, Spawner, EntityState, GameOrder, Blueprint, GameOrderType, BlueprintIdentity, current_metal, current_energy, current_energy_income, current_metal_income, max_metal, max_energy};
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Controller, Health, get_entity_position};
 
 use super::{calculate_sprite_bounds, GameCamera};
