@@ -1,5 +1,5 @@
-use lockstep::lobby::{LobbyID, LobbyClientID, RelayMessage, Lobby};
-use nanoserde::{DeJson, SerJson};
+use lockstep::lobby::{LobbyID, LobbyClientID, RelayMessage};
+use nanoserde::SerJson;
 
 use crate::network::NetworkClient;
 

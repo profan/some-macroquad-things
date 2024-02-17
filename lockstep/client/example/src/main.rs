@@ -67,7 +67,7 @@ impl Game for ExampleGame {
         self.is_paused = true;
     }
 
-    fn handle_message(&mut self, peer_id: PeerID, message: &str) {
+    fn handle_message(&mut self, _peer_id: PeerID, message: &str) {
 
         let msg = match GameMessage::deserialize_json(message) {
             Ok(msg) => msg,

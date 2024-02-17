@@ -1,4 +1,4 @@
-use super::{Player, player};
+use super::Player;
 
 use hecs::World;
 use lockstep_client::step::PeerID;

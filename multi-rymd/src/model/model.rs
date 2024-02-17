@@ -33,7 +33,6 @@ use super::create_shipyard_blueprint;
 use super::create_solar_collector_blueprint;
 use super::current_energy;
 use super::current_metal;
-use super::max_health;
 use super::provide_energy;
 use super::provide_metal;
 use super::{build_commander_ship, GameOrder, Orderable, Transform, DynamicBody, Blueprint};

@@ -3,7 +3,7 @@ use crate::step::{LockstepClient, PeerID};
 
 pub trait Game where Self: Sized {
 
-    async fn load_resources(&mut self);
+    fn load_resources(&mut self) -> impl std::future::Future<Output = ()> + Send;
 
     fn is_running(&self) -> bool;
     fn is_paused(&self) -> bool;

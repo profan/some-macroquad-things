@@ -1,8 +1,8 @@
-use macroquad::{prelude::*, ui::{widgets::Window, root_ui, hash}};
-use lockstep::lobby::{DEFAULT_LOBBY_PORT, RelayMessage, LobbyClientID, LobbyState, Lobby};
+use macroquad::prelude::*;
+use lockstep::lobby::{DEFAULT_LOBBY_PORT, RelayMessage, LobbyClientID, LobbyState};
 use nanoserde::SerJson;
 use utility::DebugText;
-use yakui::{Direction, Response, widgets::{ButtonWidget, Pad}};
+use yakui::{Direction, widgets::Pad};
 
 use crate::{game::Game, relay::RelayClient, network::{NetworkClient, ConnectionState}, step::{LockstepClient, TurnState}, extensions::RelayCommandsExt};
 
