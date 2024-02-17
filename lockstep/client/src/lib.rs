@@ -1,4 +1,5 @@
 #![feature(let_chains)]
+#![allow(async_fn_in_trait)]
 
 pub const IS_DEBUGGING: bool = false;
 
