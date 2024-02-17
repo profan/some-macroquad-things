@@ -400,6 +400,25 @@ impl RymdGameModel {
         self.physics_manager.handle_collisions(&mut self.world);
     }
 
+    fn tick_lifetimes(&mut self) {
+
+        let mut destroyed_entities = Vec::new();
+
+        for (e, health) in self.world.query_mut::<&Health>() {
+            if health.is_at_or_below_zero_health() {
+                destroyed_entities.push(e);
+            }
+        }
+
+        for e in destroyed_entities {
+            let result = self.world.despawn(e);
+            if let Err(error) = result {
+                println!("[RymdGameModel] tried to despawn non-existing entity: {:?}, should never happen!", e);
+            }
+        }
+
+    }
+
     pub fn calculate_transform(world: &World, entity: Entity, transform: &Transform) -> Transform {
 
         let mut current_entity = entity;
@@ -435,6 +454,7 @@ impl RymdGameModel {
         self.tick_constructors();
         self.tick_physics_engine();
         self.tick_transform_updates();
+        self.tick_lifetimes();
     }
 
 }
