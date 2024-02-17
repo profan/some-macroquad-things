@@ -2,7 +2,7 @@ use hecs::{Entity, World};
 use macroquad::{math::{Vec2, Rect, vec2}, miniquad::KeyCode};
 
 use crate::PlayerID;
-use super::{Controller, Health, Sprite, Transform, DynamicBody, create_default_kinematic_body, Orderable, Cost, BlueprintIdentity, Producer};
+use super::{Controller, Health, Sprite, Transform, DynamicBody, create_default_kinematic_body, Orderable, Cost, BlueprintIdentity, Producer, Storage};
 
 pub use i32 as BlueprintID;
 
@@ -80,6 +80,18 @@ pub fn create_shipyard_blueprint() -> Blueprint {
     }
 }
 
+pub fn create_energy_storage_blueprint() -> Blueprint {
+    Blueprint {
+        id: 3,
+        shortcut: KeyCode::Key4,
+        name: String::from("Energy Storage"),
+        texture: String::from("ENERGY_STORAGE"),
+        constructor: build_energy_storage,
+        cost: Cost { metal: 25.0, energy: 0.0 },
+        is_building: true
+    }
+}
+
 pub fn build_solar_collector(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
 
     let solar_collector_size = 64.0;
@@ -129,5 +141,31 @@ pub fn build_shipyard(world: &mut World, owner: PlayerID, position: Vec2) -> Ent
     let state = EntityState::Ghost;
 
     world.spawn((controller, transform, blueprint_identity, spawner, orderable, constructor, health, sprite, dynamic_body, state))
+
+}
+
+pub fn build_energy_storage(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
+
+    let energy_storage_size = 32.0;
+    let bounds = Rect { x: 0.0, y: 0.0, w: energy_storage_size, h: energy_storage_size };
+    let is_enabled = true;
+    let is_static = true;
+
+    let kinematic = create_default_kinematic_body(position, 0.0);
+
+    let full_energy_storage_health = 100;
+    let initial_energy_storage_health = 10;
+    let energy_storage_amount = 1000.0;
+
+    let controller = Controller { id: owner };
+    let transform = Transform::new(position, 0.0, None);
+    let blueprint_identity = BlueprintIdentity { blueprint_id: 3 };
+    let health = Health::new_with_current_health(full_energy_storage_health, initial_energy_storage_health);
+    let sprite = Sprite { texture: "ENERGY_STORAGE".to_string() };
+    let dynamic_body = DynamicBody { is_enabled, is_static, bounds, kinematic };
+    let storage = Storage { metal: 0.0, energy: energy_storage_amount };
+    let state = EntityState::Ghost;
+
+    world.spawn((controller, transform, blueprint_identity, health, sprite, dynamic_body, storage, state))
 
 }

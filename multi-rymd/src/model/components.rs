@@ -283,7 +283,7 @@ impl Orderable {
     /// Pops and returns the first order in the queue of canceled orders.
     pub fn pop_first_canceled_order(&mut self, order_type: GameOrderType) -> Option<GameOrder> {
         match order_type {
-            GameOrderType::Order => self.build_order_queue.pop_first_canceled_order(),
+            GameOrderType::Order => self.order_queue.pop_first_canceled_order(),
             GameOrderType::Construct => self.build_order_queue.pop_first_canceled_order(),
         }
     }

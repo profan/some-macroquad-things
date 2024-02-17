@@ -6,7 +6,7 @@ use utility::AsAngle;
 
 use crate::PlayerID;
 use crate::model::{Transform, Orderable, AnimatedSprite, Thruster, DynamicBody, Ship, ThrusterKind};
-use super::{Constructor, Controller, Health, DEFAULT_STEERING_PARAMETERS, Steering, create_default_kinematic_body, Blueprint, EntityState, BlueprintIdentity, Cost};
+use super::{Constructor, Controller, Health, DEFAULT_STEERING_PARAMETERS, Steering, create_default_kinematic_body, Blueprint, EntityState, BlueprintIdentity, Cost, Producer};
 
 pub struct ShipParameters {
     turn_rate: f32
@@ -56,6 +56,9 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let commander_thruster_power = 64.0;
     let commander_turn_thruster_power = 16.0;
 
+    let commander_metal_income = 10.0;
+    let commander_energy_income = 10.0;
+
     let steering_parameters = DEFAULT_STEERING_PARAMETERS;
     let kinematic = create_default_kinematic_body(position, 0.0);
     let ship_parameters = ShipParameters {
@@ -65,17 +68,18 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     // assemble the ship
     let controller = Controller { id: owner };
     let blueprint_identity = BlueprintIdentity { blueprint_id: 2 };
-    let constructor = Constructor { current_target: None, constructibles: vec![0, 1], build_speed: commander_build_speed, build_range: commander_build_range, beam_offset: commander_build_offset, can_assist: true };
+    let constructor = Constructor { current_target: None, constructibles: vec![0, 1, 3], build_speed: commander_build_speed, build_range: commander_build_range, beam_offset: commander_build_offset, can_assist: true };
     let health = Health::new_with_current_health(full_commander_health, initial_commander_health);
     let transform = Transform::new(position, 0.0, None);
     let dynamic_body = DynamicBody { is_enabled, is_static, bounds, kinematic };
     let sprite = AnimatedSprite { texture: "PLAYER_SHIP".to_string(), current_frame: 0, h_frames: 3 };
+    let producer = Producer { metal: commander_metal_income, energy: commander_energy_income };
     let steering = Steering { parameters: steering_parameters };
     let ship = Ship::new(ship_parameters.turn_rate);
     let orderable = Orderable::new();
     let state = EntityState::Ghost;
 
-    let commander_ship_body = world.spawn((health, transform, dynamic_body, sprite, steering, ship, orderable, controller, constructor, blueprint_identity, state));
+    let commander_ship_body = world.spawn((health, transform, dynamic_body, sprite, producer, steering, ship, orderable, controller, constructor, blueprint_identity, state));
 
     // add ship thrusters
     let commander_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), -Vec2::X, -(PI / 2.0), commander_turn_thruster_power, ThrusterKind::Attitude, commander_ship_body));

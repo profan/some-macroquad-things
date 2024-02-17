@@ -27,6 +27,11 @@ pub struct Producer {
     pub energy: f32
 }
 
+pub struct Storage {
+    pub metal: f32,
+    pub energy: f32
+}
+
 #[derive(Clone)]
 pub struct Powered;
 
