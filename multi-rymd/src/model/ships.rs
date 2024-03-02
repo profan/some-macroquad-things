@@ -6,7 +6,7 @@ use utility::AsAngle;
 
 use crate::PlayerID;
 use crate::model::{Transform, Orderable, AnimatedSprite, Thruster, DynamicBody, Ship, ThrusterKind};
-use super::{create_default_kinematic_body, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Constructor, Controller, Cost, EntityState, Health, HealthCallback, Producer, Steering, Weapon, DEFAULT_STEERING_PARAMETERS};
+use super::{create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Constructor, Controller, Cost, EntityState, Health, HealthCallback, Producer, Steering, Weapon, DEFAULT_STEERING_PARAMETERS};
 
 pub struct ShipParameters {
     turn_rate: f32
@@ -51,7 +51,7 @@ pub fn create_arrowhead_ship_blueprint() -> Blueprint {
     }
 }
 
-fn on_ship_death(world: &World, entity: Entity) {
+fn on_ship_death(world: &World, buffer: &mut CommandBuffer, entity: Entity) {
 
     if let Ok(ship) = world.get::<&Ship>(entity) {
         for &t in &ship.thrusters {
@@ -60,6 +60,9 @@ fn on_ship_death(world: &World, entity: Entity) {
             }
         }
     }
+    
+    let ship_position = get_entity_position(world, entity).unwrap();
+    create_explosion_effect_in_buffer(buffer, ship_position);
     
 }
 

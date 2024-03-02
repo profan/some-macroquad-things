@@ -1,5 +1,5 @@
 use std::collections::VecDeque;
-use hecs::{Entity, World};
+use hecs::{CommandBuffer, Entity, World};
 use macroquad::math::{Vec2, Rect};
 use utility::{Kinematic, RotatedBy, SteeringParameters};
 use lockstep_client::step::PeerID;
@@ -380,7 +380,7 @@ pub struct Health {
 }
 
 pub struct HealthCallback {
-    pub on_death: fn(world: &World, entity: Entity) -> ()
+    pub on_death: fn(world: &World, buffer: &mut CommandBuffer, entity: Entity) -> ()
 }
 
 impl Health {
@@ -486,4 +486,18 @@ pub struct Projectile {
 pub struct Weapon {
     pub fire_rate: f32,
     pub cooldown: f32
+}
+
+pub struct Effect {
+    pub total_lifetime: f32,
+    pub lifetime: f32
+}
+
+impl Effect {
+    pub fn new(lifetime: f32) -> Effect {
+        Effect {
+            total_lifetime: lifetime,
+            lifetime
+        }
+    }
 }

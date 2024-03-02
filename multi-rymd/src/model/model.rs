@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use hecs::{World, Entity};
+use hecs::{CommandBuffer, Entity, World};
 use macroquad::{*, math::vec2};
 use nanoserde::DeJson;
 use utility::AsVector;
@@ -11,7 +11,8 @@ use crate::model::BlueprintID;
 use crate::model::GameMessage;
 use crate::game::RymdGameParameters;
 
-use super::create_simple_bullet;
+use super::AnimatedSprite;
+use super::{create_simple_bullet, Effect};
 use super::get_entity_position;
 use super::point_ship_towards_target;
 use super::steer_ship_towards_target;
@@ -533,6 +534,15 @@ impl RymdGameModel {
         self.physics_manager.handle_collisions(&mut self.world);
     }
 
+    fn tick_effects(&mut self) {
+
+        for (e, (sprite, effect)) in self.world.query_mut::<(&mut AnimatedSprite, &mut Effect)>() {
+            sprite.current_frame = (sprite.h_frames as f32 * (1.0 - (effect.lifetime / effect.total_lifetime))) as i32;
+            effect.lifetime -= Self::TIME_STEP;
+        }
+
+    }
+
     fn tick_lifetimes(&mut self) {
 
         let mut destroyed_entities = Vec::new();
@@ -543,10 +553,18 @@ impl RymdGameModel {
             }
         }
 
+        for (e, effect) in self.world.query_mut::<&Effect>() {
+            if effect.lifetime <= 0.0 {
+                destroyed_entities.push(e);
+            }
+        }
+
+        let mut command_buffer = CommandBuffer::new();
+
         for e in destroyed_entities {
 
             if let Ok(health_callback) = self.world.get::<&HealthCallback>(e) {
-                (health_callback.on_death)(&self.world, e);
+                (health_callback.on_death)(&self.world, &mut command_buffer, e);
             }
 
             let result = self.world.despawn(e);
@@ -555,6 +573,8 @@ impl RymdGameModel {
                 println!("[RymdGameModel] tried to despawn non-existing entity: {:?}, should never happen!", e);
             }
         }
+
+        command_buffer.run_on(&mut self.world);
 
     }
 
@@ -593,6 +613,7 @@ impl RymdGameModel {
         self.tick_attackers();
         self.tick_attacker_weapons();
         self.tick_projectiles();
+        self.tick_effects();
         self.tick_constructors();
         self.tick_physics_engine();
         self.tick_transform_updates();
