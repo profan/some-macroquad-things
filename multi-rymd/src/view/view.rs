@@ -891,7 +891,7 @@ impl RymdGameView {
             beam_components_to_add.push((e, constructor_beam));
         }
 
-        for (e, (transform, orderable)) in model.world.query::<Without<(&Transform, &Controller), &Selectable>>().iter() {
+        for (e, (transform, controller, orderable)) in model.world.query::<Without<(&Transform, &Controller, &Orderable), &Selectable>>().iter() {
             let selectable = Selectable { is_selected: false };
             selectable_components_to_add.push((e, selectable));
         }
