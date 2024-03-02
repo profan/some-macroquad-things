@@ -1267,8 +1267,7 @@ impl RymdGameView {
                     
                     let current_blueprint_id = if let Some(blueprint_id) = construct_order.blueprint_id {
                         Some(blueprint_id)
-                    } else if let Some(entity) = construct_order.entity() && let Ok(blueprint_identity) = model.world.get::<&BlueprintIdentity>(entity)
-                    {
+                    } else if let Some(entity) = construct_order.entity() && let Ok(blueprint_identity) = model.world.get::<&BlueprintIdentity>(entity) {
                         Some(blueprint_identity.blueprint_id)
                     } else {
                         None

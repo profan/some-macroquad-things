@@ -59,7 +59,8 @@ impl Game for RymdGame {
         } else {
 
             let game_parameters = if lockstep.is_singleplayer() {
-                RymdGameParameters { players: vec![RymdGamePlayer { id: lockstep.peer_id() }] }
+                let local_game_players = vec![RymdGamePlayer { id: lockstep.peer_id() }, RymdGamePlayer { id: 1 }];
+                RymdGameParameters { players: local_game_players }
             } else {
                 let game_players = lockstep.peers().iter().map(|client| RymdGamePlayer { id: client.id } ).collect();
                 RymdGameParameters { players: game_players }

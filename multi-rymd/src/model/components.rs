@@ -101,7 +101,13 @@ pub struct DynamicBody {
     pub is_static: bool,
     pub is_enabled: bool,
     pub kinematic: Kinematic,
-    pub bounds: Rect
+    pub bounds: Rect,
+    pub mask: u64
+}
+
+#[derive(Clone)]
+pub struct DynamicBodyCallback {
+    pub on_collision: fn(&World, Entity, Entity) -> ()
 }
 
 impl PhysicsBody for DynamicBody {
@@ -373,6 +379,10 @@ pub struct Health {
     last_health: i32
 }
 
+pub struct HealthCallback {
+    pub on_death: fn(world: &World, entity: Entity) -> ()
+}
+
 impl Health {
     pub fn new(full_health: i32) -> Health {
         Health { full_health, current_health: full_health, last_health: full_health }
@@ -390,6 +400,11 @@ impl Health {
     pub fn damage(&mut self, value: i32) {
         self.last_health = self.current_health;
         self.current_health -= value;
+    }
+
+    pub fn kill(&mut self) {
+        self.last_health = self.current_health;
+        self.current_health = 0;
     }
 
     pub fn heal(&mut self, value: i32) {
@@ -454,4 +469,21 @@ pub fn current_health(world: &World, entity: Entity) -> i32 {
 
 pub fn max_health(world: &World, entity: Entity) -> i32 {
     world.get::<&Health>(entity).unwrap().full_health
+}
+
+pub struct Attacker {
+    pub target: Option<Entity>
+}
+
+pub struct Attackable;
+
+pub struct Projectile {
+    pub damage: f32,
+    pub lifetime: f32,
+    pub velocity: f32
+}
+
+pub struct Weapon {
+    pub fire_rate: f32,
+    pub cooldown: f32
 }

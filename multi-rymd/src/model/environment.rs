@@ -18,6 +18,7 @@ pub fn create_asteroid(world: &mut World, position: Vec2, rotation: f32) -> Enti
         is_enabled: true,
         is_static: false,
         kinematic: create_default_kinematic_body(position, rotation),
+        mask: u64::MAX,
         bounds
     };
 

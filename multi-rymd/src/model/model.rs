@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use hecs::{World, Entity};
 use macroquad::{*, math::vec2};
 use nanoserde::DeJson;
+use utility::AsVector;
 use utility::RotatedBy;
 
 use crate::EntityID;
@@ -10,6 +11,12 @@ use crate::model::BlueprintID;
 use crate::model::GameMessage;
 use crate::game::RymdGameParameters;
 
+use super::create_simple_bullet;
+use super::get_entity_position;
+use super::point_ship_towards_target;
+use super::steer_ship_towards_target;
+use super::Attackable;
+use super::Attacker;
 use super::BlueprintIdentity;
 use super::Constructor;
 use super::Controller;
@@ -17,12 +24,15 @@ use super::Energy;
 use super::EntityState;
 use super::GameOrderType;
 use super::Health;
+use super::HealthCallback;
 use super::Metal;
+use super::PhysicsBody;
 use super::PhysicsManager;
 use super::Player;
 use super::Consumer;
 use super::Powered;
 use super::Producer;
+use super::Projectile;
 use super::Storage;
 use super::consume_energy;
 use super::consume_metal;
@@ -37,6 +47,7 @@ use super::current_energy;
 use super::current_metal;
 use super::provide_energy;
 use super::provide_metal;
+use super::Weapon;
 use super::{build_commander_ship, GameOrder, Orderable, Transform, DynamicBody, Blueprint};
 
 pub struct RymdGameModel {
@@ -273,6 +284,121 @@ impl RymdGameModel {
 
     }
 
+    fn tick_attackers(&mut self) {
+
+        let attack_range = 256.0;
+        let mut attack_targets = HashMap::new();
+
+        // search for targets in range and accumulate
+
+        for (e, (controller, attacker, transform, orderable, &state)) in self.world.query::<(&Controller, &mut Attacker, &Transform, &Orderable, &EntityState)>().iter() {
+
+            attacker.target = None; // reset current target every time we tick the attackers
+
+            for (o, (other_controller, other_attackable, other_transform, &other_state)) in self.world.query::<(&Controller, &Attackable, &Transform, &EntityState)>().iter() {
+
+                let has_same_controller = controller.id == other_controller.id;
+                let has_any_orders = orderable.is_queue_empty(GameOrderType::Order);
+
+                if e == o || state != EntityState::Constructed || has_any_orders == false || has_same_controller {
+                    continue
+                }
+
+                let is_in_attack_range = transform.world_position.distance(other_transform.world_position) < attack_range;
+
+                if is_in_attack_range {
+                    let entry = attack_targets.entry(e).or_insert(vec![]);
+                    entry.push(o);
+                }
+
+            }
+
+        }
+
+        // now filter targets and pick one
+
+        for (e, targets) in attack_targets {
+
+            let attacker_position = get_entity_position(&self.world, e).unwrap();
+
+            let mut closest_target_distance = f32::MAX;
+            let mut closest_target = Entity::DANGLING;
+            let mut closest_target_position = None;
+
+            for t in targets {
+                let target_position = get_entity_position(&self.world, t).unwrap();
+                let d = attacker_position.distance(target_position);
+                if d < closest_target_distance {
+                    closest_target_position = Some(target_position);
+                    closest_target_distance = d;
+                    closest_target = t;
+                }
+            }
+
+            // #TODO: depending on unit stance, either turn towards the target, or actually pursue it when attacking
+
+            if let Some(position) = closest_target_position {
+                point_ship_towards_target(&mut self.world, e, position.x, position.y, Self::TIME_STEP);
+                if let Ok(mut attacker) = self.world.get::<&mut Attacker>(e) {
+                    attacker.target = Some(closest_target);
+                }
+            }
+
+        }
+
+    }
+
+    fn tick_attacker_weapons(&mut self) {
+
+        let mut queued_projectile_creations: Vec<Box<dyn Fn(&mut World) -> Entity>> = Vec::new();
+
+        for (e, (controller, transform, attacker, weapon)) in self.world.query::<(&Controller, &Transform, &Attacker, &mut Weapon)>().iter() {
+
+            if let Some(attacker) = attacker.target {
+
+                if weapon.cooldown == 0.0 {
+
+                    let attacker_position = get_entity_position(&self.world, attacker).unwrap();
+                    let attack_direction = (attacker_position - transform.world_position).normalize();
+
+                    let id = controller.id;
+                    let creation_world_position = transform.world_position;
+
+                    queued_projectile_creations.push(Box::new(move |w| create_simple_bullet(w, id, creation_world_position, attack_direction)));
+                    weapon.cooldown += weapon.fire_rate;
+
+                } else {
+
+                    weapon.cooldown = (weapon.cooldown - Self::TIME_STEP).max(0.0);
+
+                }
+
+
+            }
+
+        }
+
+        for projectile_fn in queued_projectile_creations {
+            projectile_fn(&mut self.world);
+        }
+
+    }
+
+    fn tick_projectiles(&mut self) {
+
+        for (e, (body, projectile, health)) in self.world.query_mut::<(&mut DynamicBody, &mut Projectile, &mut Health)>() {
+
+            *body.velocity_mut() = -body.kinematic.orientation.as_vector() * projectile.velocity;
+            projectile.lifetime -= Self::TIME_STEP;
+
+            if projectile.lifetime <= 0.0 {
+                health.kill();
+            }
+
+        }
+
+    }
+
     fn tick_constructors(&mut self) {
 
         for (e, (controller, constructor)) in self.world.query::<(&Controller, &mut Constructor)>().iter() {
@@ -381,9 +507,13 @@ impl RymdGameModel {
         }
 
         for (e, (player, metal, energy)) in self.world.query_mut::<(&Player, &mut Metal, &mut Energy)>() {
-            let (metal_income, energy_income) = energy_incomes_per_player[&player.id];
-            metal.income = metal_income;
-            energy.income = energy_income;
+            if let Some((metal_income, energy_income)) = energy_incomes_per_player.get(&player.id) {
+                metal.income = *metal_income;
+                energy.income = *energy_income;
+            } else {
+                metal.income = 0.0;
+                energy.income = 0.0;
+            }
         }
 
     }
@@ -407,14 +537,20 @@ impl RymdGameModel {
 
         let mut destroyed_entities = Vec::new();
 
-        for (e, health) in self.world.query_mut::<&Health>() {
+        for (e, health) in self.world.query_mut::<&Health>() {      
             if health.is_at_or_below_zero_health() {
                 destroyed_entities.push(e);
             }
         }
 
         for e in destroyed_entities {
+
+            if let Ok(health_callback) = self.world.get::<&HealthCallback>(e) {
+                (health_callback.on_death)(&self.world, e);
+            }
+
             let result = self.world.despawn(e);
+            
             if let Err(error) = result {
                 println!("[RymdGameModel] tried to despawn non-existing entity: {:?}, should never happen!", e);
             }
@@ -454,6 +590,9 @@ impl RymdGameModel {
         self.tick_orderables();
         self.tick_transforms();
         self.tick_resources();
+        self.tick_attackers();
+        self.tick_attacker_weapons();
+        self.tick_projectiles();
         self.tick_constructors();
         self.tick_physics_engine();
         self.tick_transform_updates();

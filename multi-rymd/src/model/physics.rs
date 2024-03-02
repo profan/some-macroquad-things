@@ -2,7 +2,7 @@ use macroquad::prelude::*;
 use hecs::{Entity, World};
 use utility::{AsPerpendicular, intersect_rect};
 
-use super::DynamicBody;
+use super::{DynamicBody, DynamicBodyCallback};
 
 const COLLISION_ELASTICITY: f32 = 1.0;
 
@@ -67,7 +67,7 @@ impl PhysicsManager {
             for (e2, other_body) in world.query::<&DynamicBody>().iter().filter(|(e, b)| b.is_enabled) {
 
                 let should_collide = self.collides_with(body, other_body);
-                if e1 != e2 && intersect_rect(&body.bounds(), &other_body.bounds()) {
+                if e1 != e2 && should_collide && intersect_rect(&body.bounds(), &other_body.bounds()) {
                     let new_response = (e1, e2, false);
                     let pair_already_has_collision_response = self.collision_responses.iter().any(|(a_entity, b_entity, _)| *a_entity == new_response.0 && *b_entity == new_response.1);
                     if pair_already_has_collision_response == false {
@@ -80,7 +80,24 @@ impl PhysicsManager {
 
     }
 
+    fn handle_destroyed_entities(&mut self, world: &mut World) {
+
+        let mut destroyed_responses = Vec::new();
+
+        for r @ (entity, other, active) in &mut self.collision_responses.iter() {
+            if world.contains(*entity) == false || world.contains(*other) == false {
+                destroyed_responses.push(*r);
+            }
+        }
+
+        // retain everything we haven't yeeted
+        self.collision_responses.retain(|r| destroyed_responses.contains(&r) == false);
+
+    }
+
     pub fn handle_collisions(&mut self, world: &mut World) {
+
+        self.handle_destroyed_entities(world);
 
         for (entity, other, active) in &mut self.collision_responses {
 
@@ -110,6 +127,11 @@ impl PhysicsManager {
             let mut other_body = world.get::<&mut DynamicBody>(*other).expect("must have dynamic body!");
             let other_body_mass = other_body.mass();
             *other_body.velocity_mut() -= resolved_impact_velocity * this_body_mass;
+
+            // handle collision response callbacks, if it has one
+            if let Ok(dynamic_body_callback) = world.get::<&DynamicBodyCallback>(*entity) {
+                (dynamic_body_callback.on_collision)(&world, *entity, *other);
+            }
 
         }
 
@@ -193,7 +215,7 @@ impl PhysicsManager {
     }
 
     pub fn collides_with(&self, entity: &DynamicBody, other: &DynamicBody) -> bool {
-        true
+        entity.mask & other.mask == 0
     }
 
 }

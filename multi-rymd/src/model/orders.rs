@@ -315,7 +315,7 @@ impl Order for ConstructOrder {
 
         {
             let mut constructor = model.world.get::<&mut Constructor>(entity).expect("must have constructor to be issuing construct order!");
-            dbg!(constructor.current_target = None);
+            constructor.current_target = None;
         }
 
         if let Some(new_entity) = self.entity() && entity != new_entity {
