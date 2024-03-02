@@ -299,9 +299,9 @@ impl RymdGameModel {
             for (o, (other_controller, other_attackable, other_transform, &other_state)) in self.world.query::<(&Controller, &Attackable, &Transform, &EntityState)>().iter() {
 
                 let has_same_controller = controller.id == other_controller.id;
-                let has_any_orders = orderable.is_queue_empty(GameOrderType::Order);
+                let has_no_orders = orderable.is_queue_empty(GameOrderType::Order);
 
-                if e == o || state != EntityState::Constructed || has_any_orders == false || has_same_controller {
+                if e == o || state != EntityState::Constructed || has_no_orders == false || has_same_controller {
                     continue
                 }
 
