@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use macroquad::prelude::*;
 
 /// Draws some text centered over a given position in screen space.
@@ -278,6 +280,28 @@ pub fn intersect_rect(a: &Rect, b: &Rect) -> bool {
 
     return true;
     
+}
+
+/// Wrap v around the range [lo, hi].
+pub fn wrap(v: f32, lo: f32, hi: f32) -> f32 {
+    (v - lo) % (hi - lo) + lo
+}
+
+/// Normalizes the specific angle in radians into the range [-PI, PI].
+pub fn normalize_angle(a: f32) -> f32 {
+    wrap(a, -PI, PI)
+}
+
+/// Returns the normalized angle difference between the two angles in radians.
+pub fn angle_difference(a: f32, b: f32) -> f32 {
+    let a = normalize_angle(a);
+    let b = normalize_angle(b);
+    normalize_angle(b - a)
+}
+
+pub fn lerp_angle(a: f32, b: f32, t: f32) -> f32 {
+    let difference = angle_difference(a, b);
+    normalize_angle(a + difference * t)
 }
 
 #[cfg(test)]
