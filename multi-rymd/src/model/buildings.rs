@@ -15,9 +15,7 @@ pub enum EntityState {
 }
 
 #[derive(Debug, Clone)]
-pub struct Building {
-    pub state: EntityState
-}
+pub struct Building;
 
 #[derive(Debug, Clone)]
 pub struct Constructor {
@@ -125,8 +123,9 @@ pub fn build_solar_collector(world: &mut World, owner: PlayerID, position: Vec2)
     let dynamic_body = DynamicBody { is_enabled, is_static, bounds, kinematic, mask };
     let resource_producer = Producer { metal: 0.0, energy: 10.0 };
     let state = EntityState::Ghost;
+    let building = Building;
 
-    world.spawn((controller, transform, blueprint_identity, health, sprite, dynamic_body, resource_producer, state))
+    world.spawn((controller, transform, blueprint_identity, health, sprite, dynamic_body, resource_producer, building, state))
 
 }
 
@@ -154,8 +153,9 @@ pub fn build_shipyard(world: &mut World, owner: PlayerID, position: Vec2) -> Ent
     let sprite = Sprite { texture: "SHIPYARD".to_string() };
     let dynamic_body = DynamicBody { is_enabled, is_static, bounds, kinematic, mask };
     let state = EntityState::Ghost;
+    let building = Building;
 
-    world.spawn((controller, transform, blueprint_identity, spawner, orderable, constructor, health, sprite, dynamic_body, state))
+    world.spawn((controller, transform, blueprint_identity, spawner, orderable, constructor, health, sprite, dynamic_body, building, state))
 
 }
 
@@ -181,8 +181,9 @@ pub fn build_energy_storage(world: &mut World, owner: PlayerID, position: Vec2) 
     let dynamic_body = DynamicBody { is_enabled, is_static, bounds, kinematic, mask };
     let storage = Storage { metal: 0.0, energy: energy_storage_amount };
     let state = EntityState::Ghost;
+    let building = Building;
 
-    world.spawn((controller, transform, blueprint_identity, health, sprite, dynamic_body, storage, state))
+    world.spawn((controller, transform, blueprint_identity, health, sprite, dynamic_body, storage, building, state))
 
 }
 
@@ -208,7 +209,8 @@ pub fn build_metal_storage(world: &mut World, owner: PlayerID, position: Vec2) -
     let dynamic_body = DynamicBody { is_enabled, is_static, bounds, kinematic, mask };
     let storage = Storage { metal: metal_storage_amount, energy: 0.0 };
     let state = EntityState::Ghost;
+    let building = Building;
 
-    world.spawn((controller, transform, blueprint_identity, health, sprite, dynamic_body, storage, state))
+    world.spawn((controller, transform, blueprint_identity, health, sprite, dynamic_body, storage, building, state))
 
 }

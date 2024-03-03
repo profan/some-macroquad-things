@@ -10,7 +10,7 @@ use hecs::*;
 use yakui::Alignment;
 
 use crate::PlayerID;
-use crate::model::{current_energy, current_energy_income, current_metal, current_metal_income, max_energy, max_metal, Attacker, Blueprint, BlueprintID, BlueprintIdentity, Effect, EntityState, GameOrder, GameOrderType, Impact, PhysicsBody, Spawner};
+use crate::model::{current_energy, current_energy_income, current_metal, current_metal_income, max_energy, max_metal, Attackable, Attacker, Blueprint, BlueprintID, BlueprintIdentity, Building, Effect, EntityState, GameOrder, GameOrderType, Impact, PhysicsBody, Spawner};
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Controller, Health, get_entity_position};
 
 use super::{calculate_sprite_bounds, GameCamera};
@@ -606,7 +606,7 @@ impl RymdGameView {
 
     fn is_entity_attackable(&self, entity: Entity, world: &World) -> bool {
         let controller = world.get::<&Controller>(entity).expect("must have controller!");
-        self.is_controller_attackable(&controller)
+        self.is_controller_attackable(&controller) && world.get::<&Attackable>(entity).is_ok()
     }
 
     fn is_entity_friendly(&self, entity: Entity, world: &World) -> bool {
@@ -633,18 +633,14 @@ impl RymdGameView {
             if let Some(target_entity) = entity_under_cursor {
 
                 if self.is_entity_friendly(target_entity, world) {
-
                     self.handle_repair_order(world, target_entity, lockstep, should_add);
 
                 } else if self.is_entity_attackable(target_entity, world) {
-
                     self.handle_attack_order(world, target_entity, lockstep, should_add);
                 }
 
             } else {
-
                 self.handle_move_order(world, current_selection_end_point, mouse_position, lockstep, should_group, should_add);
-
             }
 
         } else {
@@ -919,7 +915,7 @@ impl RymdGameView {
             beam_components_to_add.push((e, constructor_beam));
         }
 
-        for (e, (transform, controller, orderable)) in model.world.query::<Without<(&Transform, &Controller, &Orderable), &Selectable>>().iter() {
+        for (e, (transform, controller, orderable)) in model.world.query::<Without<(&Transform, &Controller, Or<&Orderable, &Building>), &Selectable>>().iter() {
             let selectable = Selectable { is_selected: false };
             selectable_components_to_add.push((e, selectable));
         }
