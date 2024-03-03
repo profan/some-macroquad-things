@@ -146,6 +146,7 @@ pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let arrowhead_thruster_power = 64.0;
     let arrowhead_turn_thruster_power = 16.0;
     let arrowhead_fire_rate = 0.25;
+    let arrowhead_range = 256.0;
 
     let steering_parameters = DEFAULT_STEERING_PARAMETERS;
     let kinematic = create_default_kinematic_body(position, 0.0);
@@ -169,6 +170,7 @@ pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let weapon = Weapon { offset: vec2(0.0, -(arrowhead_ship_size / 2.0)), fire_rate: arrowhead_fire_rate, cooldown: 0.0 };
     let attackable = Attackable;
     let attacker = Attacker {
+        range: arrowhead_range,
         target: None
     };
 

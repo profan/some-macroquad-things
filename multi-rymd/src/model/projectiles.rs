@@ -1,8 +1,6 @@
-use std::f32::consts::PI;
-
 use hecs::{CommandBuffer, Entity, World};
 use macroquad::{math::Rect, prelude::Vec2};
-use utility::{AsAngle, AsVector};
+use utility::{AsAngle, AsVector, Kinematic};
 use crate::PlayerID;
 
 use super::{create_default_kinematic_body, create_impact_effect_in_buffer, create_muzzle_flash_effect_in_world, get_entity_physics_position, get_entity_position, Controller, DynamicBody, DynamicBodyCallback, Health, PhysicsBody, Projectile, Sprite, Transform};
@@ -33,7 +31,7 @@ pub fn create_simple_bullet(world: &mut World, owner: PlayerID, position: Vec2, 
     let simple_bullet_health = 10;
     let simple_bullet_lifetime = 4.0;
     let simple_bullet_velocity = 256.0;
-    let simple_bullet_damage = 10.0;
+    let simple_bullet_damage = 25.0;
 
     let is_static = false;
     let is_enabled = true;
@@ -41,7 +39,10 @@ pub fn create_simple_bullet(world: &mut World, owner: PlayerID, position: Vec2, 
     let mask = 1 << owner;
     
     let orientation = -direction.as_angle();
-    let kinematic = create_default_kinematic_body(position, orientation);
+    let kinematic = Kinematic {
+        mass: 0.1,
+        ..create_default_kinematic_body(position, orientation)
+    };
 
     let controller = Controller { id: owner };
     let transform = Transform::new(position, orientation, None);

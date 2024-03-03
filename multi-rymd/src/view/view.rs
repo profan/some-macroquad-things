@@ -10,7 +10,7 @@ use hecs::*;
 use yakui::Alignment;
 
 use crate::PlayerID;
-use crate::model::{current_energy, current_energy_income, current_metal, current_metal_income, max_energy, max_metal, Blueprint, BlueprintID, BlueprintIdentity, Effect, EntityState, GameOrder, GameOrderType, Impact, PhysicsBody, Spawner};
+use crate::model::{current_energy, current_energy_income, current_metal, current_metal_income, max_energy, max_metal, Attacker, Blueprint, BlueprintID, BlueprintIdentity, Effect, EntityState, GameOrder, GameOrderType, Impact, PhysicsBody, Spawner};
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Controller, Health, get_entity_position};
 
 use super::{calculate_sprite_bounds, GameCamera};
@@ -678,6 +678,17 @@ impl RymdGameView {
 
     fn handle_attack_order(&mut self, world: &mut World, target_entity: Entity, lockstep: &mut LockstepClient, should_add: bool) {
 
+        for (e, (transform, orderable, selectable, attacker)) in world.query_mut::<(&Transform, &Orderable, &Selectable, &Attacker)>() {
+    
+            let is_target_self = target_entity == e;
+
+            if selectable.is_selected && is_target_self == false {
+                lockstep.send_attack_order(e, target_entity, should_add);
+                println!("[RymdGameView] ordered: {:?} to attack: {:?}", e, target_entity);
+            }
+    
+        }
+
     }
 
     fn handle_repair_order(&mut self, world: &mut World, target_entity: Entity, lockstep: &mut LockstepClient, should_add: bool) {
@@ -869,9 +880,14 @@ impl RymdGameView {
 
             let order_line_thickness = 1.0;
             let order_line_head_size = self.camera.world_to_screen_scale_v(8.0);
-            let order_line_colour = GREEN.with_alpha(0.5);
+
+            let order_line_colour_attack = RED.with_alpha(0.5);
+            let order_line_colour_move = GREEN.with_alpha(0.5);
 
             for (i, order) in current_orders.iter().enumerate() {
+
+                let order_line_colour = if let GameOrder::Attack(_) | GameOrder::AttackMove(_) = order { order_line_colour_attack } else { order_line_colour_move };
+
                 if let Some(target_position) = order.get_target_position(model) {
                     let current_screen_position = self.camera.world_to_screen(current_line_start);
                     let target_screen_position = self.camera.world_to_screen(target_position);
@@ -882,6 +898,7 @@ impl RymdGameView {
                     }
                     current_line_start = target_position;
                 }
+
             }
 
         }

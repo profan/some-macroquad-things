@@ -480,7 +480,8 @@ pub fn max_health(world: &World, entity: Entity) -> i32 {
 }
 
 pub struct Attacker {
-    pub target: Option<Entity>
+    pub target: Option<Entity>,
+    pub range: f32
 }
 
 pub struct Attackable;

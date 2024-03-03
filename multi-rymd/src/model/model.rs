@@ -287,7 +287,6 @@ impl RymdGameModel {
 
     fn tick_attackers(&mut self) {
 
-        let attack_range = 256.0;
         let mut attack_targets = HashMap::new();
 
         // search for targets in range and accumulate
@@ -299,13 +298,14 @@ impl RymdGameModel {
             for (o, (other_controller, other_attackable, other_transform, &other_state)) in self.world.query::<(&Controller, &Attackable, &Transform, &EntityState)>().iter() {
 
                 let has_same_controller = controller.id == other_controller.id;
-                let has_no_orders = orderable.is_queue_empty(GameOrderType::Order);
+                let is_current_order_queue_empty = orderable.is_queue_empty(GameOrderType::Order);
+                let is_current_order_attack = if let Some(GameOrder::Attack(_)) = orderable.first_order(GameOrderType::Order) { true } else { false };
 
-                if e == o || state != EntityState::Constructed || has_no_orders == false || has_same_controller {
+                if e == o || state != EntityState::Constructed || (is_current_order_queue_empty == false && is_current_order_attack == false) || has_same_controller {
                     continue
                 }
 
-                let is_in_attack_range = transform.world_position.distance(other_transform.world_position) < attack_range;
+                let is_in_attack_range = transform.world_position.distance(other_transform.world_position) < attacker.range;
 
                 if is_in_attack_range {
                     let entry = attack_targets.entry(e).or_insert(vec![]);
@@ -543,7 +543,7 @@ impl RymdGameModel {
             }
 
             effect.lifetime -= Self::TIME_STEP;
-            
+
         }
 
     }
