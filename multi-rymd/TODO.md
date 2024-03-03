@@ -10,11 +10,17 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] implement adding/removing units to an existing selection (when holding ctrl)
 [x] make ordering by drawing a line distribute units evenly along the line (instead of per point as currently)
 [x] have separate order queues for construction and movement/similar things for units that can both construct things and also move/forward movement orders
+[x] implement a basic attack order (targets an entity)
+[] implement a basic attack move order (targets a position, attacks all entities encountered along the way)
 [] implement shift+double click on a unit to select all other units of that type
 [] implement control groups (ctrl+1, etc) for units
 
 # selection
 [x] make selection aware of exact bounds when available, so that you can more precisely select units in construction
+
+# attacking
+[x] represent attacking and attackable entities
+[x] have units automatically attack their nearest target if within target acquisition range
 
 # movement
 [] data-drive parameters for stuff like turn-rate?
