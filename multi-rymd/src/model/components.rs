@@ -107,7 +107,7 @@ pub struct DynamicBody {
 
 #[derive(Clone)]
 pub struct DynamicBodyCallback {
-    pub on_collision: fn(&World, Entity, Entity) -> ()
+    pub on_collision: fn(&World, &mut CommandBuffer, Entity, Entity, &DynamicBody) -> ()
 }
 
 impl PhysicsBody for DynamicBody {
@@ -122,6 +122,14 @@ impl PhysicsBody for DynamicBody {
 
     fn position(&self) -> Vec2 {
         self.kinematic.position
+    }
+
+    fn visual_position(&self) -> Vec2 {
+        self.kinematic.position - self.bounds.size() / 2.0
+    }
+    
+    fn orientation(&self) -> f32 {
+        self.kinematic.orientation
     }
 
     fn velocity(&self) -> Vec2 {
@@ -484,6 +492,7 @@ pub struct Projectile {
 }
 
 pub struct Weapon {
+    pub offset: Vec2,
     pub fire_rate: f32,
     pub cooldown: f32
 }
@@ -492,6 +501,8 @@ pub struct Effect {
     pub total_lifetime: f32,
     pub lifetime: f32
 }
+
+pub struct Impact;
 
 impl Effect {
     pub fn new(lifetime: f32) -> Effect {

@@ -166,7 +166,7 @@ pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let orderable = Orderable::new();
     let state = EntityState::Ghost;
 
-    let weapon = Weapon { fire_rate: arrowhead_fire_rate, cooldown: 0.0 };
+    let weapon = Weapon { offset: vec2(0.0, -(arrowhead_ship_size / 2.0)), fire_rate: arrowhead_fire_rate, cooldown: 0.0 };
     let attackable = Attackable;
     let attacker = Attacker {
         target: None

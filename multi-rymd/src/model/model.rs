@@ -363,7 +363,7 @@ impl RymdGameModel {
                     let attack_direction = (attacker_position - transform.world_position).normalize();
 
                     let id = controller.id;
-                    let creation_world_position = transform.world_position;
+                    let creation_world_position = transform.world_position + weapon.offset.rotated_by(transform.world_rotation);
 
                     queued_projectile_creations.push(Box::new(move |w| create_simple_bullet(w, id, creation_world_position, attack_direction)));
                     weapon.cooldown += weapon.fire_rate;
@@ -604,6 +604,7 @@ impl RymdGameModel {
     }
 
     pub fn tick(&mut self) {
+        
         self.tick_constructing_entities();
         self.tick_powered_entities();
         self.tick_resource_storage();
@@ -618,6 +619,7 @@ impl RymdGameModel {
         self.tick_physics_engine();
         self.tick_transform_updates();
         self.tick_lifetimes();
+
     }
 
 }

@@ -10,7 +10,7 @@ use hecs::*;
 use yakui::Alignment;
 
 use crate::PlayerID;
-use crate::model::{BlueprintID, PhysicsBody, Spawner, EntityState, GameOrder, Blueprint, GameOrderType, BlueprintIdentity, current_metal, current_energy, current_energy_income, current_metal_income, max_metal, max_energy};
+use crate::model::{current_energy, current_energy_income, current_metal, current_metal_income, max_energy, max_metal, Blueprint, BlueprintID, BlueprintIdentity, Effect, EntityState, GameOrder, GameOrderType, Impact, PhysicsBody, Spawner};
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Controller, Health, get_entity_position};
 
 use super::{calculate_sprite_bounds, GameCamera};
@@ -425,6 +425,17 @@ impl Resources {
 
         self.register_emitter("REPAIR", repair_emitter);
         self.register_emitter_config("REPAIR", repair_emitter_config);
+
+        let impact_emitter_config = EmitterConfig {
+            local_coords: false,
+            texture: Some(self.get_texture_by_name("EXHAUST")),
+            ..impact()
+        };
+
+        let impact_emitter = Emitter::new(impact_emitter_config.clone());
+
+        self.register_emitter("IMPACT", impact_emitter);
+        self.register_emitter_config("IMPACT", impact_emitter_config);
 
     }
 
@@ -883,6 +894,7 @@ impl RymdGameView {
         let mut selectable_components_to_add = Vec::new();
         let mut thruster_components_to_add = Vec::new();
         let mut bounds_components_to_add = Vec::new();
+        let mut impact_components_to_add = Vec::new();
 
         for (e, (transform, constructor)) in model.world.query::<Without<(&Transform, &Constructor), &ConstructorBeam>>().iter() {
             let emitter_config_name = "REPAIR";
@@ -900,6 +912,12 @@ impl RymdGameView {
             let emitter_config_name = if thruster.kind == ThrusterKind::Main { "STANDARD" } else { "STANDARD_TURN" };
             let particle_emitter = Particles { emitter: Emitter::new(self.resources.get_emitter_config_by_name(emitter_config_name)) };
             thruster_components_to_add.push((e, particle_emitter));
+        }
+
+        for (e, (transform, thruster)) in model.world.query::<Without<(&Transform, &Impact), &Particles>>().iter() {
+            let emitter_config_name = "IMPACT";
+            let particle_emitter = Particles { emitter: Emitter::new(self.resources.get_emitter_config_by_name(emitter_config_name)) };
+            impact_components_to_add.push((e, particle_emitter));
         }
 
         for (e, (transform, selectable, sprite, animated_sprite)) in model.world.query::<(&Transform, &Selectable, Option<&Sprite>, Option<&AnimatedSprite>)>().iter() {
@@ -936,6 +954,10 @@ impl RymdGameView {
         }
 
         for (e, c) in bounds_components_to_add {
+            let _ = model.world.insert_one(e, c);
+        }
+
+        for (e, c) in impact_components_to_add {
             let _ = model.world.insert_one(e, c);
         }
 
@@ -1105,6 +1127,22 @@ impl RymdGameView {
                 };
 
             }
+        }
+
+    }
+
+    fn update_impacts(&mut self, world: &World) {
+
+        let impact_velocity = 64.0;
+
+        for (e, (transform, effect, impact, particles)) in world.query::<(&Transform, &Effect, &Impact, &mut Particles)>().iter() {
+            
+            particles.emitter.config.lifetime = effect.total_lifetime;
+            particles.emitter.config.initial_velocity = impact_velocity;
+            particles.emitter.config.initial_direction = transform.world_rotation.as_vector();
+            particles.emitter.config.size = 1.0;
+            particles.emitter.emit(transform.world_position, 4);
+
         }
 
     }
@@ -1374,6 +1412,7 @@ impl RymdGameView {
 
         self.update_constructor_beams(&model);
         self.update_thrusters(&model.world);
+        self.update_impacts(&model.world);
 
         self.draw_background_texture(screen_width(), screen_height(), self.camera.world_position());
 

@@ -1,5 +1,5 @@
 use macroquad::prelude::*;
-use hecs::{Entity, World};
+use hecs::{CommandBuffer, Entity, World};
 use utility::{AsPerpendicular, intersect_rect};
 
 use super::{DynamicBody, DynamicBodyCallback};
@@ -12,6 +12,8 @@ pub trait PhysicsBody {
 
     fn bounds(&self) -> Rect;
     fn position(&self) -> Vec2;
+    fn visual_position(&self) -> Vec2;
+    fn orientation(&self) -> f32;
     fn velocity(&self) -> Vec2;
     fn angular_velocity(&self) -> f32;
     fn friction(&self) -> f32;
@@ -99,6 +101,8 @@ impl PhysicsManager {
 
         self.handle_destroyed_entities(world);
 
+        let mut command_buffer = CommandBuffer::new();
+
         for (entity, other, active) in &mut self.collision_responses {
 
             let (resolved_impact_velocity, this_body_mass) = {
@@ -130,13 +134,16 @@ impl PhysicsManager {
 
             // handle collision response callbacks, if it has one
             if let Ok(dynamic_body_callback) = world.get::<&DynamicBodyCallback>(*entity) {
-                (dynamic_body_callback.on_collision)(&world, *entity, *other);
+                (dynamic_body_callback.on_collision)(&world, &mut command_buffer, *entity, *other, &other_body);
             }
 
         }
 
         // retain only active collisions
         self.collision_responses.retain(|(a_entity, b_entity, active)| *active);
+
+        // run command buffer now
+        command_buffer.run_on(world);
 
     }
 
