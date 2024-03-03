@@ -536,9 +536,14 @@ impl RymdGameModel {
 
     fn tick_effects(&mut self) {
 
-        for (e, (sprite, effect)) in self.world.query_mut::<(&mut AnimatedSprite, &mut Effect)>() {
-            sprite.current_frame = (sprite.h_frames as f32 * (1.0 - (effect.lifetime / effect.total_lifetime))) as i32;
+        for (e, (sprite, effect)) in self.world.query_mut::<(Option<&mut AnimatedSprite>, &mut Effect)>() {
+
+            if let Some(sprite) = sprite {
+                sprite.current_frame = (sprite.h_frames as f32 * (1.0 - (effect.lifetime / effect.total_lifetime))) as i32;
+            }
+
             effect.lifetime -= Self::TIME_STEP;
+            
         }
 
     }

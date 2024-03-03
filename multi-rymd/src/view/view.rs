@@ -894,7 +894,6 @@ impl RymdGameView {
         let mut selectable_components_to_add = Vec::new();
         let mut thruster_components_to_add = Vec::new();
         let mut bounds_components_to_add = Vec::new();
-        let mut impact_components_to_add = Vec::new();
 
         for (e, (transform, constructor)) in model.world.query::<Without<(&Transform, &Constructor), &ConstructorBeam>>().iter() {
             let emitter_config_name = "REPAIR";
@@ -912,12 +911,6 @@ impl RymdGameView {
             let emitter_config_name = if thruster.kind == ThrusterKind::Main { "STANDARD" } else { "STANDARD_TURN" };
             let particle_emitter = Particles { emitter: Emitter::new(self.resources.get_emitter_config_by_name(emitter_config_name)) };
             thruster_components_to_add.push((e, particle_emitter));
-        }
-
-        for (e, (transform, thruster)) in model.world.query::<Without<(&Transform, &Impact), &Particles>>().iter() {
-            let emitter_config_name = "IMPACT";
-            let particle_emitter = Particles { emitter: Emitter::new(self.resources.get_emitter_config_by_name(emitter_config_name)) };
-            impact_components_to_add.push((e, particle_emitter));
         }
 
         for (e, (transform, selectable, sprite, animated_sprite)) in model.world.query::<(&Transform, &Selectable, Option<&Sprite>, Option<&AnimatedSprite>)>().iter() {
@@ -954,10 +947,6 @@ impl RymdGameView {
         }
 
         for (e, c) in bounds_components_to_add {
-            let _ = model.world.insert_one(e, c);
-        }
-
-        for (e, c) in impact_components_to_add {
             let _ = model.world.insert_one(e, c);
         }
 
@@ -1135,13 +1124,15 @@ impl RymdGameView {
 
         let impact_velocity = 64.0;
 
-        for (e, (transform, effect, impact, particles)) in world.query::<(&Transform, &Effect, &Impact, &mut Particles)>().iter() {
+        for (e, (transform, effect, impact)) in world.query::<(&Transform, &Effect, &Impact)>().iter() {
+
+            let emitter = self.resources.get_emitter_by_name("IMPACT");
             
-            particles.emitter.config.lifetime = effect.total_lifetime;
-            particles.emitter.config.initial_velocity = impact_velocity;
-            particles.emitter.config.initial_direction = transform.world_rotation.as_vector();
-            particles.emitter.config.size = 1.0;
-            particles.emitter.emit(transform.world_position, 4);
+            emitter.config.lifetime = effect.total_lifetime;
+            emitter.config.initial_velocity = impact_velocity;
+            emitter.config.initial_direction = transform.world_rotation.as_vector();
+            emitter.config.size = 1.0;
+            emitter.emit(transform.world_position, 4);
 
         }
 
