@@ -29,7 +29,6 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] implement a simple camera that you can pan around with
 [x] fix grouped movement, currently ends up crazily offset when units have moved away from the origin and a grouped move order is issued
 [x] make the camera move towards where the mouse is when you zoom in
-[] make the camera "center" when zooming towards where the mouse is, so that it ends up exactly where your mouse was when you started zooming in
 [] make movement velocity based (ideally framerate independent)
 [] make zooming velocity based (ideally framerate independent)
 [x] make camera variables tweakable (currently hardcoded)
@@ -37,7 +36,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 
 # construction
 [x] when constructing buildings, show an eta in seconds/minutes/etc
-[] when constructing buildings, make sure multiple constructors racing to build a single building end up helping to construct the same building, rather than building individual buildings.
+[x] when constructing buildings, make sure multiple constructors racing to build a single building end up helping to construct the same building, rather than building individual buildings.
 [x] when constructing entities, make the construction range ependent on the (circle) bounds of the item in construction, rather than just the centerpoint
 [x] when constructing buildings with a unit, draw a construction beam
 [x] when constructing units, move them out of the way automatically on construction (unless they already have an order)

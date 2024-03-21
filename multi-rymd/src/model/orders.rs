@@ -12,6 +12,7 @@ use crate::model::GameMessage;
 
 use super::Attacker;
 use super::DynamicBody;
+use super::EntityState;
 use super::PhysicsBody;
 use super::get_entity_position;
 use super::get_entity_position_from_id;
@@ -262,6 +263,26 @@ impl ConstructOrder {
     }
 }
 
+/// Returns the constructible entity intersecting with the specific position, if any
+fn constructible_at_position(world: &World, position: Vec2) -> Option<Entity> {
+    for (e, (body, health, state)) in world.query::<(&DynamicBody, &Health, &EntityState)>().iter() {
+        if body.bounds().contains(position) && *state == EntityState::Ghost {
+            return Some(e);
+        }
+    }
+    None
+}
+
+/// Returns true if there's an existing static body at the given position.
+fn existing_static_body_at_position(world: &World, position: Vec2) -> bool {
+    for (e, (body, health, state)) in world.query::<(&DynamicBody, &Health, &EntityState)>().iter() {
+        if body.bounds().contains(position) && body.is_static {
+            return true;
+        }
+    }
+    false
+}
+
 impl Order for ConstructOrder {
 
     fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
@@ -303,8 +324,20 @@ impl Order for ConstructOrder {
 
         }
 
+        // we're constructing something someone else seems to have started!
+        if let Some(existing_constructible) = constructible_at_position(&model.world, vec2(self.x, self.y)) && self.is_self_order == false {
+            
+            // cancel our current order now
+            let order_type = if self.is_self_order { GameOrderType::Construct } else { GameOrderType::Order };
+            self.cancel_current_order(entity, &mut model.world, order_type);
+
+            // issue order to go construct the new thing!
+            self.construct_external_entity(entity, &mut model.world, existing_constructible, vec2(self.x, self.y));
+
+        }
+
         // we're constructing something new given a blueprint
-        if let Some(blueprint_id) = self.blueprint_id {
+        if let Some(blueprint_id) = self.blueprint_id && existing_static_body_at_position(&model.world, vec2(self.x, self.y)) == false {
 
             let construction_position = vec2(self.x, self.y);
 
