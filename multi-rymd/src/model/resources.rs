@@ -65,7 +65,7 @@ pub fn consume_metal(player_id: PeerID, world: &World, amount: f32) -> bool {
     if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().filter(|(e, p)| p.id == player_id).nth(0) {
         if let Ok(mut metal) = world.get::<&mut Metal>(current_player_entity) && metal.current >= amount {
             metal.income -= amount;
-            metal.current -= amount;
+            metal.current = (metal.current - amount).clamp(0.0, metal.base_size + metal.pool_size); // #TODO: specifically distribute excess/overflow to other allied players maybe?
             true
         } else {
             false
@@ -82,7 +82,7 @@ pub fn consume_energy(player_id: PeerID, world: &World, amount: f32) -> bool {
     if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().filter(|(e, p)| p.id == player_id).nth(0) {
         if let Ok(mut energy) = world.get::<&mut Energy>(current_player_entity) && energy.current >= amount {
             energy.income -= amount;
-            energy.current -= amount;
+            energy.current = (energy.current - amount).clamp(0.0, energy.base_size + energy.pool_size);
             true
         } else {
             false

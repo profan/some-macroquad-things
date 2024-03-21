@@ -54,7 +54,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] allow entities to depend on resources to function
 [x] allow entities to depend on resources to construct things
 [x] allow entities to expand the size of the metal and energy storage pools
-[] cap the maximum amount of metal and energy by the current size of the energy/metal storage pools
+[x] cap the maximum amount of metal and energy by the current size of the energy/metal storage pools
 [] fix issue where resource consumption for unit construction falls over when item being constructed has health lower than the build power of the unit involved
 
 # units
