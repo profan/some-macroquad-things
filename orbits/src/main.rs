@@ -87,8 +87,8 @@ fn create_game() -> Game {
     let mut game = Game::new();
     setup_camera_for_game(&mut game);
 
-    let min_moons = 1;
-    let max_moons = 1;
+    let min_moons = 4;
+    let max_moons = 4;
 
     let main_planet = create_planet(vec3(1.0, 0.0, 0.0), min_moons, max_moons);
 
@@ -185,8 +185,10 @@ fn infer_orbital_plane(position: Vec3) -> Vec3 {
     let dir_to_plane_intersection = position.with_y(0.0).normalize();
     let dir_to_position = position.normalize();
 
-    let pitch = position.y.signum() * sin_theta.asin();
-    let yaw = 0.0;
+    let pitch = position.angle_between(vec3(0.0, 0.0, 1.0));
+    // let pitch = position.y.signum() * sin_theta.asin();
+
+    let yaw = position.xz().as_angle() + PI / 2.0;
     let roll = 0.0;
 
     vec3(pitch, yaw, roll)
