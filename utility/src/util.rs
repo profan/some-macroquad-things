@@ -9,14 +9,14 @@ pub fn draw_text_centered(text: &str, x: f32, y: f32, font_size: f32, colour: Co
 }
 
 /// Draws a textured quad with the origin offset by half the texture size (so that the center is over x, y).
-pub fn draw_texture_centered(texture: Texture2D, x: f32, y: f32, colour: Color) {
+pub fn draw_texture_centered(texture: &Texture2D, x: f32, y: f32, colour: Color) {
     let w = texture.width();
     let h = texture.height();
     draw_texture(texture, x - (w / 2.0), y - (h / 2.0), colour);
 }
 
 /// Draws a textured quad with a given rotation.
-pub fn draw_texture_with_rotation(texture: Texture2D, x: f32, y: f32, colour: Color, rotation: f32) {
+pub fn draw_texture_with_rotation(texture: &Texture2D, x: f32, y: f32, colour: Color, rotation: f32) {
     draw_texture_ex(texture, x, y, colour, DrawTextureParams {
         rotation: rotation,
         ..Default::default()
@@ -24,7 +24,7 @@ pub fn draw_texture_with_rotation(texture: Texture2D, x: f32, y: f32, colour: Co
 }
 
 /// Draws a centered textured quad with a given rotation, see also [draw_texture_centered].
-pub fn draw_texture_centered_with_rotation(texture: Texture2D, x: f32, y: f32, colour: Color, rotation: f32) {
+pub fn draw_texture_centered_with_rotation(texture: &Texture2D, x: f32, y: f32, colour: Color, rotation: f32) {
     let w = texture.width();
     let h = texture.height();
     draw_texture_ex(texture, x - (w / 2.0), y - (h / 2.0), colour, DrawTextureParams {
@@ -33,7 +33,7 @@ pub fn draw_texture_centered_with_rotation(texture: Texture2D, x: f32, y: f32, c
     });
 }
 
-pub fn draw_texture_centered_with_rotation_frame(texture: Texture2D, x: f32, y: f32, colour: Color, rotation: f32, frame: i32, num_v_frames: i32, flip: bool) {
+pub fn draw_texture_centered_with_rotation_frame(texture: &Texture2D, x: f32, y: f32, colour: Color, rotation: f32, frame: i32, num_v_frames: i32, flip: bool) {
     let w = texture.width() / num_v_frames as f32;
     let h = texture.height();
     let atlas_rect = Rect {

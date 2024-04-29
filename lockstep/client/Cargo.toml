@@ -11,8 +11,8 @@ utility = { path = "../../utility" }
 ewebsock = "0.4.0"
 
 # macroquad related dependencies
-yakui-macroquad = "0.2.0"
-macroquad = "0.3.24"
+yakui-macroquad = "0.3.0"
+macroquad = "0.4.5"
 yakui = "0.2.0"
 
 [profile.dev]

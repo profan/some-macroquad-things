@@ -35,13 +35,13 @@ unsafe fn draw_quad(vertices: [(Vec3, Vec2, Color); 4]) {
 }
 
 /// Draws a single quad with an optional texture, color, and uv scale.
-pub fn draw_quad_3d_ex(v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3, texture: Option<Texture2D>, color: Color, uv_scale: f32) {
+pub fn draw_quad_3d_ex(v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3, texture: Option<&Texture2D>, color: Color, uv_scale: f32) {
 
     unsafe {
 
         {
             let context = get_internal_gl().quad_gl;
-            context.texture(texture.into());
+            context.texture(texture);
         }
 
         draw_quad(
@@ -58,7 +58,7 @@ pub fn draw_quad_3d_ex(v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3, texture: Option<T
 }
 
 /// Draws a single quad with an optional texture, color.
-pub fn draw_quad_3d(v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3, texture: Option<Texture2D>, color: Color) {
+pub fn draw_quad_3d(v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3, texture: Option<&Texture2D>, color: Color) {
 
     let default_uv_scale = 1.0;
     draw_quad_3d_ex(v1, v2, v3, v4, texture, color, default_uv_scale);
@@ -66,7 +66,7 @@ pub fn draw_quad_3d(v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3, texture: Option<Text
 }
 
 /// Draws quads using the vertices array passed in (in chunks of 4), the number of vertices must be divisible by 4 or else will panic with an assert.
-pub fn draw_quads_3d(vertices: &[Vec3], texture: Option<Texture2D>, color: Color) {
+pub fn draw_quads_3d(vertices: &[Vec3], texture: Option<&Texture2D>, color: Color) {
 
     assert!(vertices.len() % 4 == 0);
 
@@ -77,7 +77,7 @@ pub fn draw_quads_3d(vertices: &[Vec3], texture: Option<Texture2D>, color: Color
 }
 
 /// Draws a cube with rotation.
-pub fn draw_cube_ex(position: Vec3, rotation: Quat, size: Vec3, texture: Option<Texture2D>, color: Color) {
+pub fn draw_cube_ex(position: Vec3, rotation: Quat, size: Vec3, texture: Option<&Texture2D>, color: Color) {
 
     unsafe {
 
@@ -131,7 +131,7 @@ pub fn draw_sphere_ex_with_rotation(center: Vec3, rotation: Quat, radius: f32, t
 
     }
 
-    draw_sphere_ex(vec3(0.0, 0.0, 0.0), radius, texture, color, params);
+    draw_sphere_ex(vec3(0.0, 0.0, 0.0), radius, texture.as_ref(), color, params);
 
     unsafe {
         let context = get_internal_gl().quad_gl;
@@ -163,7 +163,7 @@ pub fn draw_sphere_wires_ex(center: Vec3, rotation: Quat, radius: f32, color: Co
 }
 
 /// Draws a textured plane at a given position with a given size and desired (uniform) uv scale.
-pub fn draw_plane_ex(center: Vec3, size: Vec2, texture: Option<Texture2D>, color: Color, uv_scale: f32) {
+pub fn draw_plane_ex(center: Vec3, size: Vec2, texture: Option<&Texture2D>, color: Color, uv_scale: f32) {
 
     let half_x = size.x / 2.0;
     let half_y = size.y / 2.0;

@@ -1,4 +1,4 @@
-use macroquad::{prelude::{*}, rand::gen_range};
+use macroquad::{miniquad::MipmapFilterMode, prelude::*, rand::gen_range};
 
 use noise::{
     utils::{PlaneMapBuilder, NoiseMapBuilder}, Add, Perlin, ScaleBias, Turbulence
@@ -326,7 +326,7 @@ fn rasterize_tile_atlas(line_color: Color, fill_color: Color, line_thickness: f3
     let render_target = render_target(texture_width as u32, texture_height as u32);
     render_target.texture.set_filter(FilterMode::Linear);
 
-    let render_target_camera = create_render_target_camera(render_target);
+    let render_target_camera = create_render_target_camera(render_target.clone());
 
     set_camera(&render_target_camera);
 
@@ -418,15 +418,18 @@ fn create_height_field_buffer_texture(map: &Heightmap) -> Texture2D {
     let bytes = map.data.as_slice();
 
     let miniquad_texture = unsafe {
-        miniquad::Texture::from_data_and_format(
-            get_internal_gl().quad_context,
+        get_internal_gl().quad_context.new_texture_from_data_and_format(
             bytes,
             miniquad::TextureParams {
                 format: miniquad::TextureFormat::Alpha,
                 wrap: miniquad::TextureWrap::Clamp,
-                filter: miniquad::FilterMode::Nearest,
                 width: map.size.x,
-                height: map.size.y
+                height: map.size.y,
+                kind: miniquad::TextureKind::Texture2D,
+                min_filter: FilterMode::Nearest,
+                mag_filter: FilterMode::Nearest,
+                mipmap_filter: MipmapFilterMode::Nearest,
+                allocate_mipmaps: true,
             }
         )
     };
@@ -517,7 +520,7 @@ fn is_tile_in_view(x: f32, y: f32) -> bool {
     
 }
 
-fn draw_height_field_layer(active: &GameCamera, map: &Heightmap, atlas: Texture2D, isovalue: u8) {
+fn draw_height_field_layer(active: &GameCamera, map: &Heightmap, atlas: &Texture2D, isovalue: u8) {
 
     let height_field_offset = vec2(
         REAL_TILE_SIZE as f32 / 2.0,
@@ -559,7 +562,7 @@ fn draw_height_field_layer(active: &GameCamera, map: &Heightmap, atlas: Texture2
             let pleasant_earthy_green = Color::from_rgba(104, 118, 53, 255);
 
             draw_texture_ex(
-                atlas,
+                &atlas,
                 tile_pos.x,
                 tile_pos.y,
                 pleasant_earthy_green.lighten(0.25 * (isovalue as f32 / 255.0)),
@@ -575,7 +578,7 @@ fn draw_height_field_layer(active: &GameCamera, map: &Heightmap, atlas: Texture2
 
 }
 
-fn draw_height_field(active: &GameCamera, map: &Heightmap, atlas: Texture2D, render_debug_text: bool) {
+fn draw_height_field(active: &GameCamera, map: &Heightmap, atlas: &Texture2D, render_debug_text: bool) {
 
     for &isolevel in &map.isolevels {
         draw_height_field_layer(active, map, atlas, isolevel);
@@ -649,11 +652,11 @@ fn handle_camera_movement(active: &mut GameCamera, dt: f32) {
     let mut camera_delta = Vec2::ZERO;
 
     if is_up_pressed {
-        camera_delta += vec2(0.0, -1.0);
+        camera_delta += vec2(0.0, 1.0);
     }
 
     if is_down_pressed {
-        camera_delta += vec2(0.0, 1.0);
+        camera_delta += vec2(0.0, -1.0);
     }
 
     if is_left_pressed {
@@ -675,7 +678,7 @@ fn handle_camera_zoom(active: &mut GameCamera, dt: f32) -> bool {
     let min_zoom = 0.5;
     let max_zoom = 4.0;
 
-    let new_zoom = (active.camera_zoom - mouse_wheel_delta.1 * 0.01 * dt).clamp(min_zoom, max_zoom);
+    let new_zoom = (active.camera_zoom - mouse_wheel_delta.1 * dt).clamp(min_zoom, max_zoom);
     let new_size = active.size * new_zoom;
 
     let new_camera = Camera2D::from_display_rect(
@@ -808,7 +811,7 @@ async fn main() {
 
         if should_rasterize_tile_atlas {
 
-            if let Some(atlas) = rasterized_tile_atlas {
+            if let Some(atlas) = &rasterized_tile_atlas {
                 atlas.delete();
             }
 
@@ -841,7 +844,7 @@ async fn main() {
         draw_height_field(
             &active_camera,
             &height_field,
-            rasterized_tile_atlas.unwrap().texture,
+            &rasterized_tile_atlas.as_ref().unwrap().texture,
             render_debug_text
         );
 

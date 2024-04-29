@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-macroquad = "0.3.24"
-macroquad-particles = "0.1.2"
+macroquad = "0.4.5"
+macroquad-particles = "0.2.1"
 
 lockstep = { path = "../lockstep" }
 lockstep-client = { path = "../lockstep/client" }
@@ -14,7 +14,7 @@ utility = { path = "../utility" }
 deterministic-hash = "1.0.1"
 nanoserde = "0.1.35"
 
-hecs = { version = "0.10.3", features = ["macros"] }
+hecs = { version = "0.10.4", features = ["macros"] }
 yakui-macroquad = "0.2.2"
 yakui = "0.2.0"
 

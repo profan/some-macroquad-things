@@ -10,7 +10,7 @@ hecs = { version = "0.10.1", features = ["macros"] }
 # rhai = { version = "1.13.0", features = ["sync", "f32_float"] }
 rhai = { git = "https://github.com/rhaiscript/rhai.git", branch = "main", features = ["sync", "f32_float"] }
 utility = { path = "../utility" }
-macroquad = "0.3.24"
+macroquad = "0.4.5"
 
 [profile.dev]
 incremental = true

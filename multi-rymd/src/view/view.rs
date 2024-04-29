@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::f32::consts::PI;
 
 use macroquad_particles::{EmitterConfig, Emitter};
-use utility::{is_point_inside_rect, draw_texture_centered_with_rotation, set_texture_filter, draw_texture_centered_with_rotation_frame, DebugText, TextPosition, AsVector, RotatedBy, draw_arrow, draw_text_centered, draw_texture_centered, WithAlpha, draw_rectangle_lines_centered, AverageLine2D};
+use utility::{is_point_inside_rect, draw_texture_centered_with_rotation, draw_texture_centered_with_rotation_frame, DebugText, TextPosition, AsVector, RotatedBy, draw_arrow, draw_text_centered, draw_texture_centered, WithAlpha, draw_rectangle_lines_centered, AverageLine2D};
 use lockstep_client::{step::LockstepClient, app::yakui_min_column};
 use macroquad_particles::*;
 use macroquad::prelude::*;
@@ -106,7 +106,7 @@ impl ConstructionState {
         let blueprint_preview_position = position;
 
         draw_texture_centered(
-            blueprint_preview_texture,
+            &blueprint_preview_texture,
             blueprint_preview_position.x,
             blueprint_preview_position.y,
             WHITE.with_alpha(blueprint_preview_alpha)
@@ -249,7 +249,7 @@ impl Resources {
         let placeholder_size = 32;
         let placeholder_image = Image::gen_image_color(placeholder_size, placeholder_size, WHITE);
         let placeholder_texture = Texture2D::from_image(&placeholder_image);
-        set_texture_filter(placeholder_texture, FilterMode::Nearest);
+        placeholder_texture.set_filter(FilterMode::Nearest);
         placeholder_texture
     }
 
@@ -280,16 +280,16 @@ impl Resources {
 
     fn get_texture_by_name(&self, name: &str) -> Texture2D {
         if let Some(texture) = self.textures.get(name) {
-            *texture
+            texture.clone()
         } else {
-            self.placeholder_texture
+            self.placeholder_texture.weak_clone()
         }
     }
 
     async fn load_texture_or_placeholder(&mut self, name: &str, path: &str, filter: FilterMode) {
-        let texture = load_texture(path).await.unwrap_or(self.placeholder_texture);
+        let texture = load_texture(path).await.unwrap_or(self.placeholder_texture.weak_clone());
         if texture != self.placeholder_texture {
-            set_texture_filter(texture, filter);
+            texture.set_filter(filter);
         }
         self.register_texture(name, texture);
     }
@@ -1017,7 +1017,7 @@ impl RymdGameView {
         let sprite_texture_alpha = entity_state_to_alpha(state);
         let sprite_texture_handle = self.resources.get_texture_by_name(&sprite.texture);
         draw_texture_centered_with_rotation_frame(
-            sprite_texture_handle,
+            &sprite_texture_handle,
             transform.world_position.x,
             transform.world_position.y,
             WHITE.with_alpha(sprite_texture_alpha),
@@ -1032,7 +1032,7 @@ impl RymdGameView {
         let sprite_texture_alpha = entity_state_to_alpha(state);
         let sprite_texture_handle = self.resources.get_texture_by_name(&sprite.texture);
         draw_texture_centered_with_rotation(
-            sprite_texture_handle,
+            &sprite_texture_handle,
             transform.world_position.x,
             transform.world_position.y,
             WHITE.with_alpha(sprite_texture_alpha),
@@ -1201,7 +1201,7 @@ impl RymdGameView {
     
         for x in 0..num_images_w {
             for y in 0..num_images_h {
-                draw_texture(bg_texture, (x - 1) as f32 * bg_w - offset_x, (y - 1) as f32 * bg_h - offset_y, WHITE);
+                draw_texture(&bg_texture, (x - 1) as f32 * bg_w - offset_x, (y - 1) as f32 * bg_h - offset_y, WHITE);
             }
         }
     

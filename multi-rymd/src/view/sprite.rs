@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 use macroquad::prelude::*;
-use utility::{AsPerpendicular, AsVector, load_texture_from_image, set_texture_filter};
+use utility::{AsPerpendicular, AsVector, load_texture_from_image};
 
 pub fn calculate_sprite_bounds(texture: Texture2D, h_frames: i32, v_frames: i32, centered: bool) -> Rect {
     let w = texture.width() / h_frames as f32;
@@ -58,7 +58,7 @@ pub fn slice_sprite(texture: Texture2D, num_pieces: i32, w: u16, h: u16) -> Vec<
 pub fn upload_sprite_slices(slices: Vec<Image>) -> Vec<Texture2D> {
     slices.iter().map(|image| {
         let texture = load_texture_from_image(image);
-        set_texture_filter(texture, FilterMode::Nearest);
+        texture.set_filter(FilterMode::Nearest);
         texture
     }).collect()
 }

@@ -12,12 +12,12 @@
         "./lockstep/client/example/Cargo.toml",
         "./lockstep/server/Cargo.toml",
         "./multi-rymd/Cargo.toml",
+        "./orbits/Cargo.toml",
         "./polar/Cargo.toml",
         "./procedural-animation/Cargo.toml",
         "./stress-majorization/Cargo.toml",
         "./territory/Cargo.toml",
         "./transformy/Cargo.toml",
-        "./multi-rymd/Cargo.toml"
     ],
     "FSharp.suggestGitignore": false
 }

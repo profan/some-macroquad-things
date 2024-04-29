@@ -8,4 +8,4 @@ edition = "2021"
 
 [dependencies]
 utility = { path = "../utility" }
-macroquad = "0.3.24"
+macroquad = "0.4.5"
