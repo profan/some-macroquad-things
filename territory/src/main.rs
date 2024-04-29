@@ -698,7 +698,7 @@ fn handle_camera_zoom(active: &mut GameCamera, dt: f32) -> bool {
 
 }
 
-fn handle_camera_panning(active: &mut GameCamera, last_mouse_position: Vec2, dt: f32) {
+fn handle_camera_panning(active: &mut GameCamera, last_mouse_position: Vec2, _dt: f32) {
 
     let is_middle_mouse_down = is_mouse_button_down(MouseButton::Middle);
 
@@ -723,7 +723,7 @@ fn modify_in_radius(map: &mut Heightmap, center_x: i32, center_y: i32, radius: i
 
 }
 
-fn handle_height_map_input(active: &mut GameCamera, map: &mut Heightmap, dt: f32) -> bool {
+fn handle_height_map_input(active: &mut GameCamera, map: &mut Heightmap, _dt: f32) -> bool {
 
     let radius = 2;
     let modification = 4;

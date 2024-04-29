@@ -396,7 +396,7 @@ impl RayCast for VoxelWorldShape {
         &self,
         ray: &Ray,
         max_toi: Real,
-        solid: bool,
+        _solid: bool,
     ) -> Option<RayIntersection> {
 
         let toi = self.cast_ray_to_toi(ray, max_toi)?;
@@ -1093,29 +1093,29 @@ impl QueryDispatcher for VoxelWorldShapeDispatcher {
 
     fn distance(
         &self,
-        pos12: &Isometry<Real>,
-        g1: &dyn Shape,
-        g2: &dyn Shape,
+        _pos12: &Isometry<Real>,
+        _g1: &dyn Shape,
+        _g2: &dyn Shape,
     ) -> Result<Real, Unsupported> {
         todo!()
     }
 
     fn contact(
         &self,
-        pos12: &Isometry<Real>,
-        g1: &dyn Shape,
-        g2: &dyn Shape,
-        prediction: Real,
+        _pos12: &Isometry<Real>,
+        _g1: &dyn Shape,
+        _g2: &dyn Shape,
+        _prediction: Real,
     ) -> Result<Option<Contact>, Unsupported> {
         todo!()
     }
 
     fn closest_points(
         &self,
-        pos12: &Isometry<Real>,
-        g1: &dyn Shape,
-        g2: &dyn Shape,
-        max_dist: Real,
+        _pos12: &Isometry<Real>,
+        _g1: &dyn Shape,
+        _g2: &dyn Shape,
+        _max_dist: Real,
     ) -> Result<ClosestPoints, Unsupported> {
         todo!()
     }

@@ -15,7 +15,7 @@ use super::AnimatedSprite;
 use super::{create_simple_bullet, Effect};
 use super::get_entity_position;
 use super::point_ship_towards_target;
-use super::steer_ship_towards_target;
+
 use super::Attackable;
 use super::Attacker;
 use super::BlueprintIdentity;

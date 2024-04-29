@@ -352,7 +352,7 @@ pub fn look_where_you_are_going(character: &Kinematic, target: &Kinematic, max_r
 
 }
 
-pub fn wander(character: &Kinematic, target: &Kinematic, max_acceleration: f32, wander_offset: f32, wander_radius: f32, wander_rate: f32, wander_orientation: f32) -> SteeringOutput {
+pub fn wander(_character: &Kinematic, _target: &Kinematic, _max_acceleration: f32, _wander_offset: f32, _wander_radius: f32, _wander_rate: f32, _wander_orientation: f32) -> SteeringOutput {
 
     SteeringOutput {
         linear: vec2(0.0, 0.0),
@@ -380,7 +380,7 @@ pub fn separation<'a>(character: &Kinematic, targets: impl Iterator<Item=&'a Kin
     }
 }
 
-pub fn blend_steering_behaviours(behaviours: &[&SteeringBehaviour]) -> SteeringOutput {
+pub fn blend_steering_behaviours(_behaviours: &[&SteeringBehaviour]) -> SteeringOutput {
 
     SteeringOutput {
         ..Default::default()

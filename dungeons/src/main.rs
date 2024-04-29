@@ -55,7 +55,7 @@ struct Tile {
 
 impl Tile {
 
-    fn overlaps_with(&self, tile: &Tile, parent: &Room) -> bool {
+    fn overlaps_with(&self, _tile: &Tile, _parent: &Room) -> bool {
         false
     }
 

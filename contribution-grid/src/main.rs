@@ -76,7 +76,7 @@ fn calculate_contribution(p: Vec3, t: Triangle) -> Vec3 {
 
 }
 
-fn handle_camera_input(active: &mut GameCamera, last_mouse_position: Vec2, dt: f32) {
+fn handle_camera_input(active: &mut GameCamera, _last_mouse_position: Vec2, dt: f32) {
 
     let is_forwards_pressed = is_key_down(KeyCode::W);
     let is_backwards_pressed = is_key_down(KeyCode::S);
@@ -271,7 +271,7 @@ fn add_initial_orbs(game: &mut Game, number_of_orbs: i32) {
 
     let (start, end) = game.world_bounds;
 
-    for i in 0..number_of_orbs {
+    for _i in 0..number_of_orbs {
         
         let r_x = gen_range(start.x, end.x);
         let r_z = gen_range(start.z, end.z);

@@ -408,7 +408,7 @@ fn calculate_neighbour_stress(world: &World, entity: &Entity) -> f32 {
 
 fn calculate_neighbour_contribution(world: &World, entity: &Entity) -> Vec2 {
 
-    let k = 2;
+    let _k = 2;
     let entity_push_threshold = 63.0;
 
     let u_d = 2.0;
@@ -492,7 +492,7 @@ fn calculate_stress(world: &World, world_graph: &UnGraph::<i32, GraphEdge>) -> f
 fn minimize_stress_step(world: &mut World, world_graph: &mut UnGraph::<i32, GraphEdge>) {
 
     // n is the number of nodes in our graph
-    let n = world.entities.len() as f32;
+    let _n = world.entities.len() as f32;
 
     // suggested in  the paper
     // let u = 1.0 / (2.0 * n);
@@ -504,7 +504,7 @@ fn minimize_stress_step(world: &mut World, world_graph: &mut UnGraph::<i32, Grap
     // s_0 = direct minimization of absolute stress (0)
     // s_1 = direct minimization of semiproportional stress (1)
     // s_2 = direct minimization of proportional stress (2)
-    let k = 2;
+    let _k = 2;
 
     for node_idx in world_graph.node_indices() {
 
@@ -626,7 +626,7 @@ async fn main() {
             }
         }
 
-        let dt = get_frame_time();
+        let _dt = get_frame_time();
         game.debug_text.new_frame();
 
         clear_background(WHITE);

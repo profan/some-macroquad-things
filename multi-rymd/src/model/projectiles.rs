@@ -1,9 +1,9 @@
 use hecs::{CommandBuffer, Entity, World};
 use macroquad::{math::Rect, prelude::Vec2};
-use utility::{AsAngle, AsVector, Kinematic};
+use utility::{AsAngle, Kinematic};
 use crate::PlayerID;
 
-use super::{create_default_kinematic_body, create_impact_effect_in_buffer, create_muzzle_flash_effect_in_world, get_entity_physics_position, get_entity_position, Controller, DynamicBody, DynamicBodyCallback, Health, PhysicsBody, Projectile, Sprite, Transform};
+use super::{create_default_kinematic_body, create_impact_effect_in_buffer, create_muzzle_flash_effect_in_world, get_entity_physics_position, Controller, DynamicBody, DynamicBodyCallback, Health, PhysicsBody, Projectile, Sprite, Transform};
 
 fn on_bullet_impact(world: &World, buffer: &mut CommandBuffer, a: Entity, b: Entity, b_body: &DynamicBody) {
     

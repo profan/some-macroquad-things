@@ -16,7 +16,7 @@ mod steering;
 pub use buildings::*;
 pub use constants::*;
 pub use components::*;
-pub use environment::*;
+
 pub use effects::*;
 pub use message::*;
 pub use model::*;

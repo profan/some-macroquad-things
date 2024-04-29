@@ -1,9 +1,9 @@
-use std::{ops::{Deref, DerefMut}, collections::{HashMap, hash_map::Entry}, thread::current, f32::consts::PI};
+use std::{ops::{Deref, DerefMut}, collections::{HashMap, hash_map::Entry}, f32::consts::PI};
 
 use macroquad::prelude::*;
 use macroquad::ui::*;
 
-use utility::{draw_cube_ex, draw_cube_wires_ex, create_camera, draw_grid_ex};
+use utility::{draw_cube_wires_ex, create_camera, draw_grid_ex};
 
 const INVALID_ENTITY_ID: i32 = i32::MAX;
 

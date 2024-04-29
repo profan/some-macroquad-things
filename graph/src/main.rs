@@ -81,7 +81,7 @@ impl Game {
             }
         );
 
-        let current_physics_time = 0.0;
+        let _current_physics_time = 0.0;
         let debug_text = DebugText::new();
         let world_graph = UnGraph::new_undirected();
         let world = World::new();
@@ -408,7 +408,7 @@ fn push_entities_near_mouse(game: &mut Game) {
             let force_vector = if is_shift_down == false {
                 (clamped_vector_to_mouse.normalize() * mouse_force_threshold) - clamped_vector_to_mouse
             } else {
-                (clamped_vector_to_mouse.normalize() * mouse_force_threshold)
+                clamped_vector_to_mouse.normalize() * mouse_force_threshold
             };
 
             // when right mouse is down, push

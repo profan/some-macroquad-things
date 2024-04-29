@@ -1,9 +1,9 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::collections::HashSet;
+
 use std::rc::Rc;
 
-use lockstep::lobby;
+
 use lockstep::lobby::DEFAULT_LOBBY_PORT;
 use lockstep::lobby::Lobby;
 use lockstep::lobby::LobbyClient;
@@ -137,7 +137,7 @@ impl ws::Handler for Session {
 
     }
 
-    fn on_close(&mut self, code: ws::CloseCode, reason: &str) {
+    fn on_close(&mut self, _code: ws::CloseCode, reason: &str) {
         self.server.borrow_mut().remove_client(self.id);
         if reason.is_empty() == false {
             println!("[id: {}] disconnected with reason: {}!", self.ws.connection_id(), reason);

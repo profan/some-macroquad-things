@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 nalgebra = "0.32.2"
 utility = { path = "../utility" }
-macroquad = "0.3.24"
+macroquad = "0.4.5"
 rapier3d = "0.17.2"
 
 [profile.dev]

@@ -1,5 +1,5 @@
 use macroquad::prelude::*;
-use utility::{AdjustHue, normalize};
+use utility::{AdjustHue};
 
 #[derive(Clone, Copy)]
 struct Triangle {
