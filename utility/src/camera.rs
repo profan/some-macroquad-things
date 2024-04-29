@@ -1,4 +1,4 @@
-use macroquad::{math::Vec3, prelude::{Camera3D, Vec2, Mat4, Camera, vec2, vec3}, window::{screen_width, screen_height}};
+use macroquad::{camera::Camera2D, math::{Rect, Vec3}, prelude::{vec2, vec3, Camera, Camera3D, Mat4, Vec2}, window::{screen_height, screen_width}};
 
 pub struct GameCameraParameters {
 
@@ -107,4 +107,23 @@ pub fn create_camera(position: Vec3, up: Vec3, target: Vec3) -> Camera3D {
 
 pub fn create_camera_from_game_camera(camera: &GameCamera) -> Camera3D {
     create_camera(camera.position, camera.up, camera.target)
+}
+
+pub trait Camera2DExt {
+    fn from_display_rect_fixed(display_rect: Rect) -> Camera2D;
+}
+
+impl Camera2DExt for Camera2D {
+    fn from_display_rect_fixed(display_rect: Rect) -> Camera2D {
+        let mut camera = Camera2D::from_display_rect(
+            Rect {
+                x: display_rect.x,
+                y: display_rect.y,
+                w: display_rect.w,
+                h: display_rect.h 
+            }
+        );
+        camera.zoom.y = -camera.zoom.y;
+        camera
+    }
 }

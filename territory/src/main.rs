@@ -4,7 +4,7 @@ use noise::{
     utils::{PlaneMapBuilder, NoiseMapBuilder}, Add, Perlin, ScaleBias, Turbulence
 };
 
-use utility::{WithAlpha, screen_dimensions, AdjustHue, DebugText, TextPosition};
+use utility::{screen_dimensions, AdjustHue, Camera2DExt, DebugText, TextPosition, WithAlpha};
 
 const TILE_PADDING: i32 = 2;
 const REAL_TILE_SIZE: i32 = 32;
@@ -616,7 +616,7 @@ impl GameCamera {
 
     pub fn new(size: Vec2) -> GameCamera {
 
-        let camera = Camera2D::from_display_rect(
+        let mut camera = Camera2D::from_display_rect_fixed(
             Rect { x: 0.0, y: 0.0, w: size.x, h: size.y }
         );
 
@@ -681,7 +681,7 @@ fn handle_camera_zoom(active: &mut GameCamera, dt: f32) -> bool {
     let new_zoom = (active.camera_zoom - mouse_wheel_delta.1 * dt).clamp(min_zoom, max_zoom);
     let new_size = active.size * new_zoom;
 
-    let new_camera = Camera2D::from_display_rect(
+    let mut new_camera = Camera2D::from_display_rect_fixed(
         Rect {
             x: active.camera.target.x - (new_size.x / 2.0),
             y: active.camera.target.y - (new_size.y / 2.0),
@@ -689,6 +689,9 @@ fn handle_camera_zoom(active: &mut GameCamera, dt: f32) -> bool {
             h: new_size.y
         }
     );
+
+    // #HACK: for issue #171 and PR #638 on macroquad breaking the coordinate system
+    new_camera.zoom.y = -new_camera.zoom.y;
 
     active.camera_zoom = new_zoom;
     active.camera = new_camera;
