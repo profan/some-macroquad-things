@@ -1,5 +1,5 @@
 use macroquad::prelude::*;
-use utility::screen_dimensions;
+use utility::{screen_dimensions, Camera2DExt};
 
 struct GameCameraParameters {
     min_zoom: f32,
@@ -21,7 +21,7 @@ impl GameCamera {
     pub fn new() -> GameCamera {
 
         let size = screen_dimensions();
-        let camera = Camera2D::from_display_rect(
+        let camera = Camera2D::from_display_rect_fixed(
             Rect { x: 0.0, y: 0.0, w: size.x, h: size.y }
         );
 
@@ -184,7 +184,7 @@ fn handle_camera_zoom(active: &mut GameCamera, dt: f32) -> bool {
         active.camera.target
     };
 
-    let new_camera = Camera2D::from_display_rect(
+    let new_camera = Camera2D::from_display_rect_fixed(
         Rect {
             x: new_target.x - (new_size.x / 2.0),
             y: new_target.y - (new_size.y / 2.0),
