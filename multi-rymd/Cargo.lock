@@ -377,11 +377,11 @@ dependencies = [
  "deterministic-hash",
  "ewebsock",
  "lockstep",
- "macroquad 0.4.5",
+ "macroquad",
  "nanoserde",
  "utility",
  "yakui",
- "yakui-macroquad 0.3.0",
+ "yakui-macroquad",
 ]
 
 [[package]]
@@ -389,21 +389,6 @@ name = "log"
 version = "0.4.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "90ed8c1e510134f979dbc4f070f87d4313098b704861a105fe34231c70a3901c"
-
-[[package]]
-name = "macroquad"
-version = "0.3.26"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b92608a005ca1f16fe4e78c85a1cb18481898ac1347c71ae3398a6795c493c15"
-dependencies = [
- "bumpalo",
- "fontdue",
- "glam",
- "image",
- "macroquad_macro",
- "miniquad 0.3.16",
- "quad-rand",
-]
 
 [[package]]
 name = "macroquad"
@@ -416,7 +401,7 @@ dependencies = [
  "glam",
  "image",
  "macroquad_macro",
- "miniquad 0.4.0",
+ "miniquad",
  "quad-rand",
  "slotmap",
 ]
@@ -427,7 +412,7 @@ version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e749379522a0e8ffcd6b98db09fad792a378e58fe0054508de496e530d383381"
 dependencies = [
- "macroquad 0.4.5",
+ "macroquad",
 ]
 
 [[package]]
@@ -443,18 +428,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "62bb907fe88d54d8d9ce32a3cceab4218ed2f6b7d35617cafe9adf84e43919cb"
 dependencies = [
  "libc",
-]
-
-[[package]]
-name = "miniquad"
-version = "0.3.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1251d63dfea7109063b2cec354253e8bf150e7878837a6ac0f9185d6a2518b6"
-dependencies = [
- "libc",
- "ndk-sys",
- "objc",
- "winapi",
 ]
 
 [[package]]
@@ -487,12 +460,12 @@ dependencies = [
  "hecs",
  "lockstep",
  "lockstep-client",
- "macroquad 0.4.5",
+ "macroquad",
  "macroquad-particles",
  "nanoserde",
  "utility",
  "yakui",
- "yakui-macroquad 0.2.2",
+ "yakui-macroquad",
 ]
 
 [[package]]
@@ -922,7 +895,7 @@ checksum = "09cc8ee72d2a9becf2f2febe0205bbed8fc6615b7cb429ad062dc7b7ddd036a9"
 name = "utility"
 version = "0.1.0"
 dependencies = [
- "macroquad 0.4.5",
+ "macroquad",
 ]
 
 [[package]]
@@ -1064,32 +1037,12 @@ dependencies = [
 
 [[package]]
 name = "yakui-macroquad"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cce273c87d1ab4aa5a2ce7a494817d9996f85b99fb0964e30cdf749caef72707"
-dependencies = [
- "macroquad 0.3.26",
- "yakui-miniquad 0.2.4",
-]
-
-[[package]]
-name = "yakui-macroquad"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d9f38309d044b04b3139ef747a7500d9f0639f6bfe6f03c8430df71ba297e842"
 dependencies = [
- "macroquad 0.4.5",
- "yakui-miniquad 0.3.1",
-]
-
-[[package]]
-name = "yakui-miniquad"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9f0c967586e507c3972995540022c27bc279dcaa336060ce85296f8cdab33e9"
-dependencies = [
- "miniquad 0.3.16",
- "yakui-core",
+ "macroquad",
+ "yakui-miniquad",
 ]
 
 [[package]]
@@ -1098,7 +1051,7 @@ version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "91312b7686bb8c28d3eb1c3f2e6bfa06ace5be11e7e187e2b232e2ee356e8988"
 dependencies = [
- "miniquad 0.4.0",
+ "miniquad",
  "yakui-core",
 ]
 
