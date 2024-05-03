@@ -1,7 +1,7 @@
 use std::{collections::HashMap};
 
 use macroquad::{prelude::{*}, rand::gen_range};
-use utility::{DebugText, draw_arrow, WithAlpha, TextPosition};
+use utility::{draw_arrow, Camera2DExt, DebugText, TextPosition, WithAlpha};
 use petgraph::{graph::{UnGraph}, visit::EdgeRef};
 
 const PHYSICS_STEPS_PER_TIMESTEP: i32 = 8;
@@ -73,7 +73,7 @@ impl Game {
 
     pub fn new() -> Game {
 
-        let camera = Camera2D::from_display_rect(
+        let camera = Camera2D::from_display_rect_fixed(
             Rect {
                 x: 0.0, y: 0.0,
                 w: screen_width(),

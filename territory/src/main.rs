@@ -346,7 +346,7 @@ fn rasterize_tile_atlas(line_color: Color, fill_color: Color, line_thickness: f3
 fn create_render_target_camera(render_target: RenderTarget) -> Camera2D {
 
     let size = vec2(render_target.texture.width(), render_target.texture.height());
-    let mut render_target_camera = Camera2D::from_display_rect(Rect { x: 0.0, y: 0.0, w: size.x, h: size.y});
+    let mut render_target_camera = Camera2D::from_display_rect_fixed(Rect { x: 0.0, y: 0.0, w: size.x, h: size.y});
     render_target_camera.render_target = Some(render_target);
 
     render_target_camera

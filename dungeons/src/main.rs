@@ -550,7 +550,7 @@ async fn main() {
 
     let mut debug_text = DebugText::new();
 
-    let mut camera = Camera2D::from_display_rect(
+    let mut camera = Camera2D::from_display_rect_fixed(
         Rect {
             x: 0.0, y: 0.0,
             w: screen_width(),
