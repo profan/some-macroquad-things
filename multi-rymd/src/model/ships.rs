@@ -156,7 +156,7 @@ pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) 
 
     // assemble the ship
     let controller = Controller { id: owner };
-    let blueprint_identity = BlueprintIdentity::new(Blueprints::Commander);
+    let blueprint_identity = BlueprintIdentity::new(Blueprints::Arrowhead);
     let health = Health::new_with_current_health(full_arrowhead_health, initial_arrowhead_health);
     let health_callback = HealthCallback { on_death: on_ship_death };
     let transform = Transform::new(position, 0.0, None);
