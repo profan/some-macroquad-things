@@ -48,6 +48,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [] when entities are being constructed in a building, allow constructors to assist the building
 [x] fix issue where construction queue always displays the commander ship as the current item in construction, regardless of what the current item in construction actually is
 [x] ensure construction orders cannot be issued to positions where the new construction would overlap with an existing construction
+[] ensure construction queue is only visible for the constructing units/buildings actually currently selected, not all of them when any constructor is selected
 
 # resources
 [x] allow entities to generate resources
