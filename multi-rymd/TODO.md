@@ -59,8 +59,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 
 # units
 [x] represent health of units
-[] allow finding all idle units
-[] allow finding commander unit quickly
+[x] allow finding commander unit quickly
 [x] allow finding the next idle constructor unit
 
 # environment

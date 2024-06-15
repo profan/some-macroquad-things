@@ -10,7 +10,7 @@ use hecs::*;
 use yakui::Alignment;
 
 use crate::PlayerID;
-use crate::model::{current_energy, current_energy_income, current_metal, current_metal_income, max_energy, max_metal, Attackable, Attacker, Blueprint, BlueprintID, BlueprintIdentity, Building, Effect, EntityState, GameOrder, GameOrderType, Impact, PhysicsBody, Spawner};
+use crate::model::{current_energy, current_energy_income, current_metal, current_metal_income, max_energy, max_metal, Attackable, Attacker, Blueprint, BlueprintID, BlueprintIdentity, Blueprints, Building, Effect, EntityState, GameOrder, GameOrderType, Impact, PhysicsBody, Spawner};
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Controller, Health, get_entity_position};
 
 use super::{calculate_sprite_bounds, GameCamera};
@@ -533,7 +533,48 @@ impl RymdGameView {
             }
 
             selectable.is_selected = false;
-            
+
+        }
+
+    }
+
+    fn perform_unselect_all_units_without_blueprint(&mut self, world: &mut World, blueprint_id: BlueprintID) {
+
+        for (entity, (blueprint_identity, controller, selectable)) in world.query_mut::<(&BlueprintIdentity, &Controller, &mut Selectable)>() {
+
+            if self.can_select_unit(controller) == false {
+                continue;
+            }
+
+            if blueprint_identity.blueprint_id != blueprint_id as i32 {
+                selectable.is_selected = false;
+            }
+
+        }
+
+    }
+
+    fn perform_select_next_commander(&mut self, world: &mut World) {
+
+        // #FIXME: each faction will probably have unique commander blueprints, this shouldn't be hardcoded really
+        self.perform_unselect_all_units_without_blueprint(world, Blueprints::Commander as i32);
+
+        for (entity, (blueprint_identity, controller, constructor, selectable, orderable)) in world.query_mut::<(&BlueprintIdentity, &Controller, &Constructor, &mut Selectable, &Orderable)>() {
+
+            if self.can_select_unit(controller) == false {
+                continue;
+            }
+
+            if selectable.is_selected {
+                selectable.is_selected = false;
+                continue;
+            }
+
+            if blueprint_identity.blueprint_id == (Blueprints::Commander as i32) {
+                selectable.is_selected = true;
+                return;
+            }
+
         }
 
     }
@@ -554,7 +595,7 @@ impl RymdGameView {
 
             if selectable.is_selected {
                 selectable.is_selected = false;
-                return;
+                continue;
             }
 
             selectable.is_selected = true;
@@ -577,9 +618,15 @@ impl RymdGameView {
             return;
         }
 
-        let is_finding_idle_constructor_units = is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::B);
-        if is_finding_idle_constructor_units {
+        let is_finding_next_idle_constructor = is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::B);
+        if is_finding_next_idle_constructor {
             self.perform_select_next_idle_constructor(world);
+            return;
+        }
+
+        let is_finding_next_commander = is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::C);
+        if is_finding_next_commander {
+            self.perform_select_next_commander(world);
             return;
         }
 
@@ -1235,9 +1282,10 @@ impl RymdGameView {
         debug.draw_text(format!("mouse (screen) position: {:?}", mouse_position()), TextPosition::TopLeft, WHITE);
         debug.draw_text(format!("mouse (world) position: ({:.1}, {:.1})", mouse_world_position.x, mouse_world_position.y), TextPosition::TopLeft, WHITE);
         debug.draw_text(format!("number of entities: {}", model.world.len()), TextPosition::TopLeft, WHITE);
-        debug.draw_text(format!("collision responses: {} (c to toggle bounds)", model.physics_manager.number_of_active_collision_responses()), TextPosition::TopLeft, WHITE);
+        debug.draw_text(format!("collision responses: {} (shift + c to toggle bounds)", model.physics_manager.number_of_active_collision_responses()), TextPosition::TopLeft, WHITE);
 
-        if is_key_released(KeyCode::C) && yakui_macroquad::has_keyboard_focus() == false {
+        let should_toggle_debug_bounds = is_key_down(KeyCode::LeftShift) && is_key_released(KeyCode::C);
+        if should_toggle_debug_bounds && yakui_macroquad::has_keyboard_focus() == false {
             self.render_bounds = !self.render_bounds;
         }
 
