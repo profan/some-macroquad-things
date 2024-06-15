@@ -57,7 +57,7 @@ pub struct Blueprint {
 pub fn create_solar_collector_blueprint() -> Blueprint {
     Blueprint {
         id: Blueprints::SolarCollector as i32,
-        shortcut: KeyCode::C,
+        shortcut: KeyCode::Q,
         name: String::from("Solar Collector"),
         texture: String::from("SOLAR_COLLECTOR"),
         constructor: build_solar_collector,
@@ -69,7 +69,7 @@ pub fn create_solar_collector_blueprint() -> Blueprint {
 pub fn create_shipyard_blueprint() -> Blueprint {
     Blueprint {
         id: Blueprints::Shipyard as i32,
-        shortcut: KeyCode::S,
+        shortcut: KeyCode::W,
         name: String::from("Shipyard"),
         texture: String::from("SHIPYARD"),
         constructor: build_shipyard,
@@ -93,7 +93,7 @@ pub fn create_energy_storage_blueprint() -> Blueprint {
 pub fn create_metal_storage_blueprint() -> Blueprint {
     Blueprint {
         id: Blueprints::MetalStorage as i32,
-        shortcut: KeyCode::M,
+        shortcut: KeyCode::R,
         name: String::from("Metal Storage"),
         texture: String::from("METAL_STORAGE"),
         constructor: build_metal_storage,
