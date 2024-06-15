@@ -60,7 +60,8 @@ rough list of things to work on in the game currently, usually ordered as items 
 # units
 [x] represent health of units
 [] allow finding all idle units
-[] allow finding all idle constructor units
+[] allow finding commander unit quickly
+[x] allow finding the next idle constructor unit
 
 # environment
 [] add asteroids which are dynamic bodies
@@ -71,7 +72,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 # buildings
 [x] implement construction
 [x] represent health of buildings
-[x] implement "ghosts" of buildings that are about to be built/queued for construction
+[x] implement "ghosts" of buildings that are about to be built/queued for construction  
 [x] transition buildings from ghost state to constructed state when their health reaches 100 % after construction
 [] implement buildings constructing buildings
 [x] implement buildings constructing units

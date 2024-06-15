@@ -523,6 +523,46 @@ impl RymdGameView {
     pub fn unload_resources(&mut self) {
 
     }
+
+    fn perform_unselect_all_non_constructor_units(&mut self, world: &mut World) {
+
+        for (entity, (controller, selectable)) in world.query_mut::<Without<(&Controller, &mut Selectable), &Constructor>>() {
+
+            if self.can_select_unit(controller) == false {
+                continue;
+            }
+
+            selectable.is_selected = false;
+            
+        }
+
+    }
+
+    fn perform_select_next_idle_constructor(&mut self, world: &mut World) {
+
+        self.perform_unselect_all_non_constructor_units(world);
+
+        for (entity, (controller, constructor, selectable, orderable)) in world.query_mut::<(&Controller, &Constructor, &mut Selectable, &Orderable)>() {
+
+            if self.can_select_unit(controller) == false {
+                continue;
+            }
+
+            if orderable.is_queue_empty(GameOrderType::Construct) == false || orderable.is_queue_empty(GameOrderType::Order) == false {
+                continue;
+            }
+
+            if selectable.is_selected {
+                selectable.is_selected = false;
+                return;
+            }
+
+            selectable.is_selected = true;
+            return;
+
+        }
+
+    }
     
     fn handle_selection(&mut self, world: &mut World) {
 
@@ -531,9 +571,15 @@ impl RymdGameView {
         }
 
         // CTRL+A should select all units
-        let is_selecting_all = is_key_down(KeyCode::LeftControl) && is_key_down(KeyCode::A);
+        let is_selecting_all = is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::A);
         if is_selecting_all {
             self.perform_select_all(world);
+            return;
+        }
+
+        let is_finding_idle_constructor_units = is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::B);
+        if is_finding_idle_constructor_units {
+            self.perform_select_next_idle_constructor(world);
             return;
         }
 
@@ -766,6 +812,22 @@ impl RymdGameView {
             println!("[RymdGameView] selected: {:?}", e);
 
         }
+
+    }
+
+    fn perform_unselect_all(&mut self, world: &mut World) {
+
+        for (e, (transform, selectable, controller)) in world.query_mut::<(&Transform, &mut Selectable, &Controller)>() {
+
+            if self.can_select_unit(controller) == false {
+                continue;
+            }
+            
+            selectable.is_selected = false;
+
+        }
+
+        println!("[RymdGameView] unselected all");
 
     }
 
