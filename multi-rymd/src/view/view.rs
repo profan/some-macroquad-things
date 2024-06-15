@@ -486,10 +486,51 @@ impl Resources {
 
 }
 
+#[derive(Debug)]
+struct ControlGroup {
+    id: i32,
+    entities: Vec<Entity>
+}
+
+#[derive(Debug)]
+struct ControlGroupState {
+    groups: Vec<ControlGroup>
+}
+
+impl ControlGroupState {
+
+    pub fn new() -> ControlGroupState {
+        ControlGroupState {
+            groups: Vec::new()
+        }
+    }
+
+    pub fn set(&mut self, id: i32, entities: &[Entity]) {
+
+        self.groups.retain(|g| g.id != id);
+
+        let control_group = ControlGroup { id, entities: Vec::from(entities) };
+        self.groups.push(control_group);
+
+    }
+
+    pub fn get(&mut self, id: i32) -> &[Entity] {
+
+        if let Some(control_group) = self.groups.iter().find(|g| g.id == id) {
+            return &control_group.entities;
+        }
+
+        return &[];
+        
+    }
+
+}
+
 pub struct RymdGameView {
     player_id: PlayerID,
     camera: GameCamera,
     construction: ConstructionState,
+    control_groups: ControlGroupState,
     selection: SelectionState,
     ordering: OrderingState,
     resources: Resources,
@@ -503,6 +544,7 @@ impl RymdGameView {
             player_id: 0,
             camera: GameCamera::new(),
             construction: ConstructionState::new(),
+            control_groups: ControlGroupState::new(),
             ordering: OrderingState::new(),
             selection: SelectionState::new(),
             resources: Resources::new(),
@@ -604,10 +646,111 @@ impl RymdGameView {
         }
 
     }
+
+    fn is_any_number_key_pressed() -> bool {
+        return is_key_pressed(KeyCode::Key0)
+            || is_key_pressed(KeyCode::Key1)
+            || is_key_pressed(KeyCode::Key2)
+            || is_key_pressed(KeyCode::Key3)
+            || is_key_pressed(KeyCode::Key4)
+            || is_key_pressed(KeyCode::Key5)
+            || is_key_pressed(KeyCode::Key6)
+            || is_key_pressed(KeyCode::Key7)
+            || is_key_pressed(KeyCode::Key8)
+            || is_key_pressed(KeyCode::Key9);
+    }
+
+    fn get_first_number_key_pressed() -> Option<i32> {
+
+        if is_key_pressed(KeyCode::Key0) {
+            return Some(0);
+        }
+        
+        if is_key_pressed(KeyCode::Key1) {
+            return Some(1);
+        }
+
+        if is_key_pressed(KeyCode::Key2) {
+            return Some(2);
+        }
+
+        if is_key_pressed(KeyCode::Key3) {
+            return Some(3);
+        }
+
+        if is_key_pressed(KeyCode::Key4) {
+            return Some(4);
+        }
+
+        if is_key_pressed(KeyCode::Key5) {
+            return Some(5);
+        }
+
+        if is_key_pressed(KeyCode::Key6) {
+            return Some(6);
+        }
+
+        if is_key_pressed(KeyCode::Key7) {
+            return Some(7);
+        }
+
+        if is_key_pressed(KeyCode::Key8) {
+            return Some(8);
+        }
+
+        if is_key_pressed(KeyCode::Key9) {
+            return Some(9);
+        }
+
+        return None;
+
+    }
+
+    fn perform_retrieve_and_select_control_group(&mut self, world: &mut World) {
+
+        let control_group_id = Self::get_first_number_key_pressed().expect("there must be a number key pressed when calling this function, there was none!");
+        let control_group_entities = self.control_groups.get(control_group_id);
+
+        for &e in control_group_entities {
+            if let Ok(selectable) = world.query_one_mut::<&mut Selectable>(e) {
+                selectable.is_selected = true;
+            }
+        }
+
+    }
+
+    fn perform_assign_control_group(&mut self, world: &mut World) {
+
+        let control_group_id = Self::get_first_number_key_pressed().expect("there must be a number key pressed when calling this function, there was none!");
+
+        let mut collected_entities = Vec::new();
+        for (e, selectable) in world.query_mut::<&Selectable>() {
+            if selectable.is_selected {
+                collected_entities.push(e);
+            }
+        }
+        
+        self.control_groups.set(control_group_id, &collected_entities);
+
+    }
     
     fn handle_selection(&mut self, world: &mut World) {
 
         if self.construction.is_previewing() {
+            return;
+        }
+
+        // 0-9 keys allow you to retrieve previously set control groups
+        let is_retrieving_and_selecting_control_group = Self::is_any_number_key_pressed() && is_key_down(KeyCode::LeftControl) == false;
+        if is_retrieving_and_selecting_control_group {
+            self.perform_retrieve_and_select_control_group(world);
+            return;
+        }
+
+        // CTRL+0-9 allows you to group units into control groups that you can summon again by pressing 0-9
+        let is_assigning_control_group = is_key_down(KeyCode::LeftControl) && Self::is_any_number_key_pressed();
+        if is_assigning_control_group {
+            self.perform_assign_control_group(world);
             return;
         }
 
@@ -618,12 +761,14 @@ impl RymdGameView {
             return;
         }
 
+        // CTRL+B selects the next idle constructor
         let is_finding_next_idle_constructor = is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::B);
         if is_finding_next_idle_constructor {
             self.perform_select_next_idle_constructor(world);
             return;
         }
 
+        // CTRL+C selects your next commander unit
         let is_finding_next_commander = is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::C);
         if is_finding_next_commander {
             self.perform_select_next_commander(world);

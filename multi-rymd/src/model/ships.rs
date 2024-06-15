@@ -30,7 +30,7 @@ impl ShipThruster {
 pub fn create_commander_ship_blueprint() -> Blueprint {
     Blueprint {
         id: Blueprints::Commander as i32,
-        shortcut: KeyCode::Key3,
+        shortcut: KeyCode::Q,
         name: String::from("Commander Ship"),
         texture: String::from("PLAYER_SHIP"),
         constructor: build_commander_ship,
@@ -42,7 +42,7 @@ pub fn create_commander_ship_blueprint() -> Blueprint {
 pub fn create_arrowhead_ship_blueprint() -> Blueprint {
     Blueprint {
         id: Blueprints::Arrowhead as i32,
-        shortcut: KeyCode::Key6,
+        shortcut: KeyCode::A,
         name: String::from("Arrowhead (Fighter)"),
         texture: String::from("ARROWHEAD"),
         constructor: build_arrowhead_ship,
