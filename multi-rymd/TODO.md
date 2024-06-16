@@ -15,6 +15,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] implement shift+double click on a unit to select all other units of that type
 [x] implement ctrl+z to select all units of the same kind on the map
 [x] implement control groups (ctrl+1, etc) for units
+[] implement moving the camera to the control group when the control group number is pressed twice (at least one unit in the group should be in view)
 
 # selection
 [x] make selection aware of exact bounds when available, so that you can more precisely select units in construction
