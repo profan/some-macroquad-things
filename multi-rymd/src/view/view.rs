@@ -187,6 +187,7 @@ impl OrderingState {
 }
 
 struct SelectionState {
+    last_click_time: f64,
     is_active: bool,
     start: Vec2,
     end: Vec2
@@ -196,10 +197,22 @@ impl SelectionState {
 
     fn new() -> SelectionState {
         SelectionState {
+            last_click_time: 0.0,
             is_active: false,
             start: Vec2::ZERO,
             end: Vec2::ZERO
         }
+    }
+
+    fn register_click(&mut self) {
+        self.last_click_time = get_time();
+    }
+
+    fn was_double_click(&self) -> bool {
+        let double_click_time = 0.5;
+        let current_time = get_time();
+        let was_double_click = (current_time - self.last_click_time) < double_click_time;
+        was_double_click
     }
 
     fn as_bounds(&self) -> (Vec2, Vec2) {
@@ -799,6 +812,9 @@ impl RymdGameView {
         let is_removing_from_selection = is_key_down(KeyCode::LeftControl);
         let mut selection_turned_inactive = false;
 
+        // allow to select all units under the mouse of the given type with Shift + Left Mouse x2
+        let is_selecting_all_of_type = is_key_down(KeyCode::LeftShift) && is_mouse_button_released(MouseButton::Left) && self.selection.was_double_click();
+
         if is_mouse_button_pressed(MouseButton::Left) {
             self.selection.start = mouse_position;
             self.selection.end = mouse_position;
@@ -810,6 +826,7 @@ impl RymdGameView {
                 selection_turned_inactive = true;
             }
             self.selection.is_active = false;
+            self.selection.register_click();
         }
 
         if self.selection.is_active {
@@ -817,7 +834,7 @@ impl RymdGameView {
         }
 
         if selection_turned_inactive {
-            self.perform_selection_with_bounds(world, is_adding_to_selection, is_removing_from_selection);
+            self.perform_selection_with_bounds(world, is_adding_to_selection, is_removing_from_selection, is_selecting_all_of_type);
         }
 
     }
@@ -1042,13 +1059,14 @@ impl RymdGameView {
 
     }
 
-    fn perform_selection_with_bounds(&mut self, world: &mut World, is_additive: bool, is_removing: bool) {
+    fn perform_selection_with_bounds(&mut self, world: &mut World, is_additive: bool, is_removing: bool, is_all_of_type: bool) {
 
         let selection_rectangle = self.selection.as_rect();
         let world_selection_rectangle = self.camera.screen_to_world_rect(selection_rectangle);
 
         println!("[RymdGameView] attempted to select entities inside: {:?}", selection_rectangle);
 
+        let mut now_selected_units = Vec::new();
         for (e, (transform, controller, bounds, body, selectable)) in world.query_mut::<(&Transform, &Controller, Option<&Bounds>, Option<&DynamicBody>, &mut Selectable)>() {
 
             if self.can_select_unit(controller) == false {
@@ -1073,12 +1091,37 @@ impl RymdGameView {
 
             if selectable.is_selected {
                 println!("[RymdGameView] selected: {:?}", e);
+                now_selected_units.push(e);
             }
 
         }
 
+        if is_all_of_type {
+            self.perform_selection_of_all_units_matching_type(now_selected_units, world);
+        }
+
     }
 
+    fn perform_selection_of_all_units_matching_type(&mut self, selected_units: Vec<Entity>, world: &mut World) {
+        for e in selected_units {
+    
+            let entity_blueprint_id = world.get::<&BlueprintIdentity>(e).unwrap().blueprint_id;
+    
+            for (e, (controller, blueprint_identity, selectable)) in world.query_mut::<(&Controller, &BlueprintIdentity, &mut Selectable)>() {
+    
+                if self.can_select_unit(controller) == false {
+                    continue;
+                }
+    
+                if blueprint_identity.blueprint_id == entity_blueprint_id {
+                    selectable.is_selected = true;
+                }
+    
+            }
+    
+        }
+    }
+    
     fn draw_ordering(&self, world: &World) {
         
         if self.ordering.line.is_empty() {
