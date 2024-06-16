@@ -1531,12 +1531,6 @@ impl RymdGameView {
 
     }
 
-    fn is_any_modifier_key_down() -> bool {
-        let is_left_shift_down = is_key_down(KeyCode::LeftShift);
-        let is_left_control_down = is_key_down(KeyCode::LeftControl);
-        is_left_shift_down || is_left_control_down
-    }
-
     fn draw_text_construction_ui(&mut self, model: &mut RymdGameModel, debug: &mut DebugText) {
 
         let available_blueprints = self.get_available_blueprints_from_current_selection(&model.world);
@@ -1546,7 +1540,7 @@ impl RymdGameView {
         for id in available_blueprints {
             let blueprint = model.blueprint_manager.get_blueprint(id).unwrap();
             debug.draw_text(format!(" > {} ({:?})", blueprint.name, blueprint.shortcut), TextPosition::BottomRight, WHITE);
-            if is_key_released(blueprint.shortcut) && Self::is_any_modifier_key_down() == false {
+            if is_key_released(blueprint.shortcut) {
                 self.construction.preview_blueprint(id);
             }
         }
@@ -1557,10 +1551,14 @@ impl RymdGameView {
 
     fn draw_text_construction_queue_ui(&mut self, model: &mut RymdGameModel, debug: &mut DebugText) {
 
-        for (e, (constructor, orderable)) in model.world.query::<(&Constructor, &Orderable)>().iter() {
+        for (e, (constructor, orderable, selectable)) in model.world.query::<(&Constructor, &Orderable, &Selectable)>().iter() {
 
             if orderable.is_queue_empty(GameOrderType::Construct) {
                 continue
+            }
+
+            if selectable.is_selected == false {
+                continue;
             }
 
             debug.skip_line(TextPosition::BottomRight);
