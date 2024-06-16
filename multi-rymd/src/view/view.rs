@@ -50,6 +50,21 @@ impl ConstructionState {
     fn cancel_blueprint(&mut self) {
         self.current_blueprint_id = None
     }
+    
+    fn get_number_to_build() -> i32 {
+        let should_build_five = is_key_down(KeyCode::LeftShift);
+        let should_build_twenty = is_key_down(KeyCode::LeftControl);
+        let should_build_one_hundred = is_key_down(KeyCode::LeftShift) && is_key_down(KeyCode::LeftControl);
+        if should_build_one_hundred {
+            100
+        } else if should_build_twenty {
+            20
+        } else if should_build_five {
+            5
+        } else {
+            1
+        }
+    }
 
     fn finalize_blueprint(&mut self, model: &RymdGameModel, camera: &GameCamera, lockstep: &mut LockstepClient) {
         
@@ -65,9 +80,11 @@ impl ConstructionState {
 
                 if let Some(spawner) = spawner {
                     let is_self_order = true;
-                    let current_build_position: Vec2 = transform.world_position + spawner.position;
-                    lockstep.send_build_order(e, current_build_position, blueprint_id, should_add_to_queue, is_self_order);
-                    println!("[RymdGameView] attempted to send build order for unit at position: {} and blueprint: {}", current_build_position, blueprint_id);
+                    let current_build_position: Vec2 = transform.world_position + spawner.position;                
+                    for i in 0..Self::get_number_to_build() {
+                        lockstep.send_build_order(e, current_build_position, blueprint_id, should_add_to_queue, is_self_order);
+                        println!("[RymdGameView] attempted to send build order for unit at position: {} and blueprint: {}", current_build_position, blueprint_id);
+                    }
                 } else {
                     let is_self_order = false;
                     let current_build_position: Vec2 = camera.mouse_world_position();
