@@ -13,6 +13,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] implement a basic attack order (targets an entity)
 [] implement a basic attack move order (targets a position, attacks all entities encountered along the way)
 [x] implement shift+double click on a unit to select all other units of that type
+[x] implement ctrl+z to select all units of the same kind on the map
 [x] implement control groups (ctrl+1, etc) for units
 
 # selection

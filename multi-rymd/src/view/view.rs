@@ -807,6 +807,14 @@ impl RymdGameView {
             return;
         }
 
+        // CTRL+Z allows you to select all units of the same kind as in the selection
+        let is_selecting_all_units_of_same_kind = is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::Z);
+        if is_selecting_all_units_of_same_kind {
+            let all_selected_units = self.get_all_currently_selected_units(world);
+            self.perform_selection_of_all_units_matching_type(all_selected_units, world);
+            return;
+        }
+
         let mouse_position: Vec2 = self.camera.mouse_screen_position();
         let is_adding_to_selection: bool = is_key_down(KeyCode::LeftShift);
         let is_removing_from_selection = is_key_down(KeyCode::LeftControl);
@@ -1099,6 +1107,20 @@ impl RymdGameView {
         if is_all_of_type {
             self.perform_selection_of_all_units_matching_type(now_selected_units, world);
         }
+
+    }
+
+    fn get_all_currently_selected_units(&mut self, world: &mut World) -> Vec<Entity> {
+
+        let mut all_selected_units = Vec::new();
+
+        for (e, (controller, selectable)) in world.query_mut::<(&Controller, &Selectable)>() {
+            if selectable.is_selected {
+                all_selected_units.push(e);
+            }
+        }
+
+        all_selected_units
 
     }
 
