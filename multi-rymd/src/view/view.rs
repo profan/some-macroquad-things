@@ -10,6 +10,7 @@ use hecs::*;
 use yakui::Alignment;
 
 use crate::PlayerID;
+use crate::game::RymdGameParameters;
 use crate::model::{current_energy, current_energy_income, current_metal, current_metal_income, max_energy, max_metal, Attackable, Attacker, Blueprint, BlueprintID, BlueprintIdentity, Blueprints, Building, Effect, EntityState, GameOrder, GameOrderType, Impact, PhysicsBody, Spawner};
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Controller, Health, get_entity_position};
 
@@ -557,7 +558,10 @@ impl ControlGroupState {
 }
 
 pub struct RymdGameView {
-    player_id: PlayerID,
+
+    game_player_id: PlayerID,
+    game_parameters: RymdGameParameters,
+
     camera: GameCamera,
     construction: ConstructionState,
     control_groups: ControlGroupState,
@@ -565,13 +569,15 @@ pub struct RymdGameView {
     ordering: OrderingState,
     resources: Resources,
     render_bounds: bool
+
 }
 
 impl RymdGameView {
 
     pub fn new() -> RymdGameView {
         RymdGameView {
-            player_id: 0,
+            game_player_id: 0,
+            game_parameters: RymdGameParameters::new(),
             camera: GameCamera::new(),
             construction: ConstructionState::new(),
             control_groups: ControlGroupState::new(),
@@ -582,10 +588,45 @@ impl RymdGameView {
         }
     }
 
-    pub fn start(&mut self, player_id: PlayerID) {
+    fn switch_player_id_to_next(&mut self, world: &mut World) {
+
+        self.perform_unselect_all(world);
+        
+        let mut found_current_player_id = false;
+        let mut next_player_id = None;
+        let mut last_player_id = None;
+
+        for player in &self.game_parameters.players {
+
+            if player.id != self.game_player_id && last_player_id.is_none() {
+                last_player_id = Some(player.id);
+            }
+
+            if player.id == self.game_player_id {
+                found_current_player_id = true;
+            }
+
+            if player.id != self.game_player_id && found_current_player_id {
+                next_player_id = Some(player.id);
+            }
+
+        }
+
+        if let Some(next_player_id) = next_player_id {
+            self.game_player_id = next_player_id;
+        } else if let Some(last_player_id) = last_player_id {
+            self.game_player_id = last_player_id;
+        } else {
+            panic!("the game should always have at least two players, or the game state is not valid!");
+        }
+
+    }
+
+    pub fn start(&mut self, game_parameters: RymdGameParameters, game_player_id: PlayerID) {
         self.construction = ConstructionState::new();
         self.camera = GameCamera::new();
-        self.player_id = player_id;
+        self.game_player_id = game_player_id;
+        self.game_parameters = game_parameters;
     }
 
     pub async fn load_resources(&mut self) {
@@ -741,11 +782,13 @@ impl RymdGameView {
         self.perform_unselect_all(world);
 
         let control_group_id = Self::get_first_number_key_pressed().expect("there must be a number key pressed when calling this function, there was none!");
-        let control_group_entities = self.control_groups.get(control_group_id);
+        let control_group_entities: Vec<Entity> = self.control_groups.get(control_group_id).iter().cloned().collect();
 
-        for &e in control_group_entities {
-            if let Ok(selectable) = world.query_one_mut::<&mut Selectable>(e) {
-                selectable.is_selected = true;
+        for e in control_group_entities {
+            if let Ok((controller, selectable)) = world.query_one_mut::<(&Controller, &mut Selectable)>(e) {
+                if self.can_select_unit(controller) {
+                    selectable.is_selected = true;
+                }
             }
         }
 
@@ -875,15 +918,15 @@ impl RymdGameView {
     }
 
     fn is_controller_attackable(&self, controller: &Controller) -> bool {
-        controller.id != self.player_id
+        controller.id != self.game_player_id
     }
 
     fn is_controller_friendly(&self, controller: &Controller) -> bool {
-        controller.id == self.player_id // #TODO: alliances, teams?
+        controller.id == self.game_player_id // #TODO: alliances, teams?
     }
 
     fn is_controller_controllable(&self, controller: &Controller) -> bool {
-        controller.id == self.player_id // #TODO: alliances, teams?
+        controller.id == self.game_player_id // #TODO: alliances, teams?
     }
 
     fn is_entity_attackable(&self, entity: Entity, world: &World) -> bool {
@@ -1033,7 +1076,7 @@ impl RymdGameView {
     }
 
     fn can_select_unit(&self, controller: &Controller) -> bool {
-        controller.id == self.player_id
+        controller.id == self.game_player_id
     }
 
     fn perform_select_all(&mut self, world: &mut World) {
@@ -1505,13 +1548,20 @@ impl RymdGameView {
 
     }
 
-    fn draw_debug_ui(&mut self, model: &RymdGameModel, debug: &mut DebugText) {
+    fn draw_debug_ui(&mut self, model: &mut RymdGameModel, debug: &mut DebugText, lockstep: &mut LockstepClient) {
         
         let mouse_world_position = self.camera.mouse_world_position();
         debug.draw_text(format!("mouse (screen) position: {:?}", mouse_position()), TextPosition::TopLeft, WHITE);
         debug.draw_text(format!("mouse (world) position: ({:.1}, {:.1})", mouse_world_position.x, mouse_world_position.y), TextPosition::TopLeft, WHITE);
         debug.draw_text(format!("number of entities: {}", model.world.len()), TextPosition::TopLeft, WHITE);
         debug.draw_text(format!("collision responses: {} (shift + c to toggle bounds)", model.physics_manager.number_of_active_collision_responses()), TextPosition::TopLeft, WHITE);
+
+        if lockstep.is_singleplayer() {
+            debug.draw_text("press tab to switch the current player! (only in singleplayer)", TextPosition::TopLeft, WHITE);
+            if is_key_pressed(KeyCode::Tab) {
+                self.switch_player_id_to_next(&mut model.world);
+            }
+        }
 
         let should_toggle_debug_bounds = is_key_down(KeyCode::LeftShift) && is_key_released(KeyCode::C);
         if should_toggle_debug_bounds && yakui_macroquad::has_keyboard_focus() == false {
@@ -1691,14 +1741,14 @@ impl RymdGameView {
 
         yakui::align(Alignment::TOP_CENTER, || {
 
-            let current_metal = current_metal(self.player_id, &model.world);
-            let maximum_metal = max_metal(self.player_id, &model.world);
-            let current_metal_income = current_metal_income(self.player_id, &model.world);
+            let current_metal = current_metal(self.game_player_id, &model.world);
+            let maximum_metal = max_metal(self.game_player_id, &model.world);
+            let current_metal_income = current_metal_income(self.game_player_id, &model.world);
             let current_metal_excess = 0;
 
-            let current_energy = current_energy(self.player_id, &model.world);
-            let maximum_energy = max_energy(self.player_id, &model.world);
-            let current_energy_income = current_energy_income(self.player_id, &model.world);
+            let current_energy = current_energy(self.game_player_id, &model.world);
+            let maximum_energy = max_energy(self.game_player_id, &model.world);
+            let current_energy_income = current_energy_income(self.game_player_id, &model.world);
             let current_energy_excess = 0;
 
             yakui::label(format!("current metal: {:.0}/{:.0} ({:.0}), current energy: {:.0}/{:.0} ({:.0})", current_metal, maximum_metal, current_metal_income, current_energy, maximum_energy, current_energy_income));
@@ -1786,7 +1836,7 @@ impl RymdGameView {
         self.camera.pop();
 
         self.draw_ui(model, debug, lockstep);
-        self.draw_debug_ui(model, debug);
+        self.draw_debug_ui(model, debug, lockstep);
 
     }
 

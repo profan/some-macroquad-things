@@ -7,14 +7,20 @@ use crate::measure_scope;
 use crate::model::RymdGameModel;
 use crate::view::RymdGameView;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RymdGamePlayer {
     pub id: PlayerID
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RymdGameParameters {
     pub players: Vec<RymdGamePlayer>
+}
+
+impl RymdGameParameters {
+    pub fn new() -> RymdGameParameters {
+        RymdGameParameters { players: Vec::new() }
+    }
 }
 
 pub struct RymdGame {
@@ -66,8 +72,8 @@ impl Game for RymdGame {
                 RymdGameParameters { players: game_players }
             };
 
-            self.model.start(game_parameters);
-            self.view.start(lockstep.peer_id());
+            self.model.start(game_parameters.clone());
+            self.view.start(game_parameters.clone(), lockstep.peer_id());
             
             self.is_running = true;
             self.is_started = true;

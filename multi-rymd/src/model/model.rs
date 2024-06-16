@@ -374,7 +374,6 @@ impl RymdGameModel {
 
                 }
 
-
             }
 
         }

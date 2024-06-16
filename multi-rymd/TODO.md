@@ -62,6 +62,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] allow entities to expand the size of the metal and energy storage pools
 [x] cap the maximum amount of metal and energy by the current size of the energy/metal storage pools
 [] fix issue where resource consumption for unit construction falls over when item being constructed has health lower than the build power of the unit involved
+[] fix problem with resource consumption seemingly not actually being at a linear rate like it should be
 
 # units
 [x] represent health of units
@@ -89,4 +90,4 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] implement parallax background
 [] look at implementing parallax background layers (different levels/depths of stars?)
 [] implement sort orders for sprites, initially just hardcoded numbers per sprite
-[] implement the ability to switch what side you're currently controlling
+[x] implement the ability to switch what side you're currently controlling
