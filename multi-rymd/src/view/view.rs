@@ -14,7 +14,7 @@ use crate::game::RymdGameParameters;
 use crate::model::{current_energy, current_energy_income, current_metal, current_metal_income, max_energy, max_metal, Attackable, Attacker, Blueprint, BlueprintID, BlueprintIdentity, Blueprints, Building, Effect, EntityState, GameOrder, GameOrderType, Impact, PhysicsBody, Spawner};
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Controller, Health, get_entity_position};
 
-use super::{calculate_sprite_bounds, GameCamera};
+use super::{calculate_sprite_bounds, GameCamera2D};
 
 fn entity_state_to_alpha(state: Option<&EntityState>) -> f32 {
     if let Some(state) = state {
@@ -67,7 +67,7 @@ impl ConstructionState {
         }
     }
 
-    fn finalize_blueprint(&mut self, model: &RymdGameModel, camera: &GameCamera, lockstep: &mut LockstepClient) {
+    fn finalize_blueprint(&mut self, model: &RymdGameModel, camera: &GameCamera2D, lockstep: &mut LockstepClient) {
         
         if let Some(blueprint_id) = self.current_blueprint_id {
 
@@ -101,7 +101,7 @@ impl ConstructionState {
 
     }
 
-    fn tick_and_draw(&mut self, model: &RymdGameModel, camera: &GameCamera, resources: &Resources, lockstep: &mut LockstepClient) {
+    fn tick_and_draw(&mut self, model: &RymdGameModel, camera: &GameCamera2D, resources: &Resources, lockstep: &mut LockstepClient) {
 
         if let Some(blueprint_id) = self.current_blueprint_id {
 
@@ -132,7 +132,7 @@ impl ConstructionState {
         
     }
 
-    fn preview_building(&mut self, resources: &Resources, blueprint: &Blueprint, model: &RymdGameModel, camera: &GameCamera, lockstep: &mut LockstepClient) {
+    fn preview_building(&mut self, resources: &Resources, blueprint: &Blueprint, model: &RymdGameModel, camera: &GameCamera2D, lockstep: &mut LockstepClient) {
 
         let should_cancel = is_mouse_button_released(MouseButton::Right) || is_mouse_button_released(MouseButton::Middle);
         let should_build = is_mouse_button_released(MouseButton::Left);
@@ -562,7 +562,7 @@ pub struct RymdGameView {
     game_player_id: PlayerID,
     game_parameters: RymdGameParameters,
 
-    camera: GameCamera,
+    camera: GameCamera2D,
     construction: ConstructionState,
     control_groups: ControlGroupState,
     selection: SelectionState,
@@ -578,7 +578,7 @@ impl RymdGameView {
         RymdGameView {
             game_player_id: 0,
             game_parameters: RymdGameParameters::new(),
-            camera: GameCamera::new(),
+            camera: GameCamera2D::new(),
             construction: ConstructionState::new(),
             control_groups: ControlGroupState::new(),
             ordering: OrderingState::new(),
@@ -624,7 +624,7 @@ impl RymdGameView {
 
     pub fn start(&mut self, game_parameters: RymdGameParameters, game_player_id: PlayerID) {
         self.construction = ConstructionState::new();
-        self.camera = GameCamera::new();
+        self.camera = GameCamera2D::new();
         self.game_player_id = game_player_id;
         self.game_parameters = game_parameters;
     }

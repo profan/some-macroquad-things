@@ -231,7 +231,7 @@ pub fn draw_circle_lines_3d(position: Vec3, r: f32, _thickness: f32, color: Colo
         let current_start = position.xz() + position.xz().normalize_or_zero().rotated_by(current_angle) * r;
         let current_end = position.xz() + position.xz().normalize_or_zero().rotated_by(next_angle) * r;
         
-        draw_line_3d(current_start.with_y(position.y), current_end.with_y(position.y), color);
+        draw_line_3d(WithY::with_y(&current_start, position.y), WithY::with_y(&current_end, position.y), color);
 
     }
     

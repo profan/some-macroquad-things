@@ -8,7 +8,7 @@ struct GameCameraParameters {
     zoom_speed: f32
 }
 
-pub struct GameCamera {
+pub struct GameCamera2D {
     size: Vec2,
     camera_zoom: f32,
     camera: Camera2D,
@@ -16,9 +16,9 @@ pub struct GameCamera {
     parameters: GameCameraParameters
 }
 
-impl GameCamera {
+impl GameCamera2D {
 
-    pub fn new() -> GameCamera {
+    pub fn new() -> GameCamera2D {
 
         let size = screen_dimensions();
         let camera = Camera2D::from_display_rect_fixed(
@@ -34,7 +34,7 @@ impl GameCamera {
             zoom_speed: 10.0
         };
 
-        GameCamera {
+        GameCamera2D {
             size: size,
             camera: camera,
             camera_zoom: 1.0,
@@ -125,7 +125,7 @@ impl GameCamera {
 
 }
 
-fn handle_camera_input(active: &mut GameCamera, last_mouse_position: Vec2, dt: f32) -> bool {
+fn handle_camera_input(active: &mut GameCamera2D, last_mouse_position: Vec2, dt: f32) -> bool {
 
     handle_camera_movement(active, dt);
     let zoom_changed = handle_camera_zoom(active, dt);
@@ -135,7 +135,7 @@ fn handle_camera_input(active: &mut GameCamera, last_mouse_position: Vec2, dt: f
 
 }
 
-fn handle_camera_movement(active: &mut GameCamera, dt: f32) {
+fn handle_camera_movement(active: &mut GameCamera2D, dt: f32) {
 
     let camera_speed = active.parameters.move_speed * active.camera_zoom;
 
@@ -166,7 +166,7 @@ fn handle_camera_movement(active: &mut GameCamera, dt: f32) {
 
 }
 
-fn handle_camera_zoom(active: &mut GameCamera, dt: f32) -> bool {
+fn handle_camera_zoom(active: &mut GameCamera2D, dt: f32) -> bool {
 
     let (mouse_wheel_delta_x, mouse_wheel_delta_y) = mouse_wheel();
 
@@ -201,7 +201,7 @@ fn handle_camera_zoom(active: &mut GameCamera, dt: f32) -> bool {
 
 }
 
-fn handle_camera_panning(active: &mut GameCamera, last_mouse_position: Vec2, dt: f32) {
+fn handle_camera_panning(active: &mut GameCamera2D, last_mouse_position: Vec2, dt: f32) {
 
     let is_middle_mouse_down = is_mouse_button_down(MouseButton::Middle);
 
