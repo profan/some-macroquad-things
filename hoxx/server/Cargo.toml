@@ -1,0 +1,15 @@
+[package]
+name = "hoxx-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+nanoserde = "0.1.35"
+hoxx-shared = { path = "../shared" }
+rand = "0.8.5"
+hexx = "0.17"
+ws = "0.9.2"
+
+[profile.dev]
+incremental = true
+opt-level = 2

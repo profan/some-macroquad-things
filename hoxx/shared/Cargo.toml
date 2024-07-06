@@ -1,0 +1,9 @@
+[package]
+name = "hoxx-shared"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+nanoserde = "0.1.35"
+glam = "0.27.0"
+hexx = "0.17"

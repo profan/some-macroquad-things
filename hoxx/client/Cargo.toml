@@ -1,0 +1,16 @@
+[package]
+name = "hoxx-client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+macroquad = "0.4.5"
+nanoserde = "0.1.35"
+hoxx-shared = { path = "../shared" }
+utility = { path = "../../utility" }
+ewebsock = "0.4.0"
+hexx = "0.17"
+
+[profile.dev]
+incremental = true
+opt-level = 2
