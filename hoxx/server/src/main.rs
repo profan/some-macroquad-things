@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use game::HoxxGameState;
 use hexx::Hex;
-use hoxx_shared::{Client, ClientColor, ClientID, ClientMessage, ClientState};
+use hoxx_shared::{Client, ClientColor, ClientID, ClientMessage, ClientState, SERVER_LISTEN_PORT};
 use nanoserde::{DeJson, SerJson};
 
 const IS_DEBUG: bool = false;
@@ -134,7 +134,7 @@ impl HoxxServer {
             senders: HashMap::new(),
             clients: HashMap::new(),
             state: HoxxGameState::new(),
-            port: 25565
+            port: SERVER_LISTEN_PORT
         }
     }
 

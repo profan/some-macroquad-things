@@ -2,9 +2,13 @@ use std::fmt::Display;
 use std::ops::{Add, Deref};
 use std::{collections::HashMap, ops::AddAssign};
 use glam::{ivec2, vec2, IVec2, Vec2};
-use hexx::{hex, Hex, HexOrientation};
+use hexx::{hex, Hex};
 use hexx::HexLayout;
 use nanoserde::{DeJson, SerJson};
+
+pub const SERVER_ADDRESS: &str = "hoxx.prfn.se/ws";
+pub const SERVER_LISTEN_PORT: u16 = 25565;
+pub const SERVER_CONNECT_PORT: u16 = 80;
 
 pub const HEX_SIZE: f32 = 16.0;
 pub const HEX_IS_VERTICAL: bool = false;

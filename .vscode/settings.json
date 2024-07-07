@@ -7,6 +7,9 @@
         "./graph/Cargo.toml",
         "./l-system/Cargo.toml",
         "./graph/Cargo.toml",
+        "./hoxx/client/Cargo.toml"
+        "./hoxx/server/Cargo.toml"
+        "./hoxx/shared/Cargo.toml",
         "./lockstep/Cargo.toml",
         "./lockstep/client/Cargo.toml",
         "./lockstep/client/example/Cargo.toml",

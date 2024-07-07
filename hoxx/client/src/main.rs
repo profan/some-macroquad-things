@@ -1,6 +1,6 @@
 use camera::GameCamera2D;
 use drawing::draw_hex;
-use hoxx_shared::{ClientColor, ClientID, ClientMessage, GameState, HEX_SIZE};
+use hoxx_shared::{ClientColor, ClientID, ClientMessage, GameState, HEX_SIZE, SERVER_ADDRESS, SERVER_PORT};
 use macroquad::prelude::*;
 use nanoserde::{DeJson, SerJson};
 use network::{ConnectionState, NetworkClient};
@@ -11,9 +11,6 @@ mod camera;
 mod drawing;
 mod network;
 mod utils;
-
-const SERVER_ADDRESS: &str = "localhost";
-const SERVER_PORT: i16 = 25565;
 
 struct HoxxClientDebug {
     should_draw_coordinates: bool
@@ -62,7 +59,7 @@ impl HoxxClient {
     }
 
     pub fn connect(&mut self) -> bool {
-        let combined_server_address = format!("ws://{}:{}", SERVER_ADDRESS, SERVER_PORT);
+        let combined_server_address = format!("wss://{}:{}", SERVER_ADDRESS, SERVER_PORT);
         self.net.connect(&combined_server_address)
     }
 
