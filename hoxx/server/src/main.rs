@@ -143,7 +143,7 @@ impl HoxxServer {
         let new_hoxx_server = Rc::new(RefCell::new(HoxxServer::new()));
 
         // Listen on an address and call the closure for each connection
-        if let Err(error) = ws::listen(format!("0.0.0.0:{}", new_hoxx_server.borrow().port), |out| {
+        if let Err(error) = ws::listen(format!("localhost:{}", new_hoxx_server.borrow().port), |out| {
             Router {
                 sender: out,
                 inner: Box::new(NotFound),
