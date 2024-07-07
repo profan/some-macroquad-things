@@ -1,6 +1,6 @@
 use camera::GameCamera2D;
 use drawing::draw_hex;
-use hoxx_shared::{ClientColor, ClientID, ClientMessage, GameState, HEX_SIZE, SERVER_ADDRESS, SERVER_PORT};
+use hoxx_shared::{ClientColor, ClientID, ClientMessage, GameState, HEX_SIZE, SERVER_ADDRESS};
 use macroquad::prelude::*;
 use nanoserde::{DeJson, SerJson};
 use network::{ConnectionState, NetworkClient};
@@ -59,7 +59,7 @@ impl HoxxClient {
     }
 
     pub fn connect(&mut self) -> bool {
-        let combined_server_address = format!("wss://{}:{}", SERVER_ADDRESS, SERVER_PORT);
+        let combined_server_address = format!("wss://{}", SERVER_ADDRESS);
         self.net.connect(&combined_server_address)
     }
 
@@ -264,7 +264,12 @@ impl HoxxClient {
 async fn main() {
 
     let mut client = HoxxClient::new();
-    client.connect();
+    let is_connecting = client.connect();
+    if is_connecting == false {
+        error!("[hoxx-client] failed to attempt to connect to server!");
+    } else {
+        info!("[hoxx-client] connecting to server!");
+    }
 
     loop {
         let dt = get_frame_time();

@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use game::HoxxGameState;
 use hexx::Hex;
-use hoxx_shared::{Client, ClientColor, ClientID, ClientMessage, ClientState, SERVER_LISTEN_PORT};
+use hoxx_shared::{Client, ClientColor, ClientID, ClientMessage, ClientState, SERVER_INTERNAL_PORT};
 use nanoserde::{DeJson, SerJson};
 
 const IS_DEBUG: bool = false;
@@ -65,7 +65,7 @@ struct Session {
 impl ws::Handler for Session {
 
     fn on_open(&mut self, _shake: ws::Handshake) -> ws::Result<()> {
-        println!("[id: {:?}] connected!", self.id);
+        println!("[id: {:?}] connected!", self.ws.connection_id());
         Ok(())
     }
 
@@ -85,7 +85,7 @@ impl ws::Handler for Session {
 
             },
             Err(err) => {
-                println!("[id: {:?}]: sent invalid message, with error: {}", self.id, err);
+                println!("[id: {:?}]: sent invalid message, with error: {}", self.ws.connection_id(), err);
             }
         };
         
@@ -134,7 +134,7 @@ impl HoxxServer {
             senders: HashMap::new(),
             clients: HashMap::new(),
             state: HoxxGameState::new(),
-            port: SERVER_LISTEN_PORT
+            port: SERVER_INTERNAL_PORT
         }
     }
 

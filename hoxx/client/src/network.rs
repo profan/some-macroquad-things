@@ -1,3 +1,6 @@
+use ewebsock::Options;
+use macroquad::logging::error;
+
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum ConnectionState {
     Connected,
@@ -44,7 +47,7 @@ impl NetworkClient {
     }
     
     pub fn connect(&mut self, address: &str) -> bool {
-        match ewebsock::connect(address) {
+        match ewebsock::connect(address, Options::default()) {
             Ok((sender, receiver)) => {
                 self.sender = Some(sender);
                 self.receiver = Some(receiver);
@@ -64,12 +67,14 @@ impl NetworkClient {
                     ewebsock::WsEvent::Opened => {
                         self.state = ConnectionState::Connected
                     },
-                    ewebsock::WsEvent::Error(_) => {
+                    ewebsock::WsEvent::Error(error) => {
                         // NOTE: we currently just disconnect on any error, this should probably log later?
+                        error!("[hoxx-client] got disconnected with error: {}", error);
                         self.state = ConnectionState::Disconnected;
                         self.disconnect();
                     },
                     ewebsock::WsEvent::Closed => {
+                        error!("[hoxx-client] got disconnected by connection closing");
                         self.state = ConnectionState::Disconnected;
                         self.disconnect();
                     },

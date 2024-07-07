@@ -7,8 +7,7 @@ use hexx::HexLayout;
 use nanoserde::{DeJson, SerJson};
 
 pub const SERVER_ADDRESS: &str = "hoxx.prfn.se/ws";
-pub const SERVER_LISTEN_PORT: u16 = 25565;
-pub const SERVER_CONNECT_PORT: u16 = 80;
+pub const SERVER_INTERNAL_PORT: u16 = 25565;
 
 pub const HEX_SIZE: f32 = 16.0;
 pub const HEX_IS_VERTICAL: bool = false;

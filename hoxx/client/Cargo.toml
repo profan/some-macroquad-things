@@ -8,7 +8,8 @@ macroquad = "0.4.5"
 nanoserde = "0.1.35"
 hoxx-shared = { path = "../shared" }
 utility = { path = "../../utility" }
-ewebsock = "0.4.0"
+ewebsock = { version = "0.6.0", features = ["tls"] }
+# ewebsock = { git = "https://github.com/rerun-io/ewebsock.git", features = ["tls"] }
 hexx = "0.17"
 
 [profile.dev]
