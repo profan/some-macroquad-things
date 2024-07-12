@@ -6,7 +6,8 @@ use hexx::{hex, Hex};
 use hexx::HexLayout;
 use nanoserde::{DeJson, SerJson};
 
-pub const SERVER_ADDRESS: &str = "hoxx.prfn.se/ws";
+pub const IS_RUNNING_LOCALLY: bool = true;
+pub const SERVER_ADDRESS: &str = if IS_RUNNING_LOCALLY { "localhost" } else { "hoxx.prfn.se/ws" };
 pub const SERVER_INTERNAL_PORT: u16 = 25565;
 
 pub const HEX_SIZE: f32 = 16.0;
