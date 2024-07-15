@@ -1,12 +1,10 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
-use game::HoxxGameState;
+use std::{cell::RefCell, collections::{HashMap, HashSet}, rc::Rc, thread::current};
+use state::HoxxGameState;
 use hexx::Hex;
-use hoxx_shared::{Client, ClientColor, ClientID, ClientMessage, ClientState, SERVER_INTERNAL_PORT};
+use hoxx_shared::{utils::{trace_hex_boundary}, Client, ClientColor, ClientID, ClientMessage, ClientState, SERVER_INTERNAL_PORT};
 use nanoserde::{DeJson, SerJson};
 
-const IS_DEBUG: bool = false;
-
-mod game;
+mod state;
 
 struct Router {
     sender: ws::Sender,
@@ -185,33 +183,9 @@ impl HoxxServer {
 
     fn update_fill_state(&mut self, client_id: ClientID, x: i32, y: i32) {
 
-        return;
-
-        let hex_pos = self.state.get_game_state().world_to_hex(x, y);
-
-        let initial_hex = Hex::new(hex_pos.x, hex_pos.y);
-        let mut current_hex = initial_hex;
-        let mut done = false;
-
-        while current_hex != initial_hex || done == false {
-
-            for neighbour_hex in current_hex.all_neighbors() {
-
-                let v = self.state.get_claim_hex(neighbour_hex.x, neighbour_hex.y).unwrap_or(ClientID::INVALID);
-
-                if v != client_id {
-                    println!("found foreign hex: {:?}", neighbour_hex);
-                    current_hex = neighbour_hex;
-                }
-
-                println!("walked hex: {:?}", neighbour_hex);
-                
-            }
-
-            if current_hex == initial_hex {
-                done = true;
-            }
-
+        let initial_hex = self.state.get_game_state().world_to_hex(x, y);
+        if let Some(boundary) = trace_hex_boundary(initial_hex, |h| self.state.is_claimed_by(h.x, h.y, client_id)) {
+            println!("found: {} size boundary!", boundary.vertices.len());
         }
 
     }

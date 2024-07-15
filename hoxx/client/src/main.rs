@@ -1,6 +1,7 @@
 use camera::GameCamera2D;
 use drawing::draw_hex;
-use hoxx_shared::{ClientColor, ClientID, ClientMessage, GameState, HEX_SIZE, IS_RUNNING_LOCALLY, SERVER_ADDRESS, SERVER_INTERNAL_PORT};
+use hexx::Hex;
+use hoxx_shared::{utils::{trace_hex_boundary}, ClientColor, ClientID, ClientMessage, GameState, HEX_SIZE, IS_RUNNING_LOCALLY, SERVER_ADDRESS, SERVER_INTERNAL_PORT};
 use macroquad::prelude::*;
 use nanoserde::{DeJson, SerJson};
 use network::{ConnectionState, NetworkClient};
@@ -153,6 +154,41 @@ impl HoxxClient {
             hex_colour
         );
         
+        let is_in_boundary_fn = |h: Hex| self.state.get_hex(h.x, h.y).and_then(|v| Some(ClientID { id: v })).unwrap_or(ClientID::INVALID) == self.id;
+        if let Some(boundary) = trace_hex_boundary(world_position_as_hex, is_in_boundary_fn) {
+
+            draw_text_centered(&format!("is loop: {}", boundary.is_loop()), mouse_world_position.x, mouse_world_position.y, 16.0, BLACK);
+
+            for (idx, hex) in boundary.vertices.into_iter().enumerate() {
+
+                let hex_world_position = self.state.hex_to_world(hex.x, hex.y);
+
+                draw_text_centered(&idx.to_string(), hex_world_position.x, hex_world_position.y, 16.0, BLACK);
+
+                draw_hex(
+                    hex_world_position.x, hex_world_position.y,
+                    hex_border_colour.lighten(0.25),
+                    hex_colour.lighten(0.25)
+                );
+
+            }
+
+            for (idx, hex) in boundary.edges.into_iter().enumerate() {
+
+                let hex_world_position = self.state.hex_to_world(hex.x, hex.y);
+
+                draw_text_centered(&idx.to_string(), hex_world_position.x, hex_world_position.y, 16.0, BLACK);
+
+                draw_hex(
+                    hex_world_position.x, hex_world_position.y,
+                    hex_border_colour.lighten(0.25),
+                    hex_colour.lighten(0.25)
+                );
+
+            }
+
+        }
+        
     }
     
     fn draw_hex_coordinates(&self) {
@@ -186,8 +222,6 @@ impl HoxxClient {
     }
 
     fn draw_game_state(&self) {
-
-        self.draw_hex_highlight();
         
         for (&(x, y), &value) in self.state.get_hexes() {
 
@@ -205,6 +239,7 @@ impl HoxxClient {
             
         }
 
+        self.draw_hex_highlight();
         self.draw_hex_coordinates();
 
     }
@@ -227,7 +262,7 @@ impl HoxxClient {
         let hex_mouse_position = self.state.world_to_hex(mouse_world_position.x as i32, mouse_world_position.y as i32);
         let hex_under_mouse = self.state.get_world(mouse_world_position.x as i32, mouse_world_position.y as i32);
         
-        self.debug_text.draw_text(format!("hex under mouse: {} (value: {:?})", hex_mouse_position, hex_under_mouse), TextPosition::TopLeft, BLACK);
+        self.debug_text.draw_text(format!("hex under mouse: {} (value: {:?})", hex_mouse_position.as_ivec2(), hex_under_mouse), TextPosition::TopLeft, BLACK);
 
     }
     

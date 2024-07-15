@@ -6,6 +6,8 @@ use hexx::{hex, Hex};
 use hexx::HexLayout;
 use nanoserde::{DeJson, SerJson};
 
+pub mod utils;
+
 pub const IS_RUNNING_LOCALLY: bool = true;
 pub const SERVER_ADDRESS: &str = if IS_RUNNING_LOCALLY { "localhost" } else { "hoxx.prfn.se/ws" };
 pub const SERVER_INTERNAL_PORT: u16 = 25565;
@@ -152,9 +154,9 @@ impl GameState {
         vec2(world_position.x, world_position.y)
     }
 
-    pub fn world_to_hex(&self, x: i32, y: i32) -> IVec2 {
+    pub fn world_to_hex(&self, x: i32, y: i32) -> Hex {
         let hex_coordinate: Hex = self.layout.as_ref().unwrap().world_pos_to_hex(hexx::Vec2::new(x as f32, y as f32));
-        ivec2(hex_coordinate.x, hex_coordinate.y)
+        hex_coordinate
     }
 
     pub fn get_world(&self, x: i32, y: i32) -> Option<i64> {
@@ -171,7 +173,7 @@ impl GameState {
         self.hexes.insert((x, y), v);
     }
 
-    pub fn get_hex(&mut self, x: i32, y: i32) -> Option<i64> {
+    pub fn get_hex(&self, x: i32, y: i32) -> Option<i64> {
         self.hexes.get(&(x, y)).copied()
     }
 
