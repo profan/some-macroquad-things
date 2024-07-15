@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use hexx::{EdgeDirection, Hex};
 
 use crate::ClientID;
@@ -69,6 +71,65 @@ impl HexBoundary {
         true
 
     }
+
+    pub fn inner(&self) -> &Vec<Hex> {
+        if self.vertices.len() < self.edges.len() {
+            &self.vertices
+        } else {
+            &self.edges
+        }
+    }
+
+    pub fn outer(&self) -> &Vec<Hex> {
+        if self.vertices.len() > self.edges.len() {
+            &self.vertices
+        } else {
+            &self.edges
+        }
+    }
+
+    pub fn hex_inside_boundary(&self, matching_fn: impl Fn(Hex) -> bool) -> Option<Hex> {
+
+        if self.inner() == &self.edges {
+            for &hex in self.inner() {
+                if matching_fn(hex) {
+                    return Some(hex);
+                }
+            }
+        } else {
+            for hex in self.inner() {
+                for n in hex.all_neighbors() {
+                    if matching_fn(n) && self.outer().contains(&n) == false {
+                        return Some(n);
+                    }
+                }
+            }
+        }
+
+        None
+
+    }
+
+}
+
+/// Flood fills outwards from the starting hex given the function describing if a specific hex should be included, and a function that gets called on each iteration, returns the amount of filled hexes.
+pub fn flood_fill_hexes<T>(state: &mut T, start_hex: Hex, inside_fn: impl Fn(&T, Hex) -> bool, mut set_fn: impl FnMut(&mut T, Hex) -> ()) -> i32 {
+
+    let mut set_hexes = 0;
+    let mut queue: VecDeque<Hex> = VecDeque::new();
+    queue.push_back(start_hex);
+
+    while let Some(n) = queue.pop_front() {
+        if inside_fn(state, n) {
+            set_fn(state, n);
+            set_hexes += 1;
+            for n in n.all_neighbors() {
+                queue.push_back(n);
+            }
+        }
+    }
+
+    set_hexes
 
 }
 

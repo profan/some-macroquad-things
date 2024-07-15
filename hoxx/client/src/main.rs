@@ -159,11 +159,11 @@ impl HoxxClient {
 
             draw_text_centered(&format!("is loop: {}", boundary.is_loop()), mouse_world_position.x, mouse_world_position.y, 16.0, BLACK);
 
-            for (idx, hex) in boundary.vertices.into_iter().enumerate() {
+            for (idx, hex) in boundary.inner().into_iter().enumerate() {
 
                 let hex_world_position = self.state.hex_to_world(hex.x, hex.y);
 
-                draw_text_centered(&idx.to_string(), hex_world_position.x, hex_world_position.y, 16.0, BLACK);
+                draw_text_centered(&idx.to_string(), hex_world_position.x, hex_world_position.y, 16.0, GREEN);
 
                 draw_hex(
                     hex_world_position.x, hex_world_position.y,
@@ -173,16 +173,28 @@ impl HoxxClient {
 
             }
 
-            for (idx, hex) in boundary.edges.into_iter().enumerate() {
+            for (idx, hex) in boundary.outer().into_iter().enumerate() {
 
                 let hex_world_position = self.state.hex_to_world(hex.x, hex.y);
 
-                draw_text_centered(&idx.to_string(), hex_world_position.x, hex_world_position.y, 16.0, BLACK);
+                draw_text_centered(&idx.to_string(), hex_world_position.x, hex_world_position.y, 16.0, RED);
 
                 draw_hex(
                     hex_world_position.x, hex_world_position.y,
                     hex_border_colour.lighten(0.25),
                     hex_colour.lighten(0.25)
+                );
+
+            }
+
+            if let Some(inner_hex) = boundary.hex_inside_boundary(|h| self.state.get_hex(h.x, h.y).unwrap_or(*ClientID::INVALID) != *self.id) {
+
+                let hex_world_position = self.state.hex_to_world(inner_hex.x, inner_hex.y);
+
+                draw_hex(
+                    hex_world_position.x, hex_world_position.y,
+                    hex_border_colour.darken(0.75),
+                    hex_colour.darken(0.75)
                 );
 
             }
@@ -307,7 +319,7 @@ async fn main() {
     if is_connecting == false {
         error!("[hoxx-client] failed to attempt to connect to server!");
     } else {
-        info!("[hoxx-client] connecting to server!");
+        info!("[hoxx-client] connecting to server: {}", client.current_server_address());
     }
 
     loop {

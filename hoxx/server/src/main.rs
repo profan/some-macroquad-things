@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::{HashMap, HashSet}, rc::Rc, thread::current};
 use state::HoxxGameState;
 use hexx::Hex;
-use hoxx_shared::{utils::{trace_hex_boundary}, Client, ClientColor, ClientID, ClientMessage, ClientState, SERVER_INTERNAL_PORT};
+use hoxx_shared::{utils::{flood_fill_hexes, trace_hex_boundary}, Client, ClientColor, ClientID, ClientMessage, ClientState, SERVER_INTERNAL_PORT};
 use nanoserde::{DeJson, SerJson};
 
 mod state;
@@ -185,7 +185,26 @@ impl HoxxServer {
 
         let initial_hex = self.state.get_game_state().world_to_hex(x, y);
         if let Some(boundary) = trace_hex_boundary(initial_hex, |h| self.state.is_claimed_by(h.x, h.y, client_id)) {
-            println!("found: {} size boundary!", boundary.vertices.len());
+
+            // println!("found: {} size boundary!", boundary.vertices.len());
+
+            if boundary.is_loop() && boundary.inner().len() > 2 {
+
+                if let Some(hex_in_boundary) = boundary.hex_inside_boundary(|h| self.state.is_claimed_by(h.x, h.y, client_id) == false) {
+
+                    let number_of_claimed_hexes = flood_fill_hexes(
+                        &mut self.state,
+                        hex_in_boundary,
+                        |state, h| state.is_claimed_by(h.x, h.y, client_id) == false,
+                        |state, h| state.put_claim_hex(h.x, h.y, client_id)
+                    );
+
+                    println!("[hoxx-server] {} claimed {} hexes!", client_id, number_of_claimed_hexes);
+
+                }
+                
+            }
+
         }
 
     }

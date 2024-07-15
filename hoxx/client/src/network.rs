@@ -1,5 +1,5 @@
 use ewebsock::Options;
-use macroquad::logging::error;
+use macroquad::logging::{error, info};
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum ConnectionState {
@@ -65,6 +65,7 @@ impl NetworkClient {
             if let Some(message) = receiver.try_recv() {
                 match &message {
                     ewebsock::WsEvent::Opened => {
+                        info!("[hoxx-client] connected to server!");
                         self.state = ConnectionState::Connected
                     },
                     ewebsock::WsEvent::Error(error) => {
