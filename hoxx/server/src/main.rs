@@ -63,7 +63,7 @@ struct Session {
 impl ws::Handler for Session {
 
     fn on_open(&mut self, _shake: ws::Handshake) -> ws::Result<()> {
-        println!("[id: {:?}] connected!", self.ws.connection_id());
+        println!("[hoxx-server] id: {:?} connected!", self.ws.connection_id());
         Ok(())
     }
 
@@ -83,7 +83,7 @@ impl ws::Handler for Session {
 
             },
             Err(err) => {
-                println!("[id: {:?}]: sent invalid message, with error: {}", self.ws.connection_id(), err);
+                println!("[hoxx-server] id: {:?} sent invalid message, with error: {}", self.ws.connection_id(), err);
             }
         };
         
@@ -96,9 +96,9 @@ impl ws::Handler for Session {
         self.server.borrow_mut().despawn_client(self.id);
 
         if reason.is_empty() == false {
-            println!("[id: {}] disconnected with reason: {}!", self.ws.connection_id(), reason);
+            println!("[hoxx-server] id: {} disconnected with reason: {}!", self.ws.connection_id(), reason);
         } else {
-            println!("[id: {}] disconnected!", self.ws.connection_id());
+            println!("[hoxx-server] id: {} disconnected!", self.ws.connection_id());
         }
 
     }
@@ -184,11 +184,10 @@ impl HoxxServer {
     fn update_fill_state(&mut self, client_id: ClientID, x: i32, y: i32) {
 
         let initial_hex = self.state.get_game_state().world_to_hex(x, y);
+
         if let Some(boundary) = trace_hex_boundary(initial_hex, |h| self.state.is_claimed_by(h.x, h.y, client_id)) {
 
-            // println!("found: {} size boundary!", boundary.vertices.len());
-
-            if boundary.is_loop() && boundary.inner().len() > 2 {
+            if boundary.is_loop() {
 
                 if let Some(hex_in_boundary) = boundary.hex_inside_boundary(|h| self.state.is_claimed_by(h.x, h.y, client_id) == false) {
 
@@ -199,7 +198,7 @@ impl HoxxServer {
                         |state, h| state.put_claim_hex(h.x, h.y, client_id)
                     );
 
-                    println!("[hoxx-server] {} claimed {} hexes!", client_id, number_of_claimed_hexes);
+                    println!("[hoxx-server] id: {} claimed {} hexes!", client_id, number_of_claimed_hexes);
 
                 }
                 

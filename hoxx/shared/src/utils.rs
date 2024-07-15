@@ -61,7 +61,7 @@ impl HexBoundary {
         }
 
         for (idx, v) in self.vertices.iter().enumerate() {
-            for (o_idx, o) in self.vertices.iter().enumerate() {
+            for (o_idx, o) in self.vertices.iter().enumerate().rev() {
                 if idx != o_idx && v == o {
                     return false;
                 }
