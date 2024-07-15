@@ -75,6 +75,8 @@ pub fn trace_hex_boundary(start_hand_hex: Hex, in_boundary_fn: impl Fn(Hex) -> b
     let mut current_tracing_mode = TracingMode::RotatingFeet;
     let mut hex_edge_list: Vec<Hex> = vec![current_standing_hex];
     let mut hex_vertex_list: Vec<Hex> = vec![current_hand_hex];
+    let mut standing_moved = false;
+    let mut hand_moved = false;
 
     loop {
 
@@ -87,6 +89,7 @@ pub fn trace_hex_boundary(start_hand_hex: Hex, in_boundary_fn: impl Fn(Hex) -> b
                 if in_boundary_fn(new_standing_hex) == false {
                     current_standing_hex = new_standing_hex;
                     hex_edge_list.push(new_standing_hex);
+                    standing_moved = true;
                 } else {
                     current_tracing_mode = TracingMode::RotatingHand;
                 }
@@ -100,6 +103,7 @@ pub fn trace_hex_boundary(start_hand_hex: Hex, in_boundary_fn: impl Fn(Hex) -> b
                 if in_boundary_fn(new_hand_hex) {
                     current_hand_hex = new_hand_hex;
                     hex_vertex_list.push(new_hand_hex);
+                    hand_moved = true;
                 } else {
                     current_tracing_mode = TracingMode::RotatingFeet;
                 }
@@ -111,7 +115,7 @@ pub fn trace_hex_boundary(start_hand_hex: Hex, in_boundary_fn: impl Fn(Hex) -> b
         // println!("current standing hex: {:?}, current hand hex: {:?}", current_standing_hex, current_hand_hex);
         // println!("start standing hex: {:?}, start hand hex: {:?} \n", start_standing_hex, start_hand_hex);
 
-        if current_standing_hex == start_standing_hex && current_hand_hex == start_hand_hex {
+        if current_standing_hex == start_standing_hex && current_hand_hex == start_hand_hex && (standing_moved || hand_moved) {
             break;
         }
 
