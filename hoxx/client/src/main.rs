@@ -1,11 +1,13 @@
+use std::collections::VecDeque;
+
 use camera::GameCamera2D;
 use drawing::draw_hex;
 use hexx::Hex;
 use hoxx_shared::{utils::{trace_hex_boundary}, ClientColor, ClientID, ClientMessage, GameState, HEX_SIZE, IS_RUNNING_LOCALLY, SERVER_ADDRESS, SERVER_INTERNAL_PORT};
-use macroquad::prelude::*;
+use macroquad::{experimental::camera::mouse, prelude::*};
 use nanoserde::{DeJson, SerJson};
 use network::{ConnectionState, NetworkClient};
-use utility::{draw_text_centered, AdjustHue, DebugText, TextPosition, WithAlpha};
+use utility::{draw_text_centered, screen_dimensions, AdjustHue, DebugText, TextPosition, WithAlpha};
 use utils::to_macroquad_color;
 
 mod camera;
@@ -25,6 +27,50 @@ impl HoxxClientDebug {
     }
 }
 
+struct HoxxClientState {
+    claim_start_position: Option<Vec2>,
+    queued_hex_claims: VecDeque<Vec2>,
+    claim_cooldown: f32
+}
+
+impl HoxxClientState {
+
+    pub fn new() -> HoxxClientState {
+        HoxxClientState {
+            claim_start_position: None,
+            queued_hex_claims: VecDeque::new(),
+            claim_cooldown: 0.0
+        }
+    }
+
+    pub fn push_claim_world(&mut self, new_world_position: Vec2) {
+        self.queued_hex_claims.push_back(new_world_position);
+    }
+
+    pub fn update(&mut self, net: &mut NetworkClient, dt: f32) {
+        
+        self.claim_cooldown = (self.claim_cooldown - dt).max(0.0);
+        if self.claim_cooldown > 0.0 {
+            return;
+        }
+
+        if let Some(hex_world_position) = self.queued_hex_claims.pop_front() {
+            net.send_claim_message(hex_world_position.x as i32, hex_world_position.y as i32);
+        }
+
+    }
+}
+
+trait HoxxNetworkClient {
+    fn send_claim_message(&mut self, world_x: i32, world_y: i32);
+}
+
+impl HoxxNetworkClient for NetworkClient {
+    fn send_claim_message(&mut self, world_x: i32, world_y: i32) {
+        self.send_text(ClientMessage::Claim { world_x, world_y }.serialize_json());
+    }
+}
+
 struct HoxxClient {
 
     camera: GameCamera2D,
@@ -32,9 +78,13 @@ struct HoxxClient {
     state: GameState,
     net: NetworkClient,
     id: ClientID,
+
+    // intermediate client state
+    client_state: HoxxClientState,
     
     // ... debug stuff? :D
     debug_state: HoxxClientDebug
+
 }
 
 impl HoxxClient {
@@ -47,6 +97,7 @@ impl HoxxClient {
             net: NetworkClient::new(),
             id: ClientID::INVALID,
 
+            client_state: HoxxClientState::new(),
             debug_state: HoxxClientDebug::new()
         }
     }
@@ -72,7 +123,7 @@ impl HoxxClient {
         self.net.disconnect()
     }
 
-    pub fn update(&mut self) {
+    pub fn update(&mut self, dt: f32) {
 
         let was_toggle_coords_pressed = is_key_pressed(KeyCode::T);
         if was_toggle_coords_pressed {
@@ -86,16 +137,31 @@ impl HoxxClient {
 
         let was_claim_pressed = is_mouse_button_pressed(MouseButton::Left);
         if was_claim_pressed {
-            let mouse_world_position = self.camera.mouse_world_position();
-            self.send_claim_message(mouse_world_position.x as i32, mouse_world_position.y as i32);
+            self.client_state.claim_start_position = Some(self.camera.mouse_world_position());
         }
 
+        let was_claim_released = is_mouse_button_released(MouseButton::Left);
+        if was_claim_released {
+
+            if let Some(claim_start_position) = self.client_state.claim_start_position {
+
+                let mouse_world_position = self.camera.mouse_world_position();
+                let mouse_world_hex = self.state.world_to_hex(mouse_world_position.x as i32, mouse_world_position.y as i32);
+                let source_world_hex = self.state.world_to_hex(claim_start_position.x as i32, claim_start_position.y as i32);
+
+                for hex in source_world_hex.line_to(mouse_world_hex) {
+                    let world_hex_position = self.state.hex_to_world(hex.x, hex.y);
+                    self.client_state.push_claim_world(world_hex_position);
+                }
+
+                self.client_state.claim_start_position = None;
+
+            }
+        }
+
+        self.client_state.update(&mut self.net, dt);
         self.handle_network_messages();
 
-    }
-
-    fn send_claim_message(&mut self, world_x: i32, world_y: i32) {
-        self.net.send_text(ClientMessage::Claim { world_x, world_y }.serialize_json());
     }
 
     fn handle_message(&mut self, message: &ClientMessage) {
@@ -142,17 +208,39 @@ impl HoxxClient {
 
         let mouse_world_position = self.camera.mouse_world_position();
         let world_position_as_hex = self.state.world_to_hex(mouse_world_position.x as i32, mouse_world_position.y as i32);
-        let hex_world_position = self.state.hex_to_world(world_position_as_hex.x, world_position_as_hex.y);
 
         let hex_value = self.state.get_world(world_position_as_hex.x, world_position_as_hex.y).unwrap_or(*self.id);
         let hex_colour = to_macroquad_color(self.state.get_client_colour(ClientID { id: hex_value }).unwrap_or(ClientColor::white())).with_alpha(0.25);
         let hex_border_colour = hex_colour.darken(0.1);
 
-        draw_hex(
-            hex_world_position.x as f32, hex_world_position.y as f32,
-            hex_border_colour,
-            hex_colour
-        );
+        if let Some(start_position) = self.client_state.claim_start_position {
+
+            let start_hex = self.state.world_to_hex(start_position.x as i32, start_position.y as i32);
+            let end_hex = world_position_as_hex;
+
+            for hex in start_hex.line_to(end_hex) {
+
+                let hex_world_position = self.state.hex_to_world(hex.x, hex.y);
+
+                draw_hex(
+                    hex_world_position.x as f32, hex_world_position.y as f32,
+                    hex_border_colour,
+                    hex_colour
+                );
+
+            }
+
+        } else {
+
+            let hex_world_position = self.state.hex_to_world(world_position_as_hex.x, world_position_as_hex.y);
+
+            draw_hex(
+                hex_world_position.x as f32, hex_world_position.y as f32,
+                hex_border_colour,
+                hex_colour
+            );
+
+        }
         
         let is_in_boundary_fn = |h: Hex| self.state.get_hex(h.x, h.y).and_then(|v| Some(ClientID { id: v })).unwrap_or(ClientID::INVALID) == self.id;
         if let Some(boundary) = trace_hex_boundary(world_position_as_hex, is_in_boundary_fn) {
@@ -234,6 +322,16 @@ impl HoxxClient {
     }
 
     fn draw_game_state(&self) {
+
+        let world_hex_padding = vec2(HEX_SIZE, HEX_SIZE);
+        let world_screen_top_left = self.camera.screen_to_world(vec2(0.0, 0.0)) - world_hex_padding;
+        let world_screen_bottom_right = self.camera.screen_to_world(screen_dimensions()) + world_hex_padding;
+        let world_screen_rect = Rect {
+            x: world_screen_top_left.x,
+            y: world_screen_top_left.y,
+            w: world_screen_bottom_right.x - world_screen_top_left.x,
+            h: world_screen_bottom_right.y - world_screen_top_left.y
+        };
         
         for (&(x, y), &value) in self.state.get_hexes() {
 
@@ -242,6 +340,10 @@ impl HoxxClient {
             let hex_colour = to_macroquad_color(colour);
             let hex_border_colour = hex_colour.darken(0.1);
             let hex_world_position = self.state.hex_to_world(x, y);
+
+            if world_screen_rect.contains(hex_world_position) == false {
+                continue;
+            }
 
             draw_hex(
                 hex_world_position.x as f32, hex_world_position.y as f32,
@@ -324,7 +426,7 @@ async fn main() {
 
     loop {
         let dt = get_frame_time();
-        client.update();
+        client.update(dt);
         client.draw(dt);
         next_frame().await;
     }

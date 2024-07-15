@@ -14,6 +14,7 @@ pub const SERVER_INTERNAL_PORT: u16 = 25565;
 
 pub const HEX_SIZE: f32 = 16.0;
 pub const HEX_IS_VERTICAL: bool = false;
+pub const HEX_CLAIM_COOLDOWN: f32 = 0.1;
 
 pub enum ClientState {
     Unconnected,
