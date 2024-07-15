@@ -47,18 +47,20 @@ impl HoxxClientState {
         self.queued_hex_claims.push_back(new_world_position);
     }
 
-    pub fn update(&mut self, net: &mut NetworkClient, dt: f32) {
-        
-        self.claim_cooldown = (self.claim_cooldown - dt).max(0.0);
+    pub fn try_pop_claim_world(&mut self) -> Option<Vec2> {
+
         if self.claim_cooldown > 0.0 {
-            return;
+            return None;
         }
 
-        if let Some(hex_world_position) = self.queued_hex_claims.pop_front() {
-            net.send_claim_message(hex_world_position.x as i32, hex_world_position.y as i32);
-        }
+        self.queued_hex_claims.pop_front()
 
     }
+
+    pub fn update(&mut self, net: &mut NetworkClient, dt: f32) {
+        self.claim_cooldown = (self.claim_cooldown - dt).max(0.0);
+    }
+
 }
 
 trait HoxxNetworkClient {
@@ -160,6 +162,12 @@ impl HoxxClient {
         }
 
         self.client_state.update(&mut self.net, dt);
+
+        if let Some(new_world_position_claim) = self.client_state.try_pop_claim_world() {
+            self.state.set_world(new_world_position_claim.x as i32, new_world_position_claim.y as i32, *self.id);
+            self.net.send_claim_message(new_world_position_claim.x as i32, new_world_position_claim.y as i32);
+        }
+
         self.handle_network_messages();
 
     }
