@@ -36,12 +36,21 @@ enum TracingMode {
     RotatingHand
 }
 
+pub enum HexBoundaryDirection {
+    Clockwise,
+    CounterClockwise
+}
+
 pub struct HexBoundary {
     pub vertices: Vec<Hex>,
     pub edges: Vec<Hex>
 }
 
 impl HexBoundary {
+
+    pub fn direction(&self) -> HexBoundaryDirection {
+        HexBoundaryDirection::Clockwise
+    }
 
     pub fn is_loop(&self) -> bool {
 
@@ -111,9 +120,6 @@ pub fn trace_hex_boundary(start_hand_hex: Hex, in_boundary_fn: impl Fn(Hex) -> b
             }
 
         }
-        
-        // println!("current standing hex: {:?}, current hand hex: {:?}", current_standing_hex, current_hand_hex);
-        // println!("start standing hex: {:?}, start hand hex: {:?} \n", start_standing_hex, start_hand_hex);
 
         if current_standing_hex == start_standing_hex && current_hand_hex == start_hand_hex && (standing_moved || hand_moved) {
             break;
