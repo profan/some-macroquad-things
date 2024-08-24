@@ -76,6 +76,8 @@ impl HoxxNetworkClient for NetworkClient {
 struct HoxxClient {
 
     camera: GameCamera2D,
+    render_target: Option<RenderTarget>,
+    render_target_size: Vec2,
     debug_text: DebugText,
     state: GameState,
     net: NetworkClient,
@@ -94,6 +96,8 @@ impl HoxxClient {
     pub fn new() -> HoxxClient {
         HoxxClient {
             camera: GameCamera2D::new(),
+            render_target: None,
+            render_target_size: Vec2::ZERO,
             debug_text: DebugText::new(),
             state: GameState::new(),
             net: NetworkClient::new(),
@@ -226,7 +230,7 @@ impl HoxxClient {
         let world_position_as_hex = self.state.world_to_hex(mouse_world_position.x as i32, mouse_world_position.y as i32);
     
         let hex_colour = to_macroquad_color(self.state.get_client_colour(self.id).unwrap_or(ClientColor::white())).with_alpha(0.25);
-        let hex_border_colour = hex_colour.darken(0.1);
+        let hex_border_colour = if self.camera.current_zoom() > 1.0 { hex_colour } else { hex_colour.darken(0.1) };
     
         if let Some(start_position) = self.client_state.claim_start_position {
     
@@ -356,6 +360,8 @@ impl HoxxClient {
 
     fn draw_game_state(&self) {
 
+        clear_background(WHITE);
+
         let world_hex_padding = vec2(HEX_SIZE, HEX_SIZE);
         let world_screen_top_left = self.camera.screen_to_world(vec2(0.0, 0.0)) - world_hex_padding;
         let world_screen_bottom_right = self.camera.screen_to_world(screen_dimensions()) + world_hex_padding;
@@ -371,7 +377,7 @@ impl HoxxClient {
             let colour = self.state.get_client_colour(ClientID { id: value }).unwrap_or(ClientColor::white());
 
             let hex_colour = to_macroquad_color(colour);
-            let hex_border_colour = hex_colour.darken(0.1);
+            let hex_border_colour = if self.camera.current_zoom() > 1.0 { hex_colour } else { hex_colour.darken(0.1) };
             let hex_world_position = self.state.hex_to_world(x, y);
 
             if world_screen_rect.contains(hex_world_position) == false {
@@ -428,6 +434,23 @@ impl HoxxClient {
         }
     
     }
+
+    fn update_render_target(&mut self) {
+
+        let current_screen_size = screen_dimensions();
+        let current_render_target_size = current_screen_size * self.camera.world_to_screen_scale_v(1.0);
+
+        if current_render_target_size != self.render_target_size {
+
+            let new_render_target = render_target(current_render_target_size.x as u32, current_render_target_size.y as u32);
+            new_render_target.texture.set_filter(FilterMode::Nearest);
+
+            self.render_target_size = current_render_target_size;
+            self.render_target = Some(new_render_target);
+
+        }
+
+    }
     
     pub fn draw(&mut self, dt: f32) {
 
@@ -435,9 +458,29 @@ impl HoxxClient {
 
         self.camera.tick(dt);
 
-        self.camera.push();
+        self.update_render_target();
+        if let Some(render_target) = &self.render_target {
+            self.camera.push_with_render_target(render_target);
+        } else {
+            self.camera.push();
+        }
         self.draw_game_state();
         self.camera.pop();
+
+        if let Some(render_target) = &self.render_target {
+            // draw the render texture flipped as macroquad is kinda wack like that tho
+            draw_texture_ex(
+                &render_target.texture,
+                0.0,
+                0.0,
+                WHITE,
+                DrawTextureParams {
+                    dest_size: Some(screen_dimensions()),
+                    flip_y: true,
+                    ..Default::default()
+                }
+            );
+        }
 
         self.draw_debug_state();
         self.debug_text.new_frame();

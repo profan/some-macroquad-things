@@ -42,6 +42,14 @@ impl GameCamera2D {
 
     }
 
+    fn should_invert_y_axis(&self) -> bool {
+        self.camera.render_target.is_none()
+    }
+
+    pub fn current_zoom(&self) -> f32 {
+        self.camera_zoom
+    }
+
     pub fn world_position(&self) -> Vec2 {
         self.camera.target
     }
@@ -102,6 +110,11 @@ impl GameCamera2D {
         rect.x = world_position.x;
         rect.y = world_position.y;
         rect
+    }
+
+    pub fn push_with_render_target(&mut self, render_target: &RenderTarget) {
+        self.camera.render_target = Some(render_target.clone());
+        self.push();
     }
 
     pub fn push(&self) {
@@ -182,14 +195,25 @@ fn handle_camera_zoom(active: &mut GameCamera2D, dt: f32) -> bool {
         active.camera.target
     };
 
-    let new_camera = Camera2D::from_display_rect_fixed(
-        Rect {
-            x: new_target.x - (new_size.x / 2.0),
-            y: new_target.y - (new_size.y / 2.0),
-            w: new_size.x,
-            h: new_size.y
-        }
-    );
+    let new_camera = if active.should_invert_y_axis() {
+        Camera2D::from_display_rect_fixed(
+            Rect {
+                x: new_target.x - (new_size.x / 2.0),
+                y: new_target.y - (new_size.y / 2.0),
+                w: new_size.x,
+                h: new_size.y
+            }
+        )
+    } else {
+        Camera2D::from_display_rect(
+            Rect {
+                x: new_target.x - (new_size.x / 2.0),
+                y: new_target.y - (new_size.y / 2.0),
+                w: new_size.x,
+                h: new_size.y
+            }
+        )
+    };
 
     active.camera_zoom = new_zoom;
     active.camera = new_camera;
