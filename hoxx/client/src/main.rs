@@ -212,91 +212,116 @@ impl HoxxClient {
         }
     }
 
-    fn draw_hex_highlight(&self) {
+    fn draw_hex_highlights(&self) {
+
+        let (mouse_world_position, world_position_as_hex, hex_colour, hex_border_colour) = self.draw_current_hex_highlight();
+        self.draw_hex_boundary(world_position_as_hex, mouse_world_position, hex_border_colour, hex_colour);
+        self.draw_pending_hexes(hex_border_colour, hex_colour);
+        
+    }
+
+    fn draw_current_hex_highlight(&self) -> (Vec2, Hex, Color, Color) {
 
         let mouse_world_position = self.camera.mouse_world_position();
         let world_position_as_hex = self.state.world_to_hex(mouse_world_position.x as i32, mouse_world_position.y as i32);
-
-        let hex_value = self.state.get_world(world_position_as_hex.x, world_position_as_hex.y).unwrap_or(*self.id);
-        let hex_colour = to_macroquad_color(self.state.get_client_colour(ClientID { id: hex_value }).unwrap_or(ClientColor::white())).with_alpha(0.25);
+    
+        let hex_colour = to_macroquad_color(self.state.get_client_colour(self.id).unwrap_or(ClientColor::white())).with_alpha(0.25);
         let hex_border_colour = hex_colour.darken(0.1);
-
+    
         if let Some(start_position) = self.client_state.claim_start_position {
-
+    
             let start_hex = self.state.world_to_hex(start_position.x as i32, start_position.y as i32);
             let end_hex = world_position_as_hex;
-
+    
             for hex in start_hex.line_to(end_hex) {
-
+    
                 let hex_world_position = self.state.hex_to_world(hex.x, hex.y);
-
+    
                 draw_hex(
                     hex_world_position.x as f32, hex_world_position.y as f32,
                     hex_border_colour,
                     hex_colour
                 );
-
+    
             }
-
+    
         } else {
-
+    
             let hex_world_position = self.state.hex_to_world(world_position_as_hex.x, world_position_as_hex.y);
-
+    
             draw_hex(
                 hex_world_position.x as f32, hex_world_position.y as f32,
                 hex_border_colour,
                 hex_colour
             );
-
+    
         }
         
+        (mouse_world_position, world_position_as_hex, hex_colour, hex_border_colour)
+
+    }
+    
+    fn draw_hex_boundary(&self, world_position_as_hex: Hex, mouse_world_position: Vec2, hex_border_colour: Color, hex_colour: Color) {
+
         let is_in_boundary_fn = |h: Hex| self.state.get_hex(h.x, h.y).and_then(|v| Some(ClientID { id: v })).unwrap_or(ClientID::INVALID) == self.id;
         if let Some(boundary) = trace_hex_boundary(world_position_as_hex, is_in_boundary_fn) {
-
+    
             draw_text_centered(&format!("is loop: {}", boundary.is_loop()), mouse_world_position.x, mouse_world_position.y, 16.0, BLACK);
-
+    
             for (idx, hex) in boundary.inner().into_iter().enumerate() {
-
+    
                 let hex_world_position = self.state.hex_to_world(hex.x, hex.y);
-
+    
                 draw_text_centered(&idx.to_string(), hex_world_position.x, hex_world_position.y, 16.0, GREEN);
-
+    
                 draw_hex(
                     hex_world_position.x, hex_world_position.y,
                     hex_border_colour.lighten(0.25),
                     hex_colour.lighten(0.25)
                 );
-
+    
             }
-
+    
             for (idx, hex) in boundary.outer().into_iter().enumerate() {
-
+    
                 let hex_world_position = self.state.hex_to_world(hex.x, hex.y);
-
+    
                 draw_text_centered(&idx.to_string(), hex_world_position.x, hex_world_position.y, 16.0, RED);
-
+    
                 draw_hex(
                     hex_world_position.x, hex_world_position.y,
                     hex_border_colour.lighten(0.25),
                     hex_colour.lighten(0.25)
                 );
-
+    
             }
-
+    
             if let Some(inner_hex) = boundary.hex_inside_boundary(|h| self.state.get_hex(h.x, h.y).unwrap_or(*ClientID::INVALID) != *self.id) {
-
+    
                 let hex_world_position = self.state.hex_to_world(inner_hex.x, inner_hex.y);
-
+    
                 draw_hex(
                     hex_world_position.x, hex_world_position.y,
                     hex_border_colour.darken(0.75),
                     hex_colour.darken(0.75)
                 );
-
+    
             }
-
+    
         }
-        
+
+    }
+    
+    fn draw_pending_hexes(&self, hex_border_colour: Color, hex_colour: Color) {
+
+        for pending_hex_world_position in &self.client_state.queued_hex_claims {
+            draw_hex(
+                pending_hex_world_position.x, pending_hex_world_position.y,
+                hex_border_colour,
+                hex_colour
+            );
+        }
+
     }
     
     fn draw_hex_coordinates(&self) {
@@ -361,7 +386,7 @@ impl HoxxClient {
             
         }
 
-        self.draw_hex_highlight();
+        self.draw_hex_highlights();
         self.draw_hex_coordinates();
 
     }

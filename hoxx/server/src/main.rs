@@ -1,6 +1,5 @@
-use std::{cell::RefCell, collections::{HashMap, HashSet}, rc::Rc, thread::current};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use state::HoxxGameState;
-use hexx::Hex;
 use hoxx_shared::{utils::{flood_fill_hexes, trace_hex_boundary}, Client, ClientColor, ClientID, ClientMessage, ClientState, SERVER_INTERNAL_PORT};
 use nanoserde::{DeJson, SerJson};
 
@@ -240,17 +239,21 @@ impl HoxxServer {
 
     fn spawn_client(&mut self, sender: ws::Sender) -> ClientID {
         let created_client_id = self.create_client(sender);
+        self.initialize_client(created_client_id);
+        created_client_id
+    }
+
+    fn initialize_client(&mut self, created_client_id: ClientID) {
 
         // set up client colour
         self.state.set_client_colour(created_client_id, Self::create_client_colour());
-
+    
         // send welcome message to client with their id and the game state
         self.send_join_message_to_client(created_client_id);
         self.send_updated_game_state_to_client(created_client_id);
 
-        created_client_id
     }
-
+    
     fn create_client(&mut self, sender: ws::Sender) -> ClientID {
         let created_client_id = self.current_client_id;
         let created_client = Client { id: created_client_id, state: ClientState::Connected };
