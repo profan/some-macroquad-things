@@ -397,7 +397,7 @@ impl HoxxClient {
 
     }
 
-    fn draw_debug_state(&mut self) {
+    fn draw_debug_ui_state(&mut self) {
 
         self.draw_network_debug_state();
     
@@ -405,6 +405,14 @@ impl HoxxClient {
     
         self.draw_game_debug_state();
     
+    }
+
+    fn draw_game_ui_state(&mut self) {
+
+        // #HACK: this is like, the dodgiest/hackiest way of doing this lol
+        let number_of_owned_hexes = self.state.get_hexes().iter().filter(|(k, v)| **v == *self.id).count();
+        self.debug_text.draw_text(format!("owned hexes: {}", number_of_owned_hexes), TextPosition::TopRight, BLACK);
+
     }
 
     fn draw_game_debug_state(&mut self) {
@@ -482,7 +490,8 @@ impl HoxxClient {
             );
         }
 
-        self.draw_debug_state();
+        self.draw_debug_ui_state();
+        self.draw_game_ui_state();
         self.debug_text.new_frame();
 
     }
