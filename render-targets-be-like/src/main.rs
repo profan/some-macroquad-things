@@ -39,7 +39,7 @@ async fn main() {
             current_render_target = Some(render_something_into_render_target());
             
             // NOTE #1: uncomment this to get it to render the render target texture properly
-            set_default_camera();
+            // set_default_camera();
         }
 
         set_camera(&Camera2D::default());
@@ -52,7 +52,7 @@ async fn main() {
         );
 
         // NOTE #2: if you uncomment this, the white clear background renders properly, otherwise you just get a black screen as well as no pink square
-        // set_default_camera();
+        set_default_camera();
         next_frame().await;
 
     }
