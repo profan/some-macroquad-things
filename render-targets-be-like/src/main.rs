@@ -13,9 +13,8 @@ fn create_render_target_camera(render_target: RenderTarget) -> Camera2D {
 
 fn render_something_into_render_target() -> RenderTarget {
 
-    // 16 is the number of tiles!
-    let texture_width = screen_width();
-    let texture_height = 128;
+    let texture_width = 1;
+    let texture_height = 1;
 
     let render_target = render_target(texture_width as u32, texture_height as u32);
     render_target.texture.set_filter(FilterMode::Linear);
@@ -40,7 +39,7 @@ async fn main() {
             current_render_target = Some(render_something_into_render_target());
             
             // NOTE #1: uncomment this to get it to render the render target texture properly
-            // set_default_camera();
+            set_default_camera();
         }
 
         set_camera(&Camera2D::default());
