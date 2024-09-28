@@ -7,31 +7,34 @@ use crate::{RotatedBy, WithY};
 unsafe fn draw_quad(vertices: [(Vec3, Vec2, Color); 4]) {
     let context = get_internal_gl().quad_gl;
     let indices = [0, 1, 2, 0, 2, 3];
-    let normal = Vec4::Y;
+    let ab = vertices[0].0 - vertices[1].0;
+    let ac = vertices[0].0 - vertices[3].0;
+    let d = ab.cross(ac);
+    let n = d / d.length();
     let quad = [
         macroquad::models::Vertex {
             position: vertices[0].0,
             uv: vertices[0].1,
             color: vertices[0].2.into(),
-            normal: normal
+            normal: n
         },
         macroquad::models::Vertex {
             position: vertices[1].0,
             uv: vertices[1].1,
             color: vertices[1].2.into(),
-            normal: normal
+            normal: n
         },
         macroquad::models::Vertex {
             position: vertices[2].0,
             uv: vertices[2].1,
             color: vertices[2].2.into(),
-            normal: normal
+            normal: n
         },
         macroquad::models::Vertex {
             position: vertices[3].0,
             uv: vertices[3].1,
             color: vertices[3].2.into(),
-            normal: normal
+            normal: n
         }
     ];
 
