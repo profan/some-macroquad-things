@@ -128,12 +128,15 @@ impl PhysicsManager {
             };
 
             // resolve impact velocity...
-            let mut other_body = world.get::<&mut DynamicBody>(*other).expect("must have dynamic body!");
-            let other_body_mass = other_body.mass();
-            *other_body.velocity_mut() -= resolved_impact_velocity * this_body_mass;
+            {
+                let mut other_body_mut = world.get::<&mut DynamicBody>(*other).expect("must have dynamic body!");
+                let other_body_mass = other_body_mut.mass();
+                *other_body_mut.velocity_mut() -= resolved_impact_velocity * this_body_mass;
+            }
 
-            // handle collision response callbacks, if it has one
+            // handle collision response callbacks, if it has one (make sure to drop mut ref here, or we get multiple muts)
             if let Ok(dynamic_body_callback) = world.get::<&DynamicBodyCallback>(*entity) {
+                let other_body = world.get::<&DynamicBody>(*other).expect("must have dynamic body!");
                 (dynamic_body_callback.on_collision)(&world, &mut command_buffer, *entity, *other, &other_body);
             }
 

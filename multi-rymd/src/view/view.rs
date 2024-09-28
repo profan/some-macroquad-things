@@ -1557,7 +1557,7 @@ impl RymdGameView {
         debug.draw_text(format!("collision responses: {} (shift + c to toggle bounds)", model.physics_manager.number_of_active_collision_responses()), TextPosition::TopLeft, WHITE);
 
         if lockstep.is_singleplayer() {
-            debug.draw_text("press tab to switch the current player! (only in singleplayer)", TextPosition::TopLeft, WHITE);
+            debug.draw_text("press tab to switch the current player!", TextPosition::TopLeft, WHITE);
             if is_key_pressed(KeyCode::Tab) {
                 self.switch_player_id_to_next(&mut model.world);
             }
