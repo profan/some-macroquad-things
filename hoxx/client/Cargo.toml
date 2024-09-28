@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-macroquad = "0.4.5"
+macroquad = "0.4.6"
 nanoserde = "0.1.35"
 hoxx-shared = { path = "../shared" }
 utility = { path = "../../utility" }

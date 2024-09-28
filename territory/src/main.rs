@@ -323,7 +323,7 @@ fn rasterize_tile_atlas(line_color: Color, fill_color: Color, line_thickness: f3
     let texture_width = (TILE_SIZE * 16) + (TILE_PADDING * 15);
     let texture_height = TILE_SIZE;
 
-    let render_target = render_target(texture_width as u32, texture_height as u32);
+    let render_target = render_target_msaa(texture_width as u32, texture_height as u32, 4);
     render_target.texture.set_filter(FilterMode::Linear);
 
     let render_target_camera = create_render_target_camera(render_target.clone());
@@ -430,6 +430,7 @@ fn create_height_field_buffer_texture(map: &Heightmap) -> Texture2D {
                 mag_filter: FilterMode::Nearest,
                 mipmap_filter: MipmapFilterMode::Nearest,
                 allocate_mipmaps: true,
+                sample_count: 0
             }
         )
     };
@@ -811,10 +812,6 @@ async fn main() {
 
         if should_rasterize_tile_atlas {
 
-            if let Some(atlas) = &rasterized_tile_atlas {
-                atlas.delete();
-            }
-
             let line_thickness = active_camera.camera_zoom.max(1.0) * 2.0;
             rasterized_tile_atlas = Some(rasterize_tile_atlas(BLACK.lighten(0.75), WHITE, line_thickness));
 
@@ -830,16 +827,19 @@ async fn main() {
         // let pleasant_earthy_green = Color::from_rgba(104, 118, 53, 255);
         let murky_ocean_blue = Color::from_rgba(21, 119, 136, 255);
 
-        // set_default_camera();
+        // NOTE: this flushes the render passes so that our tile atlas actually gets rendered before we try to actually use it, otherwise we get unitialized memory it seems like
+        set_default_camera();
+        
         set_camera(&active_camera.camera);
         clear_background(murky_ocean_blue);
 
+
         // uncomment this to see the tile atlas generated
-        // draw_texture(
-        //     rasterized_tile_atlas.unwrap().texture,
-        //     0.0, 0.0,
-        //     WHITE
-        // );
+        draw_texture(
+            &rasterized_tile_atlas.as_ref().unwrap().texture,
+            0.0, 0.0,
+            WHITE
+        );
 
         draw_height_field(
             &active_camera,

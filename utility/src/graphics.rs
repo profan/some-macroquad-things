@@ -7,27 +7,32 @@ use crate::{RotatedBy, WithY};
 unsafe fn draw_quad(vertices: [(Vec3, Vec2, Color); 4]) {
     let context = get_internal_gl().quad_gl;
     let indices = [0, 1, 2, 0, 2, 3];
+    let normal = Vec4::Y;
     let quad = [
-        (
-            [vertices[0].0.x, vertices[0].0.y, vertices[0].0.z],
-            [vertices[0].1.x, vertices[0].1.y],
-            vertices[0].2.into(),
-        ),
-        (
-            [vertices[1].0.x, vertices[1].0.y, vertices[1].0.z],
-            [vertices[1].1.x, vertices[1].1.y],
-            vertices[1].2.into(),
-        ),
-        (
-            [vertices[2].0.x, vertices[2].0.y, vertices[2].0.z],
-            [vertices[2].1.x, vertices[2].1.y],
-            vertices[2].2.into(),
-        ),
-        (
-            [vertices[3].0.x, vertices[3].0.y, vertices[3].0.z],
-            [vertices[3].1.x, vertices[3].1.y],
-            vertices[3].2.into(),
-        ),
+        macroquad::models::Vertex {
+            position: vertices[0].0,
+            uv: vertices[0].1,
+            color: vertices[0].2.into(),
+            normal: normal
+        },
+        macroquad::models::Vertex {
+            position: vertices[1].0,
+            uv: vertices[1].1,
+            color: vertices[1].2.into(),
+            normal: normal
+        },
+        macroquad::models::Vertex {
+            position: vertices[2].0,
+            uv: vertices[2].1,
+            color: vertices[2].2.into(),
+            normal: normal
+        },
+        macroquad::models::Vertex {
+            position: vertices[3].0,
+            uv: vertices[3].1,
+            color: vertices[3].2.into(),
+            normal: normal
+        }
     ];
 
     context.draw_mode(DrawMode::Triangles);
