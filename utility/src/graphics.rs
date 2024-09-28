@@ -10,7 +10,7 @@ unsafe fn draw_quad(vertices: [(Vec3, Vec2, Color); 4]) {
     let ab = vertices[0].0 - vertices[1].0;
     let ac = vertices[0].0 - vertices[3].0;
     let d = ab.cross(ac);
-    let n = d / d.length();
+    let n = (d / d.length()).extend(0.0);
     let quad = [
         macroquad::models::Vertex {
             position: vertices[0].0,
