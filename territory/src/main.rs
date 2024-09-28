@@ -323,7 +323,7 @@ fn rasterize_tile_atlas(line_color: Color, fill_color: Color, line_thickness: f3
     let texture_width = (TILE_SIZE * 16) + (TILE_PADDING * 15);
     let texture_height = TILE_SIZE;
 
-    let render_target = render_target_msaa(texture_width as u32, texture_height as u32, 4);
+    let render_target = render_target(texture_width as u32, texture_height as u32);
     render_target.texture.set_filter(FilterMode::Linear);
 
     let render_target_camera = create_render_target_camera(render_target.clone());
@@ -791,6 +791,7 @@ async fn main() {
 
     let mut debug_text = DebugText::new();
 
+    let mut should_show_tile_atlas = false;
     let mut should_rasterize_tile_atlas = true;
     let mut rasterized_tile_atlas: Option<RenderTarget> = None;
 
@@ -809,11 +810,13 @@ async fn main() {
         let dt = get_frame_time();
 
         // re-rasterize atlas if necessary
-
         if should_rasterize_tile_atlas {
 
             let line_thickness = active_camera.camera_zoom.max(1.0) * 2.0;
             rasterized_tile_atlas = Some(rasterize_tile_atlas(BLACK.lighten(0.75), WHITE, line_thickness));
+
+            // NOTE: this flushes the render passes so that our tile atlas actually gets rendered before we try to actually use it, otherwise we get unitialized memory it seems like
+            set_default_camera();
 
         }
 
@@ -826,20 +829,18 @@ async fn main() {
 
         // let pleasant_earthy_green = Color::from_rgba(104, 118, 53, 255);
         let murky_ocean_blue = Color::from_rgba(21, 119, 136, 255);
-
-        // NOTE: this flushes the render passes so that our tile atlas actually gets rendered before we try to actually use it, otherwise we get unitialized memory it seems like
-        set_default_camera();
         
         set_camera(&active_camera.camera);
         clear_background(murky_ocean_blue);
 
-
-        // uncomment this to see the tile atlas generated
-        draw_texture(
-            &rasterized_tile_atlas.as_ref().unwrap().texture,
-            0.0, 0.0,
-            WHITE
-        );
+        // enable this to see the tile atlas generated
+        if should_show_tile_atlas {
+            draw_texture(
+                &rasterized_tile_atlas.as_ref().unwrap().texture,
+                0.0, 0.0,
+                WHITE
+            );
+        }
 
         draw_height_field(
             &active_camera,
