@@ -1216,6 +1216,10 @@ impl RymdGameView {
     
         }
     }
+
+    fn is_currently_issuing_an_attack_order(&self) -> bool {
+        is_key_down(KeyCode::A)
+    }
     
     fn draw_ordering(&self, world: &World) {
         
@@ -1230,6 +1234,9 @@ impl RymdGameView {
         let line_thickness = 1.0;
         let mut last_point: Vec2 = self.ordering.points()[0];
 
+        let is_currently_issuing_an_attack_order = self.is_currently_issuing_an_attack_order();
+        let line_colour = if is_currently_issuing_an_attack_order { RED } else { GREEN };
+
         for p in self.ordering.points().iter().skip(1) {
             if last_point != *p {
                 let current_screen_point = self.camera.world_to_screen(*p);
@@ -1240,7 +1247,7 @@ impl RymdGameView {
                     current_screen_point.x,
                     current_screen_point.y,
                     line_thickness,
-                    GREEN
+                    line_colour
                 );
             }
             last_point = *p;
@@ -1254,7 +1261,7 @@ impl RymdGameView {
             current_screen_point.x,
             current_screen_point.y,
             line_thickness,
-            GREEN
+            line_colour
         );
 
     }
