@@ -652,11 +652,11 @@ fn handle_camera_movement(active: &mut GameCamera, dt: f32) {
     let mut camera_delta = Vec2::ZERO;
 
     if is_up_pressed {
-        camera_delta += vec2(0.0, 1.0);
+        camera_delta += vec2(0.0, -1.0);
     }
 
     if is_down_pressed {
-        camera_delta += vec2(0.0, -1.0);
+        camera_delta += vec2(0.0, 1.0);
     }
 
     if is_left_pressed {
@@ -666,7 +666,7 @@ fn handle_camera_movement(active: &mut GameCamera, dt: f32) {
     if is_right_pressed {
         camera_delta += vec2(1.0, 0.0);
     }
-    
+
     active.camera.target += camera_delta * camera_speed * dt;
 
 }
