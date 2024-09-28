@@ -161,7 +161,9 @@ impl OrderingState {
 
     fn new() -> OrderingState {
         let min_point_distance = 16.0;
-        OrderingState { line: AverageLine2D::new(min_point_distance) }
+        OrderingState {
+            line: AverageLine2D::new(min_point_distance)
+        }
     }
 
     fn is_empty(&self) -> bool {
@@ -988,7 +990,6 @@ impl RymdGameView {
                 }
 
             } else {
-                let should_issue_attack_move_order = is_key_released(KeyCode::A);
                 self.handle_move_order(world, current_selection_end_point, mouse_position, lockstep, should_group, should_add, should_issue_attack_move_order);
             }
 
@@ -1272,6 +1273,10 @@ impl RymdGameView {
             );
         }
     }
+    
+    fn draw_pending_orders(&self, model: &RymdGameModel) {
+
+    }
 
     fn draw_orders(&self, model: &RymdGameModel) {
 
@@ -1288,7 +1293,7 @@ impl RymdGameView {
             let order_line_head_size = self.camera.world_to_screen_scale_v(8.0);
 
             let order_line_colour_attack = RED.with_alpha(0.5);
-            let order_line_colour_attack_move = BLUE.with_alpha(0.5);
+            let order_line_colour_attack_move = RED.with_alpha(0.5);
             let order_line_colour_move = GREEN.with_alpha(0.5);
 
             for (i, order) in current_orders.iter().enumerate() {
@@ -1903,7 +1908,9 @@ impl RymdGameView {
 
         self.draw_background_texture(screen_width(), screen_height(), self.camera.world_position());
 
+        self.draw_pending_orders(&model);
         self.draw_orders(&model);
+
         self.draw_selection();
         self.draw_selectables(&mut model.world);
         self.draw_ordering(&model.world);
