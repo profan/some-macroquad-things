@@ -324,12 +324,11 @@ fn rasterize_tile_atlas(line_color: Color, fill_color: Color, line_thickness: f3
     let texture_height = TILE_SIZE;
 
     let render_target = render_target(texture_width as u32, texture_height as u32);
-    render_target.texture.set_filter(FilterMode::Linear);
+    render_target.texture.set_filter(FilterMode::Nearest);
 
     let render_target_camera = create_render_target_camera(render_target.clone());
 
     set_camera(&render_target_camera);
-
     clear_background(WHITE.with_alpha(0.0));
 
     for i in 0..16 {
@@ -791,7 +790,7 @@ async fn main() {
 
     let mut debug_text = DebugText::new();
 
-    let mut should_show_tile_atlas = false;
+    let mut should_show_tile_atlas = true;
     let mut should_rasterize_tile_atlas = true;
     let mut rasterized_tile_atlas: Option<RenderTarget> = None;
 
@@ -807,6 +806,7 @@ async fn main() {
     
     loop {
 
+        active_camera.size = screen_dimensions();
         let dt = get_frame_time();
 
         // re-rasterize atlas if necessary
@@ -835,8 +835,10 @@ async fn main() {
 
         // enable this to see the tile atlas generated
         if should_show_tile_atlas {
+            let atlas_texture = &rasterized_tile_atlas.as_ref().unwrap().texture;
+            draw_rectangle_lines(0.0, 0.0, atlas_texture.width(), atlas_texture.height(), 1.0, GREEN);
             draw_texture(
-                &rasterized_tile_atlas.as_ref().unwrap().texture,
+                atlas_texture,
                 0.0, 0.0,
                 WHITE
             );
