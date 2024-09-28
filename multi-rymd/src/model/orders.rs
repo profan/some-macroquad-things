@@ -17,8 +17,8 @@ use super::PhysicsBody;
 use super::get_entity_position;
 use super::get_entity_position_from_id;
 use super::get_closest_position_with_entity_bounds;
-use super::point_ship_towards_target;
-use super::steer_ship_towards_target;
+use super::point_entity_towards_target;
+use super::steer_entity_towards_target;
 use super::{RymdGameModel, Constructor, Controller, Health, Orderable};
 
 #[derive(Debug, Clone, Copy)]
@@ -175,7 +175,7 @@ impl Order for MoveOrder {
     }
 
     fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
-        steer_ship_towards_target(&mut model.world, entity, self.x, self.y, dt);
+        steer_entity_towards_target(&mut model.world, entity, self.x, self.y, dt);
     }
 
     fn completed(&self, entity: Entity, model: &mut RymdGameModel) {
@@ -213,7 +213,7 @@ impl Order for AttackOrder {
             drop(attacker);
 
             if attacker_position.distance(target_position) > attack_range {
-                steer_ship_towards_target(&mut model.world, entity, target_position.x, target_position.y, dt);
+                steer_entity_towards_target(&mut model.world, entity, target_position.x, target_position.y, dt);
             }
 
         }
@@ -311,12 +311,12 @@ impl Order for ConstructOrder {
 
             let target_position = get_entity_position_from_id(&model.world, entity_id).expect("could not unpack target position?");
             if self.is_self_order == false && self.is_within_constructor_range(entity, &model.world, target_position) == false {
-                steer_ship_towards_target(&mut model.world, entity, target_position.x, target_position.y, dt);
+                steer_entity_towards_target(&mut model.world, entity, target_position.x, target_position.y, dt);
                 return;
             }
 
             if self.is_self_order == false && self.is_within_constructor_range(entity, &model.world, target_position) {
-                point_ship_towards_target(&mut model.world, entity, target_position.x, target_position.y, dt);
+                point_entity_towards_target(&mut model.world, entity, target_position.x, target_position.y, dt);
             }
 
             let mut constructor = model.world.get::<&mut Constructor>(entity).expect("must have constructor to be issuing construct order!");
@@ -342,7 +342,7 @@ impl Order for ConstructOrder {
             let construction_position = vec2(self.x, self.y);
 
             if self.is_self_order == false && self.is_within_constructor_range(entity, &model.world, construction_position) == false {
-                steer_ship_towards_target(&mut model.world, entity, construction_position.x, construction_position.y, dt);
+                steer_entity_towards_target(&mut model.world, entity, construction_position.x, construction_position.y, dt);
                 return;
             }
 

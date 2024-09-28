@@ -14,7 +14,7 @@ use crate::game::RymdGameParameters;
 use super::AnimatedSprite;
 use super::{create_simple_bullet, Effect};
 use super::get_entity_position;
-use super::point_ship_towards_target;
+use super::point_entity_towards_target;
 
 use super::Attackable;
 use super::Attacker;
@@ -339,7 +339,7 @@ impl RymdGameModel {
             // #TODO: depending on unit stance, either turn towards the target, or actually pursue it when attacking
 
             if let Some(position) = closest_target_position {
-                point_ship_towards_target(&mut self.world, e, position.x, position.y, Self::TIME_STEP);
+                point_entity_towards_target(&mut self.world, e, position.x, position.y, Self::TIME_STEP);
                 if let Ok(mut attacker) = self.world.get::<&mut Attacker>(e) {
                     attacker.target = Some(closest_target);
                 }

@@ -42,7 +42,7 @@ pub fn get_closest_position_with_entity_id_bounds(world: &World, entity_id: u64)
     }
 }
 
-fn ship_apply_steering(kinematic: &mut Kinematic, steering_maybe: Option<SteeringOutput>, dt: f32) {
+fn entity_apply_steering(kinematic: &mut Kinematic, steering_maybe: Option<SteeringOutput>, dt: f32) {
 
     // #FIXME: make this data driven, this should be defined per entity (type?)
     let turn_rate = 4.0;
@@ -62,7 +62,7 @@ fn ship_apply_steering(kinematic: &mut Kinematic, steering_maybe: Option<Steerin
 
 }
 
-pub fn steer_ship_towards_target(world: &mut World, entity: Entity, x: f32, y: f32, dt: f32) {
+pub fn steer_entity_towards_target(world: &mut World, entity: Entity, x: f32, y: f32, dt: f32) {
 
     if let Ok(mut dynamic_body) = world.get::<&mut DynamicBody>(entity) {
 
@@ -90,13 +90,13 @@ pub fn steer_ship_towards_target(world: &mut World, entity: Entity, x: f32, y: f
         ).unwrap_or_default();
 
         let final_steering_output = arrive_steering_output + face_steering_output;
-        ship_apply_steering(&mut dynamic_body.kinematic, Some(final_steering_output), dt);
+        entity_apply_steering(&mut dynamic_body.kinematic, Some(final_steering_output), dt);
 
     }
 
 }
 
-pub fn point_ship_towards_target(world: &mut World, entity: Entity, x: f32, y: f32, dt: f32) {
+pub fn point_entity_towards_target(world: &mut World, entity: Entity, x: f32, y: f32, dt: f32) {
 
     if let Ok(mut dynamic_body) = world.get::<&mut DynamicBody>(entity) {
 
@@ -116,7 +116,7 @@ pub fn point_ship_towards_target(world: &mut World, entity: Entity, x: f32, y: f
             time_to_target
         ).unwrap_or_default();
 
-        ship_apply_steering(&mut dynamic_body.kinematic, Some(face_steering_output), dt);
+        entity_apply_steering(&mut dynamic_body.kinematic, Some(face_steering_output), dt);
 
     }
     

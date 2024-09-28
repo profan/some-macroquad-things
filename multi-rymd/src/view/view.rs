@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::f32::consts::PI;
 
 use macroquad_particles::{EmitterConfig, Emitter};
-use utility::{is_point_inside_rect, draw_texture_centered_with_rotation, draw_texture_centered_with_rotation_frame, DebugText, TextPosition, AsVector, RotatedBy, draw_arrow, draw_text_centered, draw_texture_centered, WithAlpha, draw_rectangle_lines_centered, AverageLine2D};
+use utility::{draw_arrow, draw_rectangle_lines_centered, draw_text_centered, draw_texture_centered, draw_texture_centered_with_rotation, draw_texture_centered_with_rotation_frame, is_point_inside_rect, AsPerpendicular, AsVector, AverageLine2D, DebugText, RotatedBy, TextPosition, WithAlpha};
 use lockstep_client::{step::LockstepClient, app::yakui_min_column};
 use macroquad_particles::*;
 use macroquad::prelude::*;
@@ -568,8 +568,23 @@ pub struct RymdGameView {
     selection: SelectionState,
     ordering: OrderingState,
     resources: Resources,
-    render_bounds: bool
+    
+    debug: RymdGameDebug
 
+}
+
+struct RymdGameDebug {
+    render_bounds: bool,
+    render_kinematic: bool
+}
+
+impl RymdGameDebug {
+    pub fn new() -> RymdGameDebug {
+        RymdGameDebug {
+            render_bounds: false,
+            render_kinematic: false
+        }
+    }
 }
 
 impl RymdGameView {
@@ -584,7 +599,7 @@ impl RymdGameView {
             ordering: OrderingState::new(),
             selection: SelectionState::new(),
             resources: Resources::new(),
-            render_bounds: false
+            debug: RymdGameDebug::new()
         }
     }
 
@@ -1554,7 +1569,9 @@ impl RymdGameView {
         debug.draw_text(format!("mouse (screen) position: {:?}", mouse_position()), TextPosition::TopLeft, WHITE);
         debug.draw_text(format!("mouse (world) position: ({:.1}, {:.1})", mouse_world_position.x, mouse_world_position.y), TextPosition::TopLeft, WHITE);
         debug.draw_text(format!("number of entities: {}", model.world.len()), TextPosition::TopLeft, WHITE);
-        debug.draw_text(format!("collision responses: {} (shift + c to toggle bounds)", model.physics_manager.number_of_active_collision_responses()), TextPosition::TopLeft, WHITE);
+        debug.draw_text(format!("collision responses: {}", model.physics_manager.number_of_active_collision_responses()), TextPosition::TopLeft, WHITE);
+        debug.draw_text(format!(" - shift+c to toggle bounds debug (enabled: {})", self.debug.render_bounds), TextPosition::TopLeft, WHITE);
+        debug.draw_text(format!(" - shift+k to toggle kinematics debug (enabled: {})", self.debug.render_kinematic), TextPosition::TopLeft, WHITE);
 
         if lockstep.is_singleplayer() {
             debug.draw_text("press tab to switch the current player!", TextPosition::TopLeft, WHITE);
@@ -1565,7 +1582,12 @@ impl RymdGameView {
 
         let should_toggle_debug_bounds = is_key_down(KeyCode::LeftShift) && is_key_released(KeyCode::C);
         if should_toggle_debug_bounds && yakui_macroquad::has_keyboard_focus() == false {
-            self.render_bounds = !self.render_bounds;
+            self.debug.render_bounds = !self.debug.render_bounds;
+        }
+
+        let should_toggle_kinematic_debug = is_key_down(KeyCode::LeftShift) && is_key_released(KeyCode::K);
+        if should_toggle_kinematic_debug && yakui_macroquad::has_keyboard_focus() == false {
+            self.debug.render_kinematic = !self.debug.render_kinematic
         }
 
     }
@@ -1803,6 +1825,53 @@ impl RymdGameView {
 
     }
 
+    fn draw_kinematic_debug(&self, world: &World) {
+
+        let kinematic_line_thickness = 1.0;
+        let kinematic_line_head_size = 8.0;
+
+        for (e, body) in world.query::<&DynamicBody>().iter() {
+
+            let body_position = body.position();
+            let body_direction = body.orientation().as_vector();
+
+            let body_velocity = body.velocity();
+            let body_angular_velocity = body.angular_velocity();
+
+            let screen_body_position = self.camera.world_to_screen(body_position);
+            let screen_body_velocity_position = self.camera.world_to_screen(body_position + body_velocity);
+
+            draw_arrow(
+                screen_body_position.x,
+                screen_body_position.y,
+                screen_body_velocity_position.x,
+                screen_body_velocity_position.y,
+                kinematic_line_thickness,
+                kinematic_line_head_size,
+                GREEN
+            );
+
+            let body_left = body_direction.perpendicular_ccw();
+            let body_turn_direction_normalised = body_left * body_angular_velocity / body_angular_velocity.abs();
+            let body_turn_direction = body_turn_direction_normalised * body_angular_velocity.abs();
+
+            let screen_body_turn_vector_length = 16.0;
+            let screen_body_turn_position = self.camera.world_to_screen(body_position + body_turn_direction * screen_body_turn_vector_length);
+
+            draw_arrow(
+                screen_body_position.x,
+                screen_body_position.y,
+                screen_body_turn_position.x,
+                screen_body_turn_position.y,
+                kinematic_line_thickness,
+                kinematic_line_head_size,
+                RED
+            );
+
+        }
+
+    }
+
     pub fn draw(&mut self, model: &mut RymdGameModel, debug: &mut DebugText, lockstep: &mut LockstepClient, dt: f32) {
 
         self.camera.tick(dt);
@@ -1818,8 +1887,12 @@ impl RymdGameView {
         self.draw_selectables(&mut model.world);
         self.draw_ordering(&model.world);
 
-        if self.render_bounds {
+        if self.debug.render_bounds {
             self.draw_body_bounds(&model.world);
+        }
+
+        if self.debug.render_kinematic {
+            self.draw_kinematic_debug(&model.world);
         }
 
         self.camera.push();
