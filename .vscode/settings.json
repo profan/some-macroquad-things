@@ -18,6 +18,7 @@
         "./orbits/Cargo.toml",
         "./polar/Cargo.toml",
         "./procedural-animation/Cargo.toml",
+        "./render-targets-be-like/Cargo.toml",
         "./stress-majorization/Cargo.toml",
         "./territory/Cargo.toml",
         "./transformy/Cargo.toml",
