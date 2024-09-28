@@ -479,6 +479,10 @@ pub fn max_health(world: &World, entity: Entity) -> i32 {
     world.get::<&Health>(entity).unwrap().full_health
 }
 
+pub struct Mover {
+    pub target: Option<Vec2>
+}
+
 pub struct Attacker {
     pub target: Option<Entity>,
     pub range: f32

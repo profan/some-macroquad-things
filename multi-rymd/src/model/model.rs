@@ -11,7 +11,9 @@ use crate::model::BlueprintID;
 use crate::model::GameMessage;
 use crate::game::RymdGameParameters;
 
+use super::steer_entity_towards_target;
 use super::AnimatedSprite;
+use super::Mover;
 use super::{create_simple_bullet, Effect};
 use super::get_entity_position;
 use super::point_entity_towards_target;
@@ -285,6 +287,21 @@ impl RymdGameModel {
 
     }
 
+    fn tick_movers(&mut self) {
+
+        let mut move_targets = Vec::new();
+
+        for (e, mover) in self.world.query::<&Mover>().iter() {
+            let Some(target_position) = mover.target else { continue };
+            move_targets.push((e, target_position));
+        }
+
+        for (e, target_position) in move_targets {
+            steer_entity_towards_target(&mut self.world, e, target_position.x, target_position.y, Self::TIME_STEP);
+        }
+
+    }
+
     fn tick_attackers(&mut self) {
 
         let mut attack_targets = HashMap::new();
@@ -299,9 +316,9 @@ impl RymdGameModel {
 
                 let has_same_controller = controller.id == other_controller.id;
                 let is_current_order_queue_empty = orderable.is_queue_empty(GameOrderType::Order);
-                let is_current_order_attack = if let Some(GameOrder::Attack(_)) = orderable.first_order(GameOrderType::Order) { true } else { false };
+                let is_current_order_attack_or_attack_move = if let Some(GameOrder::Attack(_) | GameOrder::AttackMove(_)) = orderable.first_order(GameOrderType::Order) { true } else { false };
 
-                if e == o || state != EntityState::Constructed || (is_current_order_queue_empty == false && is_current_order_attack == false) || has_same_controller {
+                if e == o || state != EntityState::Constructed || (is_current_order_queue_empty == false && is_current_order_attack_or_attack_move == false) || has_same_controller {
                     continue
                 }
 
@@ -615,6 +632,7 @@ impl RymdGameModel {
         self.tick_orderables();
         self.tick_transforms();
         self.tick_resources();
+        self.tick_movers();
         self.tick_attackers();
         self.tick_attacker_weapons();
         self.tick_projectiles();

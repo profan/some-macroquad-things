@@ -963,7 +963,15 @@ impl RymdGameView {
         let mouse_position: Vec2 = self.camera.mouse_world_position();
         let should_cancel_current_orders: bool = is_key_released(KeyCode::S);
 
-        if is_mouse_button_released(MouseButton::Right) {
+        let about_to_issue_attack_move_order = is_key_down(KeyCode::A);
+        let about_to_issue_order = is_mouse_button_down(MouseButton::Right);
+        let about_to_issue_any_order = about_to_issue_order || about_to_issue_attack_move_order;
+
+        let should_issue_attack_move_order = is_key_released(KeyCode::A);
+        let should_issue_order = is_mouse_button_released(MouseButton::Right);
+        let should_issue_any_order = should_issue_order || should_issue_attack_move_order;
+
+        if should_issue_any_order {
 
             let should_add = is_key_down(KeyCode::LeftShift);
             let should_group = is_key_down(KeyCode::LeftControl);
@@ -980,12 +988,13 @@ impl RymdGameView {
                 }
 
             } else {
-                self.handle_move_order(world, current_selection_end_point, mouse_position, lockstep, should_group, should_add);
+                let should_issue_attack_move_order = is_key_released(KeyCode::A);
+                self.handle_move_order(world, current_selection_end_point, mouse_position, lockstep, should_group, should_add, should_issue_attack_move_order);
             }
 
         } else {
 
-            if is_mouse_button_down(MouseButton::Right) {
+            if about_to_issue_any_order {
                 self.ordering.add_point(mouse_position);
             } else {
                 self.ordering.clear_points();
@@ -1045,7 +1054,7 @@ impl RymdGameView {
 
     }
 
-    fn handle_move_order(&mut self, world: &mut World, current_selection_end_point: Vec2, current_mouse_world_position: Vec2, lockstep: &mut LockstepClient, should_group: bool, should_add: bool) {
+    fn handle_move_order(&mut self, world: &mut World, current_selection_end_point: Vec2, current_mouse_world_position: Vec2, lockstep: &mut LockstepClient, should_group: bool, should_add: bool, should_attack: bool) {
         
         // we need to know the number of selected orderables so that we can distribute units along the line we draw for movement
         let number_of_selected_orderables = world.query_mut::<(&Orderable, &Selectable)>().into_iter().filter(|e| e.1.1.is_selected).count();
@@ -1072,7 +1081,12 @@ impl RymdGameView {
                 }
             };
 
-            lockstep.send_move_order(e, current_order_point, should_add);
+            if should_attack {
+                lockstep.send_attack_move_order(e, current_order_point, should_add);
+            } else {
+                lockstep.send_move_order(e, current_order_point, should_add);
+            }
+
             println!("[RymdGameView] ordered: {:?} to move to: {}", e, current_mouse_world_position);
     
         }
@@ -1274,11 +1288,18 @@ impl RymdGameView {
             let order_line_head_size = self.camera.world_to_screen_scale_v(8.0);
 
             let order_line_colour_attack = RED.with_alpha(0.5);
+            let order_line_colour_attack_move = BLUE.with_alpha(0.5);
             let order_line_colour_move = GREEN.with_alpha(0.5);
 
             for (i, order) in current_orders.iter().enumerate() {
 
-                let order_line_colour = if let GameOrder::Attack(_) | GameOrder::AttackMove(_) = order { order_line_colour_attack } else { order_line_colour_move };
+                let order_line_colour = if let GameOrder::Attack(_) = order {
+                    order_line_colour_attack
+                } else if let GameOrder::AttackMove(_) = order {
+                    order_line_colour_attack_move
+                } else {
+                    order_line_colour_move
+                };
 
                 if let Some(target_position) = order.get_target_position(model) {
                     let current_screen_position = self.camera.world_to_screen(current_line_start);

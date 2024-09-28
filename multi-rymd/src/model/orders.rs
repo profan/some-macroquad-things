@@ -13,6 +13,7 @@ use crate::model::GameMessage;
 use super::Attacker;
 use super::DynamicBody;
 use super::EntityState;
+use super::Mover;
 use super::PhysicsBody;
 use super::get_entity_position;
 use super::get_entity_position_from_id;
@@ -30,6 +31,7 @@ pub enum GameOrderType {
 pub trait GameOrdersExt {
 
     fn send_attack_order(&mut self, entity: Entity, target: Entity, should_add: bool);
+    fn send_attack_move_order(&mut self, entity: Entity, target_position: Vec2, should_add: bool);
     fn send_move_order(&mut self, entity: Entity, target_position: Vec2, should_add: bool);
     fn send_build_order(&mut self, entity: Entity, target_position: Vec2, blueprint_id: BlueprintID, should_add: bool, is_self: bool);
     fn send_repair_order(&mut self, entity: Entity, target_position: Vec2, target: Entity, should_add: bool);
@@ -43,6 +45,12 @@ impl GameOrdersExt for LockstepClient {
         let attack_order = GameOrder::Attack(AttackOrder { entity_id: target_entity.to_bits().into() });
         let attack_unit_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: attack_order, add: should_add };
         self.send_command(attack_unit_message.serialize_json());  
+    }
+
+    fn send_attack_move_order(&mut self, entity: Entity, target_position: Vec2, should_add: bool) {
+        let attack_move_order = GameOrder::AttackMove(AttackMoveOrder { x: target_position.x, y: target_position.y });
+        let attack_move_order_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: attack_move_order, add: should_add };
+        self.send_command(attack_move_order_message.serialize_json());  
     }
 
     fn send_move_order(&mut self, entity: Entity, target_position: Vec2, should_add: bool) {
@@ -175,11 +183,13 @@ impl Order for MoveOrder {
     }
 
     fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
-        steer_entity_towards_target(&mut model.world, entity, self.x, self.y, dt);
+        let mut mover = model.world.get::<&mut Mover>(entity).expect("anything being issued a move must have the Mover component!");
+        mover.target = self.get_target_position(model);
     }
 
     fn completed(&self, entity: Entity, model: &mut RymdGameModel) {
-        
+        let mut mover = model.world.get::<&mut Mover>(entity).expect("anything being issued a move must have the Mover component!");
+        mover.target = None;
     }
 }
 
@@ -205,18 +215,19 @@ impl Order for AttackOrder {
     }
 
     fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
-        if let Some(target_position) = self.get_target_position(model) {
 
-            let attacker = model.world.get::<&Attacker>(entity).expect("must have attacker component to attack!");
-            let attacker_position = get_entity_position(&model.world, entity).expect("must have position!");
-            let attack_range = attacker.range;
-            drop(attacker);
+        // if we don't have no target position just yeet ourselves
+        let Some(target_position) = self.get_target_position(model) else { return };
 
-            if attacker_position.distance(target_position) > attack_range {
-                steer_entity_towards_target(&mut model.world, entity, target_position.x, target_position.y, dt);
-            }
+        let attacker = model.world.get::<&Attacker>(entity).expect("must have attacker component to attack!");
+        let attacker_position = get_entity_position(&model.world, entity).expect("must have position!");
+        let attack_range = attacker.range;
+        drop(attacker);
 
+        if attacker_position.distance(target_position) > attack_range {
+            steer_entity_towards_target(&mut model.world, entity, target_position.x, target_position.y, dt);
         }
+
     }
 
     fn completed(&self, entity: Entity, model: &mut RymdGameModel) {
@@ -232,7 +243,9 @@ pub struct AttackMoveOrder {
 
 impl Order for AttackMoveOrder {
     fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
-        todo!()
+        let arbitrary_distance_threshold = 64.0;
+        let position = get_entity_position(&model.world, entity).expect("could not get position for attack move order, should never happen!");
+        position.distance(vec2(self.x, self.y)) < arbitrary_distance_threshold
     }
 
     fn get_target_position(&self, model: &RymdGameModel) -> Option<Vec2> {
@@ -240,11 +253,20 @@ impl Order for AttackMoveOrder {
     }
 
     fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
-        todo!()
+        let attacker = model.world.get::<&Attacker>(entity);
+        let mut mover = model.world.get::<&mut Mover>(entity).expect("anything being issued an attack move must have the Mover component!");
+
+        // if the entity isn't an attacker, just have them move instead of attack
+        if let Ok(attacker) = attacker && attacker.target.is_some() {
+            mover.target = None;
+        } else {
+            mover.target = self.get_target_position(model);
+        }
     }
 
     fn completed(&self, entity: Entity, model: &mut RymdGameModel) {
-        todo!()
+        let mut mover = model.world.get::<&mut Mover>(entity).expect("anything being issued an attack move must have the Mover component!");
+        mover.target = None;
     }
 }
 

@@ -2,7 +2,7 @@ use hecs::{Entity, World};
 use macroquad::{math::{Vec2, Rect, vec2}, miniquad::KeyCode};
 
 use crate::PlayerID;
-use super::{Controller, Health, Sprite, Transform, DynamicBody, create_default_kinematic_body, Orderable, Cost, BlueprintIdentity, Producer, Storage, Blueprints};
+use super::{create_default_kinematic_body, BlueprintIdentity, Blueprints, Controller, Cost, DynamicBody, Health, Mover, Orderable, Producer, Sprite, Storage, Transform};
 
 pub use i32 as BlueprintID;
 
@@ -152,10 +152,11 @@ pub fn build_shipyard(world: &mut World, owner: PlayerID, position: Vec2) -> Ent
     let health = Health::new_with_current_health(full_shipyard_health, initial_shipyard_health);
     let sprite = Sprite { texture: "SHIPYARD".to_string() };
     let dynamic_body = DynamicBody { is_enabled, is_static, bounds, kinematic, mask };
+    let mover = Mover { target: None };
     let state = EntityState::Ghost;
     let building = Building;
 
-    world.spawn((controller, transform, blueprint_identity, spawner, orderable, constructor, health, sprite, dynamic_body, building, state))
+    world.spawn((controller, transform, blueprint_identity, spawner, orderable, constructor, health, sprite, dynamic_body, mover, building, state))
 
 }
 

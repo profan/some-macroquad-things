@@ -6,7 +6,7 @@ use utility::AsAngle;
 
 use crate::PlayerID;
 use crate::model::{Transform, Orderable, AnimatedSprite, Thruster, DynamicBody, Ship, ThrusterKind};
-use super::{create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Constructor, Controller, Cost, EntityState, Health, HealthCallback, Producer, Steering, Weapon, DEFAULT_STEERING_PARAMETERS};
+use super::{create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Constructor, Controller, Cost, EntityState, Health, HealthCallback, Mover, Producer, Steering, Weapon, DEFAULT_STEERING_PARAMETERS};
 
 pub struct ShipParameters {
     turn_rate: f32
@@ -109,8 +109,9 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let orderable = Orderable::new();
     let state = EntityState::Ghost;
     let attackable = Attackable;
+    let mover = Mover { target: None };
 
-    let commander_ship_body = world.spawn((health, health_callback, transform, dynamic_body, sprite, producer, steering, ship, orderable, controller, constructor, blueprint_identity, state, attackable));
+    let commander_ship_body = world.spawn((health, health_callback, transform, dynamic_body, sprite, producer, steering, ship, orderable, controller, constructor, blueprint_identity, state, attackable, mover));
 
     // add ship thrusters
     let commander_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), -Vec2::X, -(PI / 2.0), commander_turn_thruster_power, ThrusterKind::Attitude, commander_ship_body));
@@ -174,7 +175,9 @@ pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) 
         target: None
     };
 
-    let arrowhead_ship_body = world.spawn((health, health_callback, transform, dynamic_body, sprite, steering, ship, orderable, controller, blueprint_identity, state, weapon, attackable, attacker));
+    let mover = Mover { target: None };
+
+    let arrowhead_ship_body = world.spawn((health, health_callback, transform, dynamic_body, sprite, steering, ship, orderable, controller, blueprint_identity, state, weapon, attackable, attacker, mover));
 
     // add ship thrusters
     let arrowhead_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), -Vec2::X, -(PI / 2.0), arrowhead_turn_thruster_power, ThrusterKind::Attitude, arrowhead_ship_body));
