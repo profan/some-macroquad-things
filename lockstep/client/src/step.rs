@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use nanoserde::{SerJson, DeJson};
 
-pub use i64 as PeerID;
-pub use i32 as TurnID;
+pub type PeerID = i64;
+pub type TurnID = i32;
 
 use crate::IS_DEBUGGING;
 

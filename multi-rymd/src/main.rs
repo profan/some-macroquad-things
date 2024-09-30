@@ -13,8 +13,8 @@ mod model;
 mod utils;
 mod view;
 
-use u64 as EntityID;
-use lockstep_client::step::PeerID as PlayerID;
+type EntityID = u64;
+type PlayerID = lockstep_client::step::PeerID;
 
 #[macroquad::main("multi-rymd")]
 async fn main() {
