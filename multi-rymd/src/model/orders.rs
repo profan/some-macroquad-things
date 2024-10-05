@@ -403,6 +403,12 @@ impl Order for ConstructOrder {
             self.inherit_orders_from_constructor_if_empty(entity, new_entity, model);
         }
 
+        set_movement_target_to_position(&model.world, entity, None);
+
+        if self.is_self_order == false {
+            set_rotation_target_to_position(&model.world, entity, None);
+        }
+
     }
     
 }

@@ -1218,7 +1218,7 @@ impl RymdGameView {
     }
 
     fn is_currently_issuing_an_attack_order(&self) -> bool {
-        is_key_down(KeyCode::A)
+        is_key_down(KeyCode::LeftControl) == false && is_key_down(KeyCode::A)
     }
     
     fn draw_ordering(&self, world: &World) {
