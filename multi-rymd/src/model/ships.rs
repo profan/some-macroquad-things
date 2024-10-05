@@ -133,7 +133,7 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let commander_metal_income = 10.0;
     let commander_energy_income = 10.0;
 
-    let steering_parameters = DEFAULT_STEERING_PARAMETERS;
+    let commander_steering_parameters = DEFAULT_STEERING_PARAMETERS;
 
     let commander_ship_parameters = ShipParameters {
 
@@ -145,7 +145,7 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
         texture: "PLAYER_SHIP".to_string(),
         texture_h_frames: 3,
 
-        steering_parameters: steering_parameters,
+        steering_parameters: commander_steering_parameters,
         turn_rate: 4.0
 
     };
@@ -204,7 +204,7 @@ pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let arrowhead_fire_rate = 0.25;
     let arrowhead_range = 256.0;
 
-    let steering_parameters = DEFAULT_STEERING_PARAMETERS;
+    let arrowhead_steering_parameters = DEFAULT_STEERING_PARAMETERS;
 
     let arrowhead_ship_parameters = ShipParameters {
 
@@ -216,7 +216,7 @@ pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) 
         texture: "ARROWHEAD".to_string(),
         texture_h_frames: 1,
 
-        steering_parameters: steering_parameters,
+        steering_parameters: arrowhead_steering_parameters,
         turn_rate: 4.0
 
     };
