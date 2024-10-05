@@ -114,8 +114,8 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let rotation_target = RotationTarget { target: None };
 
     let commander_ship_body = world.spawn((health, health_callback, transform, dynamic_body, sprite, producer, steering, ship, orderable, controller, constructor, blueprint_identity, state, attackable));
-    world.insert_one(commander_ship_body, movement_target);
-    world.insert_one(commander_ship_body, rotation_target);
+    let _ = world.insert_one(commander_ship_body, movement_target);
+    let _ = world.insert_one(commander_ship_body, rotation_target);
 
     // add ship thrusters
     let commander_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), -Vec2::X, -(PI / 2.0), commander_turn_thruster_power, ThrusterKind::Attitude, commander_ship_body));
@@ -183,8 +183,8 @@ pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let rotation_target = RotationTarget { target: None };
 
     let arrowhead_ship_body = world.spawn((health, health_callback, transform, dynamic_body, sprite, steering, ship, orderable, controller, blueprint_identity, state, weapon, attackable, attacker));
-    world.insert_one(arrowhead_ship_body, movement_target);
-    world.insert_one(arrowhead_ship_body, rotation_target);
+    let _ = world.insert_one(arrowhead_ship_body, movement_target);
+    let _ = world.insert_one(arrowhead_ship_body, rotation_target);
 
     // add ship thrusters
     let arrowhead_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), -Vec2::X, -(PI / 2.0), arrowhead_turn_thruster_power, ThrusterKind::Attitude, arrowhead_ship_body));
