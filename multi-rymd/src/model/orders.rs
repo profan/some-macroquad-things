@@ -10,10 +10,12 @@ use crate::EntityID;
 use crate::model::BlueprintID;
 use crate::model::GameMessage;
 
+use super::set_movement_target_to_position;
+use super::set_rotation_target_to_position;
 use super::Attacker;
 use super::DynamicBody;
 use super::EntityState;
-use super::Mover;
+use super::MovementTarget;
 use super::PhysicsBody;
 use super::get_entity_position;
 use super::get_entity_position_from_id;
@@ -183,13 +185,11 @@ impl Order for MoveOrder {
     }
 
     fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
-        let mut mover = model.world.get::<&mut Mover>(entity).expect("anything being issued a move must have the Mover component!");
-        mover.target = self.get_target_position(model);
+        set_movement_target_to_position(&model.world, entity, self.get_target_position(model));
     }
 
     fn completed(&self, entity: Entity, model: &mut RymdGameModel) {
-        let mut mover = model.world.get::<&mut Mover>(entity).expect("anything being issued a move must have the Mover component!");
-        mover.target = None;
+        set_movement_target_to_position(&model.world, entity, None);
     }
 }
 
@@ -254,19 +254,19 @@ impl Order for AttackMoveOrder {
 
     fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
         let attacker = model.world.get::<&Attacker>(entity);
-        let mut mover = model.world.get::<&mut Mover>(entity).expect("anything being issued an attack move must have the Mover component!");
 
         // if the entity isn't an attacker, just have them move instead of attack
-        if let Ok(attacker) = attacker && attacker.target.is_some() {
-            mover.target = None;
+        let target_position = if let Ok(attacker) = attacker && attacker.target.is_some() {
+           None
         } else {
-            mover.target = self.get_target_position(model);
-        }
+            self.get_target_position(model)
+        };
+
+        set_movement_target_to_position(&model.world, entity, target_position);
     }
 
     fn completed(&self, entity: Entity, model: &mut RymdGameModel) {
-        let mut mover = model.world.get::<&mut Mover>(entity).expect("anything being issued an attack move must have the Mover component!");
-        mover.target = None;
+        set_movement_target_to_position(&model.world, entity, None);
     }
 }
 
@@ -333,12 +333,12 @@ impl Order for ConstructOrder {
 
             let target_position = get_entity_position_from_id(&model.world, entity_id).expect("could not unpack target position?");
             if self.is_self_order == false && self.is_within_constructor_range(entity, &model.world, target_position) == false {
-                steer_entity_towards_target(&mut model.world, entity, target_position.x, target_position.y, dt);
+                set_movement_target_to_position(&model.world, entity, Some(target_position));
                 return;
             }
 
             if self.is_self_order == false && self.is_within_constructor_range(entity, &model.world, target_position) {
-                point_entity_towards_target(&mut model.world, entity, target_position.x, target_position.y, dt);
+                set_rotation_target_to_position(&model.world, entity, Some(target_position));
             }
 
             let mut constructor = model.world.get::<&mut Constructor>(entity).expect("must have constructor to be issuing construct order!");
@@ -364,7 +364,7 @@ impl Order for ConstructOrder {
             let construction_position = vec2(self.x, self.y);
 
             if self.is_self_order == false && self.is_within_constructor_range(entity, &model.world, construction_position) == false {
-                steer_entity_towards_target(&mut model.world, entity, construction_position.x, construction_position.y, dt);
+                set_movement_target_to_position(&model.world, entity, Some(construction_position));
                 return;
             }
 

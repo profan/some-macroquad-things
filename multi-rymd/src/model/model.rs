@@ -13,7 +13,8 @@ use crate::game::RymdGameParameters;
 
 use super::steer_entity_towards_target;
 use super::AnimatedSprite;
-use super::Mover;
+use super::MovementTarget;
+use super::RotationTarget;
 use super::{create_simple_bullet, Effect};
 use super::get_entity_position;
 use super::point_entity_towards_target;
@@ -287,12 +288,27 @@ impl RymdGameModel {
 
     }
 
-    fn tick_movers(&mut self) {
+    fn tick_rotation_targets(&mut self) {
+
+        let mut rotation_targets = Vec::new();
+
+        for (e, rotation_target) in self.world.query::<&RotationTarget>().iter() {
+            let Some(target_position) = rotation_target.target else { continue };
+            rotation_targets.push((e, target_position));
+        }
+
+        for (e, target_position) in rotation_targets {
+            point_entity_towards_target(&mut self.world, e, target_position.x, target_position.y, Self::TIME_STEP);
+        }
+
+    }
+
+    fn tick_movement_targets(&mut self) {
 
         let mut move_targets = Vec::new();
 
-        for (e, mover) in self.world.query::<&Mover>().iter() {
-            let Some(target_position) = mover.target else { continue };
+        for (e, movement_target) in self.world.query::<&MovementTarget>().iter() {
+            let Some(target_position) = movement_target.target else { continue };
             move_targets.push((e, target_position));
         }
 
@@ -632,7 +648,8 @@ impl RymdGameModel {
         self.tick_orderables();
         self.tick_transforms();
         self.tick_resources();
-        self.tick_movers();
+        self.tick_rotation_targets();
+        self.tick_movement_targets();
         self.tick_attackers();
         self.tick_attacker_weapons();
         self.tick_projectiles();

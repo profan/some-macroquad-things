@@ -479,7 +479,11 @@ pub fn max_health(world: &World, entity: Entity) -> i32 {
     world.get::<&Health>(entity).unwrap().full_health
 }
 
-pub struct Mover {
+pub struct RotationTarget {
+    pub target: Option<Vec2>
+}
+
+pub struct MovementTarget { 
     pub target: Option<Vec2>
 }
 

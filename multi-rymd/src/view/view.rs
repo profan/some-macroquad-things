@@ -160,7 +160,7 @@ struct OrderingState {
 impl OrderingState {
 
     fn new() -> OrderingState {
-        let min_point_distance = 16.0;
+        let min_point_distance = 4.0;
         OrderingState {
             line: AverageLine2D::new(min_point_distance)
         }
@@ -965,11 +965,11 @@ impl RymdGameView {
         let mouse_position: Vec2 = self.camera.mouse_world_position();
         let should_cancel_current_orders: bool = is_key_released(KeyCode::S);
 
-        let about_to_issue_attack_move_order = is_key_down(KeyCode::A);
+        let about_to_issue_attack_move_order = is_key_down(KeyCode::LeftControl) == false && is_key_down(KeyCode::A);
         let about_to_issue_order = is_mouse_button_down(MouseButton::Right);
         let about_to_issue_any_order = about_to_issue_order || about_to_issue_attack_move_order;
 
-        let should_issue_attack_move_order = is_key_released(KeyCode::A);
+        let should_issue_attack_move_order = is_key_down(KeyCode::LeftControl) == false && is_key_released(KeyCode::A);
         let should_issue_order = is_mouse_button_released(MouseButton::Right);
         let should_issue_any_order = should_issue_order || should_issue_attack_move_order;
 
@@ -1253,16 +1253,16 @@ impl RymdGameView {
             last_point = *p;
         }
 
-        let last_screen_point = self.camera.world_to_screen(last_point);
-        let current_screen_point: Vec2 = mouse_position().into();
-        draw_line(
-            last_screen_point.x,
-            last_screen_point.y,
-            current_screen_point.x,
-            current_screen_point.y,
-            line_thickness,
-            line_colour
-        );
+        // let last_screen_point = self.camera.world_to_screen(last_point);
+        // let current_screen_point: Vec2 = mouse_position().into();
+        // draw_line(
+        //     last_screen_point.x,
+        //     last_screen_point.y,
+        //     current_screen_point.x,
+        //     current_screen_point.y,
+        //     line_thickness,
+        //     line_colour
+        // );
 
     }
 

@@ -2,7 +2,7 @@ use macroquad::prelude::*;
 use hecs::{World, Entity};
 
 use utility::{arrive_ex, face_ex, SteeringOutput, Kinematic, AsVector};
-use super::{DEFAULT_STEERING_PARAMETERS, Steering, DynamicBody, Transform, PhysicsBody};
+use super::{DynamicBody, MovementTarget, PhysicsBody, RotationTarget, Steering, Transform, DEFAULT_STEERING_PARAMETERS};
 
 pub fn get_entity_physics_position(world: &World, entity: Entity) -> Option<Vec2> {
     world.get::<&DynamicBody>(entity).and_then(|b| Ok(b.position())).or(Err(())).ok()
@@ -120,4 +120,24 @@ pub fn point_entity_towards_target(world: &mut World, entity: Entity, x: f32, y:
 
     }
     
+}
+
+pub fn set_movement_target_to_entity(world: &mut World, entity: Entity, target_entity: Entity) {
+    let mut movement_target = world.get::<&mut MovementTarget>(entity).expect("anything being issued a move target must have the MovementTarget component!");
+    movement_target.target = get_entity_position(world, target_entity);
+}
+
+pub fn set_movement_target_to_position(world: &World, entity: Entity, target_position: Option<Vec2>) {
+    let mut movement_target = world.get::<&mut MovementTarget>(entity).expect("anything being issued a move target must have the MovementTarget component!");
+    movement_target.target = target_position;
+}
+
+pub fn set_rotation_target_to_entity(world: &mut World, entity: Entity, target_entity: Entity) {
+    let mut rotation_target = world.get::<&mut RotationTarget>(entity).expect("anything being issued a rotation target must have the RotationTarget component!");
+    rotation_target.target = get_entity_position(world, target_entity);
+}
+
+pub fn set_rotation_target_to_position(world: &World, entity: Entity, target_position: Option<Vec2>) {
+    let mut rotation_target = world.get::<&mut RotationTarget>(entity).expect("anything being issued a rotation target must have the RotationTarget component!");
+    rotation_target.target = target_position;
 }
