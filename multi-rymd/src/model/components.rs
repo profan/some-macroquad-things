@@ -382,22 +382,30 @@ impl Ship {
 
 #[derive(Clone)]
 pub struct Health {
+
     full_health: i32,
     current_health: i32,
-    last_health: i32
-}
+    last_health: i32,
 
-pub struct HealthCallback {
     pub on_death: fn(world: &World, buffer: &mut CommandBuffer, entity: Entity) -> ()
+
 }
 
 impl Health {
     pub fn new(full_health: i32) -> Health {
-        Health { full_health, current_health: full_health, last_health: full_health }
+        Self::new_with_callback(full_health, |_, _, _| {})
+    }
+
+    pub fn new_with_callback(full_health: i32, on_death_fn: fn(world: &World, buffer: &mut CommandBuffer, entity: Entity) -> ()) -> Health {
+        Health { full_health, current_health: full_health, last_health: full_health, on_death: on_death_fn }
     }
 
     pub fn new_with_current_health(full_health: i32, current_health: i32) -> Health {
-        Health { full_health, current_health, last_health: current_health }
+        Self::new_with_current_health_and_callback(full_health, current_health, |_, _, _| {})
+    }
+
+    pub fn new_with_current_health_and_callback(full_health: i32, current_health: i32, on_death_fn: fn(world: &World, buffer: &mut CommandBuffer, entity: Entity) -> ()) -> Health {
+        Health { full_health, current_health, last_health: current_health, on_death: on_death_fn }
     }
 
     pub fn heal_to_full_health(&mut self) {

@@ -28,7 +28,6 @@ use super::Energy;
 use super::EntityState;
 use super::GameOrderType;
 use super::Health;
-use super::HealthCallback;
 use super::Metal;
 use super::PhysicsBody;
 use super::PhysicsManager;
@@ -600,8 +599,8 @@ impl RymdGameModel {
 
         for e in destroyed_entities {
 
-            if let Ok(health_callback) = self.world.get::<&HealthCallback>(e) {
-                (health_callback.on_death)(&self.world, &mut command_buffer, e);
+            if let Ok(health) = self.world.get::<&Health>(e) {
+                (health.on_death)(&self.world, &mut command_buffer, e);
             }
 
             let result = self.world.despawn(e);

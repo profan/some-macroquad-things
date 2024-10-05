@@ -2,15 +2,11 @@ use std::f32::consts::PI;
 
 use hecs::*;
 use macroquad::prelude::*;
-use utility::AsAngle;
+use utility::{AsAngle, SteeringParameters};
 
 use crate::PlayerID;
 use crate::model::{Transform, Orderable, AnimatedSprite, Thruster, DynamicBody, Ship, ThrusterKind};
-use super::{create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Constructor, Controller, Cost, EntityState, Health, HealthCallback, MovementTarget, Producer, RotationTarget, Steering, Weapon, DEFAULT_STEERING_PARAMETERS};
-
-pub struct ShipParameters {
-    turn_rate: f32
-}
+use super::{create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Constructor, Controller, Cost, EntityState, Health, MovementTarget, Producer, RotationTarget, Steering, Weapon, DEFAULT_STEERING_PARAMETERS};
 
 #[derive(Bundle)]
 pub struct ShipThruster {
@@ -66,20 +62,69 @@ fn on_ship_death(world: &World, buffer: &mut CommandBuffer, entity: Entity) {
     
 }
 
+struct ShipParameters {
+
+    pub initial_health: i32,
+    pub maximum_health: i32,
+    pub blueprint: Blueprints,
+
+    // texture, bounds of the ship accordingly
+    pub bounds: Rect,
+    pub texture: String,
+    pub texture_h_frames: i32,
+
+    // steering related parameters
+    pub steering_parameters: SteeringParameters,
+    pub turn_rate: f32
+
+}
+
+/// Creates a basic ship with all the components needed for the "base".
+fn create_ship(world: &mut World, owner: PlayerID, position: Vec2, parameters: ShipParameters) -> Entity {
+
+    let controller = Controller { id: owner };
+    let transform = Transform::new(position, 0.0, None);
+
+    let blueprint_identity = BlueprintIdentity::new(parameters.blueprint);
+    let health = Health::new_with_current_health_and_callback(parameters.maximum_health, parameters.initial_health, on_ship_death);
+
+    let is_body_enabled: bool = false;
+    let is_body_static: bool = false;
+    let body_mask = 1 << owner;
+
+    let steering_parameters = parameters.steering_parameters;
+    let kinematic_body = create_default_kinematic_body(position, 0.0);
+
+    let dynamic_body = DynamicBody { is_static: is_body_static, is_enabled: is_body_enabled, kinematic: kinematic_body, mask: body_mask, bounds: parameters.bounds };
+    let sprite = AnimatedSprite { texture: parameters.texture, current_frame: 0, h_frames: parameters.texture_h_frames };
+    let steering = Steering { parameters: steering_parameters };
+    let ship = Ship::new(parameters.turn_rate);
+    let orderable = Orderable::new();
+    let state = EntityState::Ghost;
+    let attackable = Attackable;
+
+    let movement_target = MovementTarget { target: None };
+    let rotation_target = RotationTarget { target: None };
+
+    world.spawn((
+        controller, transform, blueprint_identity, health,
+        dynamic_body, sprite, steering, ship, orderable, state, attackable,
+        movement_target, rotation_target
+    ))
+
+}
+
 pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
 
     let commander_ship_size = 32.0;
-    let bounds = Rect { x: 0.0, y: 0.0, w: commander_ship_size, h: commander_ship_size };
-    let is_enabled = false;
-    let is_static = false;
-    let mask = 1 << owner;
+    let commander_bounds = Rect { x: 0.0, y: 0.0, w: commander_ship_size, h: commander_ship_size };
 
-    let initial_commander_health = 100;
-    let full_commander_health = 1000;
+    let initial_commander_health = 250;
+    let maximum_commander_health = 1000;
 
     let commander_build_speed = 100;
     let commander_build_range = 100;
-    let commander_build_offset = -vec2(bounds.w / 8.0, 0.0);
+    let commander_build_offset = -vec2(commander_bounds.w / 8.0, 0.0);
     let commander_blueprints = vec![Blueprints::Shipyard as i32, Blueprints::SolarCollector as i32, Blueprints::EnergyStorage as i32, Blueprints::MetalStorage as i32];
 
     let commander_thruster_power = 64.0;
@@ -89,33 +134,39 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let commander_energy_income = 10.0;
 
     let steering_parameters = DEFAULT_STEERING_PARAMETERS;
-    let kinematic = create_default_kinematic_body(position, 0.0);
-    let ship_parameters = ShipParameters {
+
+    let commander_ship_parameters = ShipParameters {
+
+        initial_health: initial_commander_health,
+        maximum_health: maximum_commander_health,
+        blueprint: Blueprints::Commander,
+
+        bounds: commander_bounds,
+        texture: "PLAYER_SHIP".to_string(),
+        texture_h_frames: 3,
+
+        steering_parameters: steering_parameters,
         turn_rate: 4.0
+
     };
 
-    // assemble the ship
-    let controller = Controller { id: owner };
-    let blueprint_identity = BlueprintIdentity::new(Blueprints::Commander);
-    let constructor = Constructor { current_target: None, constructibles: commander_blueprints, build_speed: commander_build_speed, build_range: commander_build_range, beam_offset: commander_build_offset, can_assist: true };
-    let health = Health::new_with_current_health(full_commander_health, initial_commander_health);
-    let health_callback = HealthCallback { on_death: on_ship_death };
-    let transform = Transform::new(position, 0.0, None);
-    let dynamic_body = DynamicBody { is_enabled, is_static, bounds, kinematic, mask };
-    let sprite = AnimatedSprite { texture: "PLAYER_SHIP".to_string(), current_frame: 0, h_frames: 3 };
-    let producer = Producer { metal: commander_metal_income, energy: commander_energy_income };
-    let steering = Steering { parameters: steering_parameters };
-    let ship = Ship::new(ship_parameters.turn_rate);
-    let orderable = Orderable::new();
-    let state = EntityState::Ghost;
-    let attackable = Attackable;
+    let commander_ship_body = create_ship(world, owner, position, commander_ship_parameters);
 
-    let movement_target = MovementTarget { target: None };
-    let rotation_target = RotationTarget { target: None };
+    let constructor = Constructor {
+        current_target: None,
+        constructibles: commander_blueprints,
+        build_speed: commander_build_speed,
+        build_range: commander_build_range,
+        beam_offset: commander_build_offset,
+        can_assist: true
+    };
 
-    let commander_ship_body = world.spawn((health, health_callback, transform, dynamic_body, sprite, producer, steering, ship, orderable, controller, constructor, blueprint_identity, state, attackable));
-    let _ = world.insert_one(commander_ship_body, movement_target);
-    let _ = world.insert_one(commander_ship_body, rotation_target);
+    let producer = Producer {
+        metal: commander_metal_income,
+        energy: commander_energy_income
+    };
+
+    let _ = world.insert(commander_ship_body, (constructor, producer));
 
     // add ship thrusters
     let commander_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), -Vec2::X, -(PI / 2.0), commander_turn_thruster_power, ThrusterKind::Attitude, commander_ship_body));
@@ -140,13 +191,13 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
 pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
 
     let arrowhead_ship_size = 32.0;
-    let bounds = Rect { x: 0.0, y: 0.0, w: arrowhead_ship_size, h: arrowhead_ship_size };
+    let arrowhead_bounds = Rect { x: 0.0, y: 0.0, w: arrowhead_ship_size, h: arrowhead_ship_size };
     let is_enabled = false;
     let is_static = false;
     let mask = 1 << owner;
 
     let initial_arrowhead_health = 100;
-    let full_arrowhead_health = 250;
+    let maximum_arrowhead_health = 250;
 
     let arrowhead_thruster_power = 64.0;
     let arrowhead_turn_thruster_power = 16.0;
@@ -154,37 +205,31 @@ pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let arrowhead_range = 256.0;
 
     let steering_parameters = DEFAULT_STEERING_PARAMETERS;
-    let kinematic = create_default_kinematic_body(position, 0.0);
-    let ship_parameters = ShipParameters {
+
+    let arrowhead_ship_parameters = ShipParameters {
+
+        initial_health: initial_arrowhead_health,
+        maximum_health: maximum_arrowhead_health,
+        blueprint: Blueprints::Arrowhead,
+
+        bounds: arrowhead_bounds,
+        texture: "ARROWHEAD".to_string(),
+        texture_h_frames: 1,
+
+        steering_parameters: steering_parameters,
         turn_rate: 4.0
+
     };
 
-    // assemble the ship
-    let controller = Controller { id: owner };
-    let blueprint_identity = BlueprintIdentity::new(Blueprints::Arrowhead);
-    let health = Health::new_with_current_health(full_arrowhead_health, initial_arrowhead_health);
-    let health_callback = HealthCallback { on_death: on_ship_death };
-    let transform = Transform::new(position, 0.0, None);
-    let dynamic_body = DynamicBody { is_enabled, is_static, bounds, kinematic, mask };
-    let sprite = AnimatedSprite { texture: "ARROWHEAD".to_string(), current_frame: 0, h_frames: 1 };
-    let steering = Steering { parameters: steering_parameters };
-    let ship = Ship::new(ship_parameters.turn_rate);
-    let orderable = Orderable::new();
-    let state = EntityState::Ghost;
+    let arrowhead_ship_body = create_ship(world, owner, position, arrowhead_ship_parameters);
 
     let weapon = Weapon { offset: vec2(0.0, -(arrowhead_ship_size / 2.0)), fire_rate: arrowhead_fire_rate, cooldown: 0.0 };
-    let attackable = Attackable;
     let attacker = Attacker {
         range: arrowhead_range,
         target: None
     };
 
-    let movement_target = MovementTarget { target: None };
-    let rotation_target = RotationTarget { target: None };
-
-    let arrowhead_ship_body = world.spawn((health, health_callback, transform, dynamic_body, sprite, steering, ship, orderable, controller, blueprint_identity, state, weapon, attackable, attacker));
-    let _ = world.insert_one(arrowhead_ship_body, movement_target);
-    let _ = world.insert_one(arrowhead_ship_body, rotation_target);
+    let _ = world.insert(arrowhead_ship_body, (weapon, attacker));
 
     // add ship thrusters
     let arrowhead_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), -Vec2::X, -(PI / 2.0), arrowhead_turn_thruster_power, ThrusterKind::Attitude, arrowhead_ship_body));
