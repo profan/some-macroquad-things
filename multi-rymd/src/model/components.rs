@@ -387,25 +387,25 @@ pub struct Health {
     current_health: i32,
     last_health: i32,
 
-    pub on_death: fn(world: &World, buffer: &mut CommandBuffer, entity: Entity) -> ()
+    pub on_death: Option<fn(world: &World, buffer: &mut CommandBuffer, entity: Entity) -> ()>
 
 }
 
 impl Health {
     pub fn new(full_health: i32) -> Health {
-        Self::new_with_callback(full_health, |_, _, _| {})
+        Health { full_health, current_health: full_health, last_health: full_health, on_death: None }
     }
 
     pub fn new_with_callback(full_health: i32, on_death_fn: fn(world: &World, buffer: &mut CommandBuffer, entity: Entity) -> ()) -> Health {
-        Health { full_health, current_health: full_health, last_health: full_health, on_death: on_death_fn }
+        Health { full_health, current_health: full_health, last_health: full_health, on_death: Some(on_death_fn) }
     }
 
     pub fn new_with_current_health(full_health: i32, current_health: i32) -> Health {
-        Self::new_with_current_health_and_callback(full_health, current_health, |_, _, _| {})
+        Health { full_health, current_health, last_health: current_health, on_death: None }
     }
 
     pub fn new_with_current_health_and_callback(full_health: i32, current_health: i32, on_death_fn: fn(world: &World, buffer: &mut CommandBuffer, entity: Entity) -> ()) -> Health {
-        Health { full_health, current_health, last_health: current_health, on_death: on_death_fn }
+        Health { full_health, current_health, last_health: current_health, on_death: Some(on_death_fn) }
     }
 
     pub fn heal_to_full_health(&mut self) {

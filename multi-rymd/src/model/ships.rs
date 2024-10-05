@@ -53,6 +53,8 @@ fn on_ship_death(world: &World, buffer: &mut CommandBuffer, entity: Entity) {
         for &t in &ship.thrusters {
             if let Ok(mut h) = world.get::<&mut Health>(t) {
                 h.kill();
+            } else {
+                buffer.despawn(t);
             }
         }
     }

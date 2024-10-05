@@ -599,8 +599,8 @@ impl RymdGameModel {
 
         for e in destroyed_entities {
 
-            if let Ok(health) = self.world.get::<&Health>(e) {
-                (health.on_death)(&self.world, &mut command_buffer, e);
+            if let Ok(health) = self.world.get::<&Health>(e) && let Some(on_death_fn) = health.on_death {
+                (on_death_fn)(&self.world, &mut command_buffer, e);
             }
 
             let result = self.world.despawn(e);
