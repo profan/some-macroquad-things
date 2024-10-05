@@ -88,9 +88,9 @@ trait Order {
     }
 
     fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool;
-    fn get_target_position(&self, model: &RymdGameModel) -> Option<Vec2>;
+    fn get_target_position(&self, model: &RymdGameModel) -> Option<Vec2> { None }
     fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32);
-    fn completed(&self, entity: Entity, model: &mut RymdGameModel);
+    fn on_completed(&self, entity: Entity, model: &mut RymdGameModel) {}
 
 }
 
@@ -138,11 +138,11 @@ impl GameOrder {
 
     pub fn on_order_completed(&self, entity: Entity, model: &mut RymdGameModel) {
         match self {
-            GameOrder::Move(order) => order.completed(entity, model),
-            GameOrder::Attack(order) => order.completed(entity, model),
-            GameOrder::AttackMove(order) => order.completed(entity, model),
-            GameOrder::Construct(order) => order.completed(entity, model),
-            GameOrder::Cancel(order) => order.completed(entity, model)
+            GameOrder::Move(order) => order.on_completed(entity, model),
+            GameOrder::Attack(order) => order.on_completed(entity, model),
+            GameOrder::AttackMove(order) => order.on_completed(entity, model),
+            GameOrder::Construct(order) => order.on_completed(entity, model),
+            GameOrder::Cancel(order) => order.on_completed(entity, model)
         }     
     }
 
@@ -188,7 +188,7 @@ impl Order for MoveOrder {
         set_movement_target_to_position(&model.world, entity, self.get_target_position(model));
     }
 
-    fn completed(&self, entity: Entity, model: &mut RymdGameModel) {
+    fn on_completed(&self, entity: Entity, model: &mut RymdGameModel) {
         set_movement_target_to_position(&model.world, entity, None);
     }
 }
@@ -229,10 +229,6 @@ impl Order for AttackOrder {
         }
 
     }
-
-    fn completed(&self, entity: Entity, model: &mut RymdGameModel) {
-        
-    }
 }
 
 #[derive(Debug, Copy, Clone, SerJson, DeJson)]
@@ -265,7 +261,7 @@ impl Order for AttackMoveOrder {
         set_movement_target_to_position(&model.world, entity, target_position);
     }
 
-    fn completed(&self, entity: Entity, model: &mut RymdGameModel) {
+    fn on_completed(&self, entity: Entity, model: &mut RymdGameModel) {
         set_movement_target_to_position(&model.world, entity, None);
     }
 }
@@ -392,7 +388,7 @@ impl Order for ConstructOrder {
 
     }
 
-    fn completed(&self, entity: Entity, model: &mut RymdGameModel) {
+    fn on_completed(&self, entity: Entity, model: &mut RymdGameModel) {
 
         {
             let mut constructor = model.world.get::<&mut Constructor>(entity).expect("must have constructor to be issuing construct order!");
@@ -509,16 +505,8 @@ impl Order for CancelOrder {
         orderable.is_queue_empty(GameOrderType::Order)
     }
 
-    fn get_target_position(&self, model: &RymdGameModel) -> Option<Vec2> {
-        None
-    }
-
     fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
         let mut orderable = model.world.get::<&mut Orderable>(entity).expect("entity must have orderable!");
         orderable.cancel_orders(GameOrderType::Order);
-    }
-
-    fn completed(&self, entity: Entity, model: &mut RymdGameModel) {
-        
     }
 }
