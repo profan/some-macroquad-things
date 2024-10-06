@@ -102,116 +102,153 @@ pub fn create_metal_storage_blueprint() -> Blueprint {
     }
 }
 
-pub fn build_solar_collector(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
+struct BuildingParameters {
 
-    let solar_collector_size = 64.0;
-    let bounds = Rect { x: 0.0, y: 0.0, w: solar_collector_size, h: solar_collector_size };
-    let is_enabled = true;
-    let is_static = true;
-    let mask = 1 << owner;
+    initial_health: i32,
+    maximum_health: i32,
+    blueprint: Blueprints,
+
+    pub bounds: Rect,
+    pub texture: String
+
+}
+
+fn create_building(world: &mut World, owner: PlayerID, position: Vec2, parameters: BuildingParameters) -> Entity {
+
+    let is_body_enabled = true;
+    let is_body_static = true;
+    let body_mask = 1 << owner;
 
     let kinematic = create_default_kinematic_body(position, 0.0);
 
-    let full_solar_collector_health = 1000;
-    let initial_solar_collector_health = 10;
-
     let controller = Controller { id: owner };
     let transform = Transform::new(position, 0.0, None);
-    let blueprint_identity = BlueprintIdentity::new(Blueprints::SolarCollector);
-    let health = Health::new_with_current_health(full_solar_collector_health, initial_solar_collector_health);
-    let sprite = Sprite { texture: "SOLAR_COLLECTOR".to_string() };
-    let dynamic_body = DynamicBody { is_enabled, is_static, bounds, kinematic, mask };
-    let resource_producer = Producer { metal: 0.0, energy: 10.0 };
+    let blueprint_identity = BlueprintIdentity::new(parameters.blueprint);
+    let health = Health::new_with_current_health(parameters.maximum_health, parameters.initial_health);
+    let sprite = Sprite { texture: parameters.texture };
+    let dynamic_body = DynamicBody { is_enabled: is_body_enabled, is_static: is_body_static, bounds: parameters.bounds, kinematic, mask: body_mask };
     let state = EntityState::Ghost;
     let building = Building;
 
-    world.spawn((controller, transform, blueprint_identity, health, sprite, dynamic_body, resource_producer, building, state))
+    world.spawn((controller, transform, blueprint_identity, health, sprite, dynamic_body, state, building))
+
+}
+
+pub fn build_solar_collector(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
+
+    let solar_collector_size = 64.0;
+    let solar_collector_bounds = Rect { x: 0.0, y: 0.0, w: solar_collector_size, h: solar_collector_size };
+
+    let maximum_solar_collector_health = 1000;
+    let initial_solar_collector_health = 10;
+
+    let solar_collector_parameters = BuildingParameters {
+
+        initial_health: initial_solar_collector_health,
+        maximum_health: maximum_solar_collector_health,
+        blueprint: Blueprints::SolarCollector,
+
+        bounds: solar_collector_bounds,
+        texture: "SOLAR_COLLECTOR".to_string()
+
+    };
+
+    let solar_collector = create_building(world, owner, position, solar_collector_parameters);
+    let resource_producer = Producer { metal: 0.0, energy: 10.0 };
+
+    let _ = world.insert(solar_collector, (resource_producer,));
+
+    solar_collector
 
 }
 
 pub fn build_shipyard(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
 
     let shipyard_size = 128.0;
-    let bounds = Rect { x: shipyard_size / 4.0, y: 0.0, w: shipyard_size / 2.0, h: shipyard_size };
-    let is_enabled = true;
-    let is_static = true;
-    let mask = 1 << owner;
+    let shipyard_bounds = Rect { x: shipyard_size / 4.0, y: 0.0, w: shipyard_size / 2.0, h: shipyard_size };
 
-    let kinematic = create_default_kinematic_body(position, 0.0);
-
-    let full_shipyard_health = 1000;
+    let maximum_shipyard_health = 1000;
     let initial_shipyard_health = 10;
     let shipyard_blueprints = vec![Blueprints::Arrowhead as i32];
 
-    let controller = Controller { id: owner };
-    let transform = Transform::new(position, 0.0, None);
-    let blueprint_identity = BlueprintIdentity::new(Blueprints::Shipyard);
-    let spawner = Spawner { position: vec2(-(shipyard_size / 5.0), 0.0) };
-    let orderable = Orderable::new();
-    let constructor = Constructor { current_target: None, constructibles: shipyard_blueprints, build_range: shipyard_size as i32 / 2, build_speed: 100, beam_offset: -vec2(0.0, 8.0), can_assist: false };
-    let health = Health::new_with_current_health(full_shipyard_health, initial_shipyard_health);
-    let sprite = Sprite { texture: "SHIPYARD".to_string() };
-    let dynamic_body = DynamicBody { is_enabled, is_static, bounds, kinematic, mask };
-    let movement_target = MovementTarget { target: None };
-    let state = EntityState::Ghost;
-    let building = Building;
+    let shipyard_parameters = BuildingParameters {
+        
+        initial_health: initial_shipyard_health,
+        maximum_health: maximum_shipyard_health,
+        blueprint: Blueprints::Shipyard,
 
-    world.spawn((controller, transform, blueprint_identity, spawner, orderable, constructor, health, sprite, dynamic_body, movement_target, building, state))
+        bounds: shipyard_bounds,
+        texture: "SHIPYARD".to_string()
+
+    };
+
+    let shipyard = create_building(world, owner, position, shipyard_parameters);
+
+    let spawner = Spawner { position: vec2(-(shipyard_size / 5.0), 0.0) };
+    let constructor = Constructor { current_target: None, constructibles: shipyard_blueprints, build_range: shipyard_size as i32 / 2, build_speed: 100, beam_offset: -vec2(0.0, 8.0), can_assist: false };
+    let movement_target = MovementTarget { target: None };
+    let orderable = Orderable::new();
+
+    let _ = world.insert(shipyard, (spawner, constructor, movement_target, orderable));
+
+    shipyard
 
 }
 
 pub fn build_energy_storage(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
 
     let energy_storage_size = 32.0;
-    let bounds = Rect { x: 0.0, y: 0.0, w: energy_storage_size, h: energy_storage_size };
-    let is_enabled = true;
-    let is_static = true;
-    let mask = 1 << owner;
+    let energy_storage_bounds = Rect { x: 0.0, y: 0.0, w: energy_storage_size, h: energy_storage_size };
 
-    let kinematic = create_default_kinematic_body(position, 0.0);
-
-    let full_energy_storage_health = 250;
+    let maximum_energy_storage_health = 250;
     let initial_energy_storage_health = 10;
     let energy_storage_amount = 1000.0;
 
-    let controller = Controller { id: owner };
-    let transform = Transform::new(position, 0.0, None);
-    let blueprint_identity = BlueprintIdentity::new(Blueprints::EnergyStorage);
-    let health = Health::new_with_current_health(full_energy_storage_health, initial_energy_storage_health);
-    let sprite = Sprite { texture: "ENERGY_STORAGE".to_string() };
-    let dynamic_body = DynamicBody { is_enabled, is_static, bounds, kinematic, mask };
-    let storage = Storage { metal: 0.0, energy: energy_storage_amount };
-    let state = EntityState::Ghost;
-    let building = Building;
+    let energy_storage_parameters = BuildingParameters {
 
-    world.spawn((controller, transform, blueprint_identity, health, sprite, dynamic_body, storage, building, state))
+        initial_health: initial_energy_storage_health,
+        maximum_health: maximum_energy_storage_health,
+        blueprint: Blueprints::EnergyStorage,
+
+        bounds: energy_storage_bounds,
+        texture: "ENERGY_STORAGE".to_string()
+
+    };
+
+    let energy_storage = create_building(world, owner, position, energy_storage_parameters);
+
+    let storage = Storage { metal: 0.0, energy: energy_storage_amount };
+    let _ = world.insert(energy_storage, (storage,));
+
+    energy_storage
 
 }
 
 pub fn build_metal_storage(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
 
     let metal_storage_size = 32.0;
-    let bounds = Rect { x: 0.0, y: 0.0, w: metal_storage_size, h: metal_storage_size };
-    let is_enabled = true;
-    let is_static = true;
-    let mask = 1 << owner;
+    let metal_storage_bounds = Rect { x: 0.0, y: 0.0, w: metal_storage_size, h: metal_storage_size };
 
-    let kinematic = create_default_kinematic_body(position, 0.0);
-
-    let full_metal_storage_health = 250;
+    let maximum_metal_storage_health = 250;
     let initial_metal_storage_health = 10;
     let metal_storage_amount = 1000.0;
 
-    let controller = Controller { id: owner };
-    let transform = Transform::new(position, 0.0, None);
-    let blueprint_identity = BlueprintIdentity::new(Blueprints::MetalStorage);
-    let health = Health::new_with_current_health(full_metal_storage_health, initial_metal_storage_health);
-    let sprite = Sprite { texture: "METAL_STORAGE".to_string() };
-    let dynamic_body = DynamicBody { is_enabled, is_static, bounds, kinematic, mask };
-    let storage = Storage { metal: metal_storage_amount, energy: 0.0 };
-    let state = EntityState::Ghost;
-    let building = Building;
+    let metal_storage_parameters = BuildingParameters {
 
-    world.spawn((controller, transform, blueprint_identity, health, sprite, dynamic_body, storage, building, state))
+        initial_health: initial_metal_storage_health,
+        maximum_health: maximum_metal_storage_health,
+        blueprint: Blueprints::MetalStorage,
+
+        bounds: metal_storage_bounds,
+        texture: "METAL_STORAGE".to_string()
+
+    };
+
+    let metal_storage = create_building(world, owner, position, metal_storage_parameters);
+
+    let storage = Storage { metal: metal_storage_amount, energy: 0.0 };
+    let _ = world.insert(metal_storage, (storage, ));
+
+    metal_storage
 
 }
