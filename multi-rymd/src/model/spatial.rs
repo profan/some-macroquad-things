@@ -57,12 +57,8 @@ impl SpatialQueryManager {
     }
 
     fn create_new_bucket(&mut self, position: Vec2, entity: Entity) {
-
         let clamped_bucket_position = self.get_clamped_bucket_world_position(position);
         self.buckets.insert(clamped_bucket_position, vec![entity]);
-
-        println!("created new bucket: {} for: {}", clamped_bucket_position, position);
-
     }
     
     pub fn is_entity_registered(&self, entity: Entity) -> bool {

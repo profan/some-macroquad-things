@@ -92,19 +92,6 @@ impl PhysicsManager {
 
             }
 
-            // for (e2, other_body) in world.query::<&DynamicBody>().iter().filter(|(e, b)| b.is_enabled) {
-
-            //     let should_collide = self.collides_with(body, other_body);
-            //     if e1 != e2 && should_collide && intersect_rect(&body.bounds(), &other_body.bounds()) {
-            //         let new_response = (e1, e2, false);
-            //         let pair_already_has_collision_response = self.collision_responses.iter().any(|(a_entity, b_entity, _)| *a_entity == new_response.0 && *b_entity == new_response.1);
-            //         if pair_already_has_collision_response == false {
-            //             self.collision_responses.push(new_response);
-            //         }
-            //     }
-
-            // }
-
         }
 
     }
