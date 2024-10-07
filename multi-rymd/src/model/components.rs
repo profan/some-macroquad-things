@@ -4,7 +4,7 @@ use macroquad::{input::KeyCode, math::{Rect, Vec2}};
 use utility::{Kinematic, RotatedBy, SteeringParameters};
 use lockstep_client::step::PeerID;
 
-use crate::{PlayerID};
+use crate::PlayerID;
 use super::{Blueprints, Cost, GameOrder, GameOrderType, PhysicsBody};
 
 #[derive(Clone)]
@@ -28,6 +28,11 @@ pub struct Input {
     pub turn_left: bool,
     pub turn_right: bool,
     pub fast: bool
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+pub struct PreviousTransform {
+    pub transform: Transform
 }
 
 #[derive(Debug, Default, Clone, Copy)]

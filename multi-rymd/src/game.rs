@@ -102,12 +102,14 @@ impl Game for RymdGame {
         self.model.handle_message(message);
     }
 
+    #[profiling::function]
     fn update(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient) {
         measure_scope!(self.stats.update_time_ms);
         self.model.tick();
         self.view.update(&mut self.model);
     }
 
+    #[profiling::function]
     fn draw(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient, dt: f32) {
         {
             measure_scope!(self.stats.tick_view_time_ms);

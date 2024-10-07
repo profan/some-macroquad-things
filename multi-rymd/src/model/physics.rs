@@ -2,7 +2,7 @@ use macroquad::prelude::*;
 use hecs::{CommandBuffer, Entity, World};
 use utility::{AsPerpendicular, intersect_rect};
 
-use super::{DynamicBody, DynamicBodyCallback};
+use super::{spatial::SpatialQueryManager, DynamicBody, DynamicBodyCallback};
 
 const COLLISION_ELASTICITY: f32 = 1.0;
 
@@ -63,21 +63,48 @@ impl PhysicsManager {
 
     }
 
-    pub fn handle_overlaps(&mut self, world: &mut World) {
+    pub fn handle_overlaps(&mut self, world: &mut World, spatial_query_manager: &SpatialQueryManager) {
 
-        for (e1, body) in world.query::<&DynamicBody>().iter().filter(|(e, b)| b.is_enabled) {
-            for (e2, other_body) in world.query::<&DynamicBody>().iter().filter(|(e, b)| b.is_enabled) {
+        for (e1, body) in world.query::<&DynamicBody>().iter() {
 
-                let should_collide = self.collides_with(body, other_body);
-                if e1 != e2 && should_collide && intersect_rect(&body.bounds(), &other_body.bounds()) {
-                    let new_response = (e1, e2, false);
-                    let pair_already_has_collision_response = self.collision_responses.iter().any(|(a_entity, b_entity, _)| *a_entity == new_response.0 && *b_entity == new_response.1);
-                    if pair_already_has_collision_response == false {
-                        self.collision_responses.push(new_response);
+            if body.is_enabled == false {
+                continue;
+            }
+
+            for e2 in spatial_query_manager.entities_within_rect(body.bounds()) {
+
+                if e1 == e2 {
+                    continue;
+                }
+
+                if let Ok(other_body) = unsafe { world.get_unchecked::<&DynamicBody>(e2) } && other_body.is_enabled {
+
+                    let should_collide = self.collides_with(body, &other_body);
+                    if should_collide && intersect_rect(&body.bounds(), &other_body.bounds()) {
+                        let new_response = (e1, e2, false);
+                        let pair_already_has_collision_response = self.collision_responses.iter().any(|(a_entity, b_entity, _)| *a_entity == new_response.0 && *b_entity == new_response.1);
+                        if pair_already_has_collision_response == false {
+                            self.collision_responses.push(new_response);
+                        }
                     }
+
                 }
 
             }
+
+            // for (e2, other_body) in world.query::<&DynamicBody>().iter().filter(|(e, b)| b.is_enabled) {
+
+            //     let should_collide = self.collides_with(body, other_body);
+            //     if e1 != e2 && should_collide && intersect_rect(&body.bounds(), &other_body.bounds()) {
+            //         let new_response = (e1, e2, false);
+            //         let pair_already_has_collision_response = self.collision_responses.iter().any(|(a_entity, b_entity, _)| *a_entity == new_response.0 && *b_entity == new_response.1);
+            //         if pair_already_has_collision_response == false {
+            //             self.collision_responses.push(new_response);
+            //         }
+            //     }
+
+            // }
+
         }
 
     }

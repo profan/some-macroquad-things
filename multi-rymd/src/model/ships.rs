@@ -6,7 +6,7 @@ use utility::{AsAngle, SteeringParameters};
 
 use crate::PlayerID;
 use crate::model::{Transform, Orderable, AnimatedSprite, Thruster, DynamicBody, Ship, ThrusterKind};
-use super::{create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Constructor, Controller, Cost, EntityState, Health, MovementTarget, Producer, RotationTarget, Steering, Weapon, DEFAULT_STEERING_PARAMETERS};
+use super::{create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Constructor, Controller, Cost, EntityState, Health, MovementTarget, PreviousTransform, Producer, RotationTarget, Steering, Weapon, DEFAULT_STEERING_PARAMETERS};
 
 #[derive(Bundle)]
 pub struct ShipThruster {
@@ -42,7 +42,7 @@ pub fn create_arrowhead_ship_blueprint() -> Blueprint {
         name: String::from("Arrowhead (Fighter)"),
         texture: String::from("ARROWHEAD"),
         constructor: build_arrowhead_ship,
-        cost: Cost { metal: 25.0, energy: 25.0 },
+        cost: Cost { metal: 0.0, energy: 0.0 },
         is_building: false
     }
 }

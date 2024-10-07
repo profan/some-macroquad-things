@@ -577,14 +577,16 @@ pub struct RymdGameView {
 
 struct RymdGameDebug {
     render_bounds: bool,
-    render_kinematic: bool
+    render_kinematic: bool,
+    render_spatial: bool
 }
 
 impl RymdGameDebug {
     pub fn new() -> RymdGameDebug {
         RymdGameDebug {
             render_bounds: false,
-            render_kinematic: false
+            render_kinematic: false,
+            render_spatial: false
         }
     }
 }
@@ -1605,6 +1607,7 @@ impl RymdGameView {
         debug.draw_text(format!("collision responses: {}", model.physics_manager.number_of_active_collision_responses()), TextPosition::TopLeft, WHITE);
         debug.draw_text(format!(" - shift+c to toggle bounds debug (enabled: {})", self.debug.render_bounds), TextPosition::TopLeft, WHITE);
         debug.draw_text(format!(" - shift+k to toggle kinematics debug (enabled: {})", self.debug.render_kinematic), TextPosition::TopLeft, WHITE);
+        debug.draw_text(format!(" - shift+s to toggle spatial debug (enabled: {})", self.debug.render_spatial), TextPosition::TopLeft, WHITE);
 
         if lockstep.is_singleplayer() {
             debug.draw_text("press tab to switch the current player!", TextPosition::TopLeft, WHITE);
@@ -1621,6 +1624,11 @@ impl RymdGameView {
         let should_toggle_kinematic_debug = is_key_down(KeyCode::LeftShift) && is_key_released(KeyCode::K);
         if should_toggle_kinematic_debug && yakui_macroquad::has_keyboard_focus() == false {
             self.debug.render_kinematic = !self.debug.render_kinematic
+        }
+
+        let should_toggle_spatial_debug = is_key_down(KeyCode::LeftShift) && is_key_released(KeyCode::S);
+        if should_toggle_spatial_debug && yakui_macroquad::has_keyboard_focus() == false {
+            self.debug.render_spatial = !self.debug.render_spatial
         }
 
     }
@@ -1905,6 +1913,38 @@ impl RymdGameView {
 
     }
 
+    fn draw_spatial_debug(&self, model: &RymdGameModel) {
+
+        let spatial_line_thickness = 2.0;
+        let spatial_line_font_size = 16.0;
+
+        for (bucket_position, bucket) in model.spatial_manager.buckets() {
+
+            let screen_space_bucket_position = self.camera.world_to_screen(bucket_position.as_vec2());
+            let screen_space_bucket_size = self.camera.world_to_screen_scale_v(RymdGameModel::SPATIAL_BUCKET_SIZE as f32);
+            let screen_space_bucket_center_position = screen_space_bucket_position + vec2(screen_space_bucket_size, screen_space_bucket_size) * 0.5;
+
+            draw_rectangle_lines(
+                screen_space_bucket_position.x,
+                screen_space_bucket_position.y,
+                screen_space_bucket_size,
+                screen_space_bucket_size,
+                spatial_line_thickness,
+                GREEN
+            );
+
+            draw_text_centered(
+                &format!("{}", bucket.len()),
+                screen_space_bucket_center_position.x,
+                screen_space_bucket_center_position.y + spatial_line_font_size * 0.5,
+                spatial_line_font_size,
+                WHITE
+            );
+
+        }
+
+    }
+
     pub fn draw(&mut self, model: &mut RymdGameModel, debug: &mut DebugText, lockstep: &mut LockstepClient, dt: f32) {
 
         self.camera.tick(dt);
@@ -1928,6 +1968,10 @@ impl RymdGameView {
 
         if self.debug.render_kinematic {
             self.draw_kinematic_debug(&model.world);
+        }
+
+        if self.debug.render_spatial {
+            self.draw_spatial_debug(&model);
         }
 
         self.camera.push();

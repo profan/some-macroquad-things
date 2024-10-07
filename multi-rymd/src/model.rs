@@ -10,6 +10,7 @@ mod physics;
 mod player;
 mod projectiles;
 mod ships;
+mod spatial;
 mod resources;
 mod steering;
 

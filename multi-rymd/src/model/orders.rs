@@ -453,7 +453,7 @@ impl ConstructOrder {
 
             let mut orderable_query = model.world.query::<&mut Orderable>();
             let mut orderable_view = orderable_query.view();
-            let [constructor_orderable, new_orderable] = orderable_view.get_mut_n([constructor_entity, new_entity]);
+            let [constructor_orderable, new_orderable] = orderable_view.get_many_mut([constructor_entity, new_entity]);
 
             if let Some(constructor_orderable) = constructor_orderable
                 && let Some(new_orderable) = new_orderable

@@ -11,9 +11,11 @@ use crate::model::BlueprintID;
 use crate::model::GameMessage;
 use crate::game::RymdGameParameters;
 
+use super::spatial::SpatialQueryManager;
 use super::steer_entity_towards_target;
 use super::AnimatedSprite;
 use super::MovementTarget;
+use super::PreviousTransform;
 use super::RotationTarget;
 use super::{create_simple_bullet, Effect};
 use super::get_entity_position;
@@ -55,6 +57,7 @@ use super::{build_commander_ship, GameOrder, Orderable, Transform, DynamicBody, 
 
 pub struct RymdGameModel {
     pub physics_manager: PhysicsManager,
+    pub spatial_manager: SpatialQueryManager,
     pub blueprint_manager: BlueprintManager,
     pub world: World
 }
@@ -102,10 +105,12 @@ impl BlueprintManager {
 impl RymdGameModel {
 
     pub const TIME_STEP: f32 = 1.0 / 60.0;
+    pub const SPATIAL_BUCKET_SIZE: i32 = 256;
 
     pub fn new() -> RymdGameModel {
         RymdGameModel {
             physics_manager: PhysicsManager::new(Self::TIME_STEP),
+            spatial_manager: SpatialQueryManager::new(Self::SPATIAL_BUCKET_SIZE),
             blueprint_manager: BlueprintManager::new(),
             world: World::new()
         }
@@ -170,6 +175,7 @@ impl RymdGameModel {
         }
     }
 
+    #[profiling::function]
     fn tick_constructing_entities(&mut self) {
 
         for (e, (state, health, body)) in self.world.query_mut::<(&mut EntityState, &Health, Option<&mut DynamicBody>)>() {
@@ -185,6 +191,7 @@ impl RymdGameModel {
 
     }
 
+    #[profiling::function]
     fn tick_powered_entities(&mut self) {
 
         for (e, (state, controller, consumer, _powered)) in self.world.query::<(&mut EntityState, &Controller, &Consumer, &Powered)>().iter() {
@@ -199,6 +206,7 @@ impl RymdGameModel {
 
     }
 
+    #[profiling::function]
     fn tick_orderables(&mut self) {
 
         self.tick_order_queue(GameOrderType::Order);
@@ -206,6 +214,7 @@ impl RymdGameModel {
 
     }
 
+    #[profiling::function]
     fn tick_order_queue(&mut self, order_type: GameOrderType) {
 
         let mut in_progress_orders = Vec::new();
@@ -271,6 +280,7 @@ impl RymdGameModel {
         state == EntityState::Constructed
     }
 
+    #[profiling::function]
     fn tick_transforms(&mut self) {
 
         let mut updated_transforms = Vec::new();
@@ -287,6 +297,7 @@ impl RymdGameModel {
 
     }
 
+    #[profiling::function]
     fn tick_rotation_targets(&mut self) {
 
         let mut rotation_targets = Vec::new();
@@ -302,6 +313,7 @@ impl RymdGameModel {
 
     }
 
+    #[profiling::function]
     fn tick_movement_targets(&mut self) {
 
         let mut move_targets = Vec::new();
@@ -317,6 +329,7 @@ impl RymdGameModel {
 
     }
 
+    #[profiling::function]
     fn tick_attackers(&mut self) {
 
         let mut attack_targets = HashMap::new();
@@ -381,6 +394,7 @@ impl RymdGameModel {
 
     }
 
+    #[profiling::function]
     fn tick_attacker_weapons(&mut self) {
 
         let mut queued_projectile_creations: Vec<Box<dyn Fn(&mut World) -> Entity>> = Vec::new();
@@ -416,6 +430,7 @@ impl RymdGameModel {
 
     }
 
+    #[profiling::function]
     fn tick_projectiles(&mut self) {
 
         for (e, (body, projectile, health)) in self.world.query_mut::<(&mut DynamicBody, &mut Projectile, &mut Health)>() {
@@ -431,6 +446,7 @@ impl RymdGameModel {
 
     }
 
+    #[profiling::function]
     fn tick_constructors(&mut self) {
 
         for (e, (controller, constructor)) in self.world.query::<(&Controller, &mut Constructor)>().iter() {
@@ -481,6 +497,7 @@ impl RymdGameModel {
 
     }
 
+    #[profiling::function]
     fn tick_resource_storage(&mut self) {
 
         let mut energy_pools_per_player = HashMap::new();
@@ -509,6 +526,7 @@ impl RymdGameModel {
 
     }
     
+    #[profiling::function]
     fn tick_resources(&mut self) {
 
         let mut energy_incomes_per_player = HashMap::new();
@@ -550,21 +568,64 @@ impl RymdGameModel {
 
     }
 
+    #[profiling::function]
     fn tick_transform_updates(&mut self) {
 
-        for (e, (transform, body)) in self.world.query_mut::<(&mut Transform, &mut DynamicBody)>() {
+        for (e, (transform, body, previous_transform)) in self.world.query_mut::<(&mut Transform, &mut DynamicBody, Option<&mut PreviousTransform>)>() {
+
             transform.local_position = body.kinematic.position;
             transform.local_rotation = body.kinematic.orientation;
+
+            if let Some(previous_transform) = previous_transform {
+                previous_transform.transform = *transform;
+            }
+
         }
 
     }
 
+    #[profiling::function]
+    fn tick_spatial_engine(&mut self) {
+        
+        let mut created_entity_positions = Vec::new();
+        let mut updated_entity_positions = Vec::new();
+        let mut deleted_entity_positions = Vec::new();
+        
+        for (e, (transform, _dynamic_body, health, previous_transform)) in self.world.query_mut::<(&mut Transform, &DynamicBody, Option<&Health>, Option<&mut PreviousTransform>)>() {
+            if let Some(previous_transform) = previous_transform {        
+                if previous_transform.transform.world_position != transform.world_position {
+                    updated_entity_positions.push((e, previous_transform.transform.world_position, transform.world_position));
+                }
+            } else if let Some(health) = health && health.is_at_or_below_zero_health() {
+                deleted_entity_positions.push((e, *transform));
+            } else {
+                created_entity_positions.push((e, *transform));
+            }
+        }
+
+        for (e, transform) in created_entity_positions {
+            let _ = self.world.insert(e, (PreviousTransform { transform }, ));
+            self.spatial_manager.add_entity(e, transform.world_position);
+        }
+
+        for (e, previous_world_position, new_world_position) in updated_entity_positions {
+            self.spatial_manager.update_entity_position(e, previous_world_position, new_world_position);
+        }
+
+        for (e, transform) in deleted_entity_positions {
+            self.spatial_manager.remove_entity(e, transform.world_position);
+        }
+
+    }
+
+    #[profiling::function]
     fn tick_physics_engine(&mut self) {
         self.physics_manager.integrate(&mut self.world);
-        self.physics_manager.handle_overlaps(&mut self.world);
+        self.physics_manager.handle_overlaps(&mut self.world, &self.spatial_manager);
         self.physics_manager.handle_collisions(&mut self.world);
     }
 
+    #[profiling::function]
     fn tick_effects(&mut self) {
 
         for (e, (sprite, effect)) in self.world.query_mut::<(Option<&mut AnimatedSprite>, &mut Effect)>() {
@@ -579,6 +640,7 @@ impl RymdGameModel {
 
     }
 
+    #[profiling::function]
     fn tick_lifetimes(&mut self) {
 
         let mut destroyed_entities = Vec::new();
@@ -655,6 +717,7 @@ impl RymdGameModel {
         self.tick_effects();
         self.tick_constructors();
         self.tick_physics_engine();
+        self.tick_spatial_engine();
         self.tick_transform_updates();
         self.tick_lifetimes();
 
