@@ -1976,12 +1976,13 @@ impl RymdGameView {
 
         self.camera.push();
 
-        self.draw_sprites(&model.world);
         self.draw_build_queue(model);
 
         self.construction.tick_and_draw(model, &self.camera, &self.resources, lockstep);
 
         self.draw_particles(&mut model.world);
+        self.draw_sprites(&model.world);
+
         // self.draw_health_labels(&model.world);
         self.draw_build_time_labels(&model.world);
         

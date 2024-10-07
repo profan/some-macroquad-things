@@ -3,14 +3,17 @@ use std::collections::HashMap;
 use hecs::{CommandBuffer, Entity, World};
 use macroquad::{*, math::vec2};
 use nanoserde::DeJson;
+use utility::separation;
 use utility::AsVector;
 use utility::RotatedBy;
 
+use crate::model::Steering;
 use crate::EntityID;
 use crate::model::BlueprintID;
 use crate::model::GameMessage;
 use crate::game::RymdGameParameters;
 
+use super::entity_apply_raw_steering;
 use super::spatial::SpatialQueryManager;
 use super::steer_entity_towards_target;
 use super::AnimatedSprite;
@@ -175,7 +178,7 @@ impl RymdGameModel {
         }
     }
 
-    #[profiling::function]
+    //#[profiling::function]
     fn tick_constructing_entities(&mut self) {
 
         for (e, (state, health, body)) in self.world.query_mut::<(&mut EntityState, &Health, Option<&mut DynamicBody>)>() {
@@ -191,7 +194,7 @@ impl RymdGameModel {
 
     }
 
-    #[profiling::function]
+    //#[profiling::function]
     fn tick_powered_entities(&mut self) {
 
         for (e, (state, controller, consumer, _powered)) in self.world.query::<(&mut EntityState, &Controller, &Consumer, &Powered)>().iter() {
@@ -206,7 +209,7 @@ impl RymdGameModel {
 
     }
 
-    #[profiling::function]
+    //#[profiling::function]
     fn tick_orderables(&mut self) {
 
         self.tick_order_queue(GameOrderType::Order);
@@ -214,7 +217,7 @@ impl RymdGameModel {
 
     }
 
-    #[profiling::function]
+    //#[profiling::function]
     fn tick_order_queue(&mut self, order_type: GameOrderType) {
 
         let mut in_progress_orders = Vec::new();
@@ -280,7 +283,7 @@ impl RymdGameModel {
         state == EntityState::Constructed
     }
 
-    #[profiling::function]
+    //#[profiling::function]
     fn tick_transforms(&mut self) {
 
         let mut updated_transforms = Vec::new();
@@ -297,7 +300,7 @@ impl RymdGameModel {
 
     }
 
-    #[profiling::function]
+    //#[profiling::function]
     fn tick_rotation_targets(&mut self) {
 
         let mut rotation_targets = Vec::new();
@@ -313,7 +316,7 @@ impl RymdGameModel {
 
     }
 
-    #[profiling::function]
+    //#[profiling::function]
     fn tick_movement_targets(&mut self) {
 
         let mut move_targets = Vec::new();
@@ -329,7 +332,37 @@ impl RymdGameModel {
 
     }
 
-    #[profiling::function]
+    fn tick_separation(&mut self) {
+
+        let mut steering_output_to_apply = Vec::new();
+
+        for (e, (dynamic_body, steering)) in self.world.query::<(&DynamicBody, &Steering)>().iter() {
+
+            let nearby_entities = self.spatial_manager.entities_near(dynamic_body.position(), steering.parameters.separation_threshold);
+            let nearby_entities_with_dynamic_body = nearby_entities.filter(|o| e != *o).filter_map(|e| self.world.get::<&DynamicBody>(e).and_then(|b| Ok(b.kinematic.clone())).ok());
+
+            let steering_output = separation(
+                &dynamic_body.kinematic,
+                nearby_entities_with_dynamic_body,
+                steering.parameters.max_acceleration,
+                steering.parameters.separation_threshold,
+                steering.parameters.separation_decay_coefficient
+            );
+
+            if steering_output.linear.length() > f32::EPSILON {
+                steering_output_to_apply.push((e, steering_output));
+            }
+
+        }
+
+        for (e, steering_output) in steering_output_to_apply {
+            let mut dynamic_body = self.world.get::<&mut DynamicBody>(e).expect("must have DynamicBody to get here!");
+            entity_apply_raw_steering(&mut dynamic_body.kinematic, Some(steering_output), Self::TIME_STEP);
+        }
+
+    }
+
+    //#[profiling::function]
     fn tick_attackers(&mut self) {
 
         let mut attack_targets = HashMap::new();
@@ -394,7 +427,7 @@ impl RymdGameModel {
 
     }
 
-    #[profiling::function]
+    //#[profiling::function]
     fn tick_attacker_weapons(&mut self) {
 
         let mut queued_projectile_creations: Vec<Box<dyn Fn(&mut World) -> Entity>> = Vec::new();
@@ -430,7 +463,7 @@ impl RymdGameModel {
 
     }
 
-    #[profiling::function]
+    //#[profiling::function]
     fn tick_projectiles(&mut self) {
 
         for (e, (body, projectile, health)) in self.world.query_mut::<(&mut DynamicBody, &mut Projectile, &mut Health)>() {
@@ -446,7 +479,7 @@ impl RymdGameModel {
 
     }
 
-    #[profiling::function]
+    //#[profiling::function]
     fn tick_constructors(&mut self) {
 
         for (e, (controller, constructor)) in self.world.query::<(&Controller, &mut Constructor)>().iter() {
@@ -497,7 +530,7 @@ impl RymdGameModel {
 
     }
 
-    #[profiling::function]
+    //#[profiling::function]
     fn tick_resource_storage(&mut self) {
 
         let mut energy_pools_per_player = HashMap::new();
@@ -526,7 +559,7 @@ impl RymdGameModel {
 
     }
     
-    #[profiling::function]
+    //#[profiling::function]
     fn tick_resources(&mut self) {
 
         let mut energy_incomes_per_player = HashMap::new();
@@ -568,7 +601,7 @@ impl RymdGameModel {
 
     }
 
-    #[profiling::function]
+    //#[profiling::function]
     fn tick_transform_updates(&mut self) {
 
         for (e, (transform, body, previous_transform)) in self.world.query_mut::<(&mut Transform, &mut DynamicBody, Option<&mut PreviousTransform>)>() {
@@ -584,7 +617,7 @@ impl RymdGameModel {
 
     }
 
-    #[profiling::function]
+    //#[profiling::function]
     fn tick_spatial_engine(&mut self) {
         
         let mut created_entity_positions = Vec::new();
@@ -618,14 +651,14 @@ impl RymdGameModel {
 
     }
 
-    #[profiling::function]
+    //#[profiling::function]
     fn tick_physics_engine(&mut self) {
         self.physics_manager.integrate(&mut self.world);
         self.physics_manager.handle_overlaps(&mut self.world, &self.spatial_manager);
         self.physics_manager.handle_collisions(&mut self.world);
     }
 
-    #[profiling::function]
+    //#[profiling::function]
     fn tick_effects(&mut self) {
 
         for (e, (sprite, effect)) in self.world.query_mut::<(Option<&mut AnimatedSprite>, &mut Effect)>() {
@@ -640,7 +673,7 @@ impl RymdGameModel {
 
     }
 
-    #[profiling::function]
+    //#[profiling::function]
     fn tick_lifetimes(&mut self) {
 
         let mut destroyed_entities = Vec::new();
@@ -711,6 +744,7 @@ impl RymdGameModel {
         self.tick_resources();
         self.tick_rotation_targets();
         self.tick_movement_targets();
+        self.tick_separation();
         self.tick_attackers();
         self.tick_attacker_weapons();
         self.tick_projectiles();

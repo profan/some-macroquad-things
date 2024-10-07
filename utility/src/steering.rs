@@ -360,7 +360,7 @@ pub fn wander(_character: &Kinematic, _target: &Kinematic, _max_acceleration: f3
     }
 }
 
-pub fn separation<'a>(character: &Kinematic, targets: impl Iterator<Item=&'a Kinematic>, max_acceleration: f32, threshold: f32, decay_coefficient: f32) -> SteeringOutput {
+pub fn separation<'a>(character: &Kinematic, targets: impl Iterator<Item=Kinematic>, max_acceleration: f32, threshold: f32, decay_coefficient: f32) -> SteeringOutput {
 
     let mut repulsion: Vec2 = Vec2::ZERO;
 

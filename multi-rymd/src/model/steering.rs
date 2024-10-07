@@ -62,6 +62,15 @@ fn entity_apply_steering(kinematic: &mut Kinematic, steering_maybe: Option<Steer
 
 }
 
+pub fn entity_apply_raw_steering(kinematic: &mut Kinematic, steering_maybe: Option<SteeringOutput>, dt: f32) {
+
+    if let Some(steering) = steering_maybe {
+        kinematic.velocity += steering.linear * dt;
+        kinematic.angular_velocity += steering.angular * dt;
+    }
+
+}
+
 pub fn steer_entity_towards_target(world: &mut World, entity: Entity, x: f32, y: f32, dt: f32) {
 
     if let Ok(mut dynamic_body) = world.get::<&mut DynamicBody>(entity) {
