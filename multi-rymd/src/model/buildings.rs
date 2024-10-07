@@ -2,57 +2,7 @@ use hecs::{Entity, World};
 use macroquad::{math::{Vec2, Rect, vec2}, miniquad::KeyCode};
 
 use crate::PlayerID;
-use super::{create_default_kinematic_body, BlueprintIdentity, Blueprints, Controller, Cost, DynamicBody, Health, MovementTarget, Orderable, Producer, Sprite, Storage, Transform};
-
-pub use i32 as BlueprintID;
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum EntityState {
-    Ghost,
-    Destroyed,
-    Constructed,
-    Inactive
-}
-
-#[derive(Debug, Clone)]
-pub struct Building;
-
-#[derive(Debug, Clone)]
-pub struct Constructor {
-    pub current_target: Option<Entity>,
-    pub constructibles: Vec<BlueprintID>,
-    pub build_range: i32,
-    pub build_speed: i32,
-    pub beam_offset: Vec2,
-    pub can_assist: bool
-}
-
-impl Constructor {
-    pub fn is_constructing(&self) -> bool {
-        self.current_target.is_some()
-    }
-
-    pub fn has_blueprint(&self, id: BlueprintID) -> bool {
-        self.constructibles.contains(&id)
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Spawner {
-    /// This position is a local offset from the position of the transform this is attached to, and is where units will spawn.
-    pub position: Vec2
-}
-
-#[derive(Debug, Clone)]
-pub struct Blueprint {
-    pub id: BlueprintID,
-    pub name: String,
-    pub texture: String,
-    pub shortcut: KeyCode,
-    pub constructor: fn(&mut World, PlayerID, Vec2) -> Entity,
-    pub is_building: bool,
-    pub cost: Cost
-}
+use super::{create_default_kinematic_body, Blueprint, BlueprintIdentity, Blueprints, Building, Constructor, Controller, Cost, DynamicBody, EntityState, Health, MovementTarget, Orderable, Producer, Spawner, Sprite, Storage, Transform};
 
 pub fn create_solar_collector_blueprint() -> Blueprint {
     Blueprint {

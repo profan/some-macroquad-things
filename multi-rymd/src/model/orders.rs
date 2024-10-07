@@ -7,20 +7,18 @@ use lockstep_client::step::LockstepClient;
 use utility::RotatedBy;
 
 use crate::EntityID;
-use crate::model::BlueprintID;
 use crate::model::GameMessage;
 
 use super::set_movement_target_to_position;
 use super::set_rotation_target_to_position;
 use super::Attacker;
+use super::BlueprintID;
 use super::DynamicBody;
 use super::EntityState;
-use super::MovementTarget;
 use super::PhysicsBody;
 use super::get_entity_position;
 use super::get_entity_position_from_id;
 use super::get_closest_position_with_entity_bounds;
-use super::point_entity_towards_target;
 use super::steer_entity_towards_target;
 use super::{RymdGameModel, Constructor, Controller, Health, Orderable};
 
