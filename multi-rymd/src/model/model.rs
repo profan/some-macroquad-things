@@ -13,6 +13,8 @@ use crate::model::BlueprintID;
 use crate::model::GameMessage;
 use crate::game::RymdGameParameters;
 
+use super::create_commissar_ship_blueprint;
+use super::create_grunt_ship_blueprint;
 use super::entity_apply_raw_steering;
 use super::spatial::SpatialQueryManager;
 use super::steer_entity_towards_target;
@@ -20,6 +22,7 @@ use super::AnimatedSprite;
 use super::MovementTarget;
 use super::PreviousTransform;
 use super::RotationTarget;
+use super::DEFAULT_STEERING_PARAMETERS;
 use super::{create_simple_bullet, Effect};
 use super::get_entity_position;
 use super::point_entity_towards_target;
@@ -69,29 +72,60 @@ pub struct BlueprintManager {
     blueprints: HashMap<BlueprintID, Blueprint>
 }
 
+fn create_blue_side_blueprints() -> HashMap<i32, Blueprint> {
+
+    let mut blueprints = HashMap::new();
+
+    // buildings
+    let metal_storage_blueprint = create_metal_storage_blueprint();
+    let energy_storage_blueprint = create_energy_storage_blueprint();
+    let solar_collector_blueprint = create_solar_collector_blueprint();
+    let shipyard_blueprint = create_shipyard_blueprint();
+
+    blueprints.insert(metal_storage_blueprint.id, metal_storage_blueprint);
+    blueprints.insert(energy_storage_blueprint.id, energy_storage_blueprint);
+    blueprints.insert(solar_collector_blueprint.id, solar_collector_blueprint);
+    blueprints.insert(shipyard_blueprint.id, shipyard_blueprint);
+
+    // units
+    let commander_ship_blueprint = create_commander_ship_blueprint();
+    let arrowhead_ship_blueprint = create_arrowhead_ship_blueprint();
+
+    blueprints.insert(commander_ship_blueprint.id, commander_ship_blueprint);
+    blueprints.insert(arrowhead_ship_blueprint.id, arrowhead_ship_blueprint);
+
+    blueprints
+
+}
+
+fn create_green_side_blueprints() -> HashMap<i32, Blueprint> {
+
+    let mut blueprints = HashMap::new();
+
+    // units
+    let commissar_ship_blueprint = create_commissar_ship_blueprint();
+    let grunt_ship_blueprint = create_grunt_ship_blueprint();
+
+    blueprints.insert(commissar_ship_blueprint.id, commissar_ship_blueprint);
+    blueprints.insert(grunt_ship_blueprint.id, grunt_ship_blueprint);
+
+    blueprints
+
+}
+
 impl BlueprintManager {
 
     pub fn new() -> BlueprintManager {
 
         let mut blueprints = HashMap::new();
-
-        // buildings
-        let metal_storage_blueprint = create_metal_storage_blueprint();
-        let energy_storage_blueprint = create_energy_storage_blueprint();
-        let solar_collector_blueprint = create_solar_collector_blueprint();
-        let shipyard_blueprint = create_shipyard_blueprint();
-
-        blueprints.insert(metal_storage_blueprint.id, metal_storage_blueprint);
-        blueprints.insert(energy_storage_blueprint.id, energy_storage_blueprint);
-        blueprints.insert(solar_collector_blueprint.id, solar_collector_blueprint);
-        blueprints.insert(shipyard_blueprint.id, shipyard_blueprint);
-
-        // units
-        let commander_ship_blueprint = create_commander_ship_blueprint();
-        let arrowhead_ship_blueprint = create_arrowhead_ship_blueprint();
-
-        blueprints.insert(commander_ship_blueprint.id, commander_ship_blueprint);
-        blueprints.insert(arrowhead_ship_blueprint.id, arrowhead_ship_blueprint);
+        
+        for (k, v) in create_blue_side_blueprints() {
+            blueprints.insert(k, v);
+        }
+        
+        for (k, v) in create_green_side_blueprints() {
+            blueprints.insert(k, v);
+        }
 
         BlueprintManager {
             blueprints
@@ -338,15 +372,20 @@ impl RymdGameModel {
 
         for (e, (dynamic_body, steering)) in self.world.query::<(&DynamicBody, &Steering)>().iter() {
 
-            let nearby_entities = self.spatial_manager.entities_near(dynamic_body.position(), steering.parameters.separation_threshold);
+            if dynamic_body.is_static {
+                continue;
+            }
+
+            let steering_parameters = steering.parameters;
+            let nearby_entities = self.spatial_manager.entities_near(dynamic_body.position(), steering_parameters.separation_threshold);
             let nearby_entities_with_dynamic_body = nearby_entities.filter(|o| e != *o).filter_map(|e| self.world.get::<&DynamicBody>(e).and_then(|b| Ok(b.kinematic.clone())).ok());
 
             let steering_output = separation(
                 &dynamic_body.kinematic,
                 nearby_entities_with_dynamic_body,
-                steering.parameters.max_acceleration,
-                steering.parameters.separation_threshold,
-                steering.parameters.separation_decay_coefficient
+                steering_parameters.max_acceleration,
+                steering_parameters.separation_threshold,
+                steering_parameters.separation_decay_coefficient
             );
 
             if steering_output.linear.length() > f32::EPSILON {
@@ -373,7 +412,10 @@ impl RymdGameModel {
 
             attacker.target = None; // reset current target every time we tick the attackers
 
-            for (o, (other_controller, other_attackable, other_transform, &other_state)) in self.world.query::<(&Controller, &Attackable, &Transform, &EntityState)>().iter() {
+            for o in self.spatial_manager.entities_near(transform.world_position, attacker.range) {
+
+                let mut other_query = self.world.query_one::<(&Controller, &Attackable, &Transform, &EntityState)>(o).unwrap();
+                let Some((other_controller, other_attackable, other_transform, other_state)) = other_query.get() else { continue };
 
                 let has_same_controller = controller.id == other_controller.id;
                 let is_current_order_queue_empty = orderable.is_queue_empty(GameOrderType::Order);

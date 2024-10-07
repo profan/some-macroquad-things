@@ -2,12 +2,20 @@ use macroquad::prelude::Vec2;
 use utility::{SteeringParameters, Kinematic};
 
 pub enum Blueprints {
+
     Shipyard = 1,
     SolarCollector = 2,
     EnergyStorage = 3,
     MetalStorage = 4,
+
+    // blue units
     Commander = 5,
-    Arrowhead = 6
+    Arrowhead = 6,
+
+    // green units
+    Commissar = 7,
+    Grunt = 8
+
 }
 
 pub const DEFAULT_STEERING_PARAMETERS: SteeringParameters = SteeringParameters {

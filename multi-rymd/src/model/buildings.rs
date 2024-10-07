@@ -119,7 +119,7 @@ pub fn build_shipyard(world: &mut World, owner: PlayerID, position: Vec2) -> Ent
 
     let maximum_shipyard_health = 1000;
     let initial_shipyard_health = 10;
-    let shipyard_blueprints = vec![Blueprints::Arrowhead as i32];
+    let shipyard_blueprints = vec![Blueprints::Arrowhead as i32, Blueprints::Grunt as i32];
 
     let shipyard_parameters = BuildingParameters {
         

@@ -24,7 +24,7 @@ yakui-macroquad = "0.3.0"
 yakui = "0.2.0"
 
 [profile.dev]
-opt-level = 0
+opt-level = 1
 incremental = true
 
 [profile.dev.build-override]

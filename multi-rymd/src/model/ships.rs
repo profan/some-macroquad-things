@@ -35,14 +35,38 @@ pub fn create_commander_ship_blueprint() -> Blueprint {
     }
 }
 
+pub fn create_commissar_ship_blueprint() -> Blueprint {
+    Blueprint {
+        id: Blueprints::Commander as i32,
+        shortcut: KeyCode::Y,
+        name: String::from("Commissar Ship"),
+        texture: String::from("ENEMY_SHIP"),
+        constructor: build_commissar_ship,
+        cost: Cost { metal: 25.0, energy: 25.0 },
+        is_building: false
+    }
+}
+
 pub fn create_arrowhead_ship_blueprint() -> Blueprint {
     Blueprint {
         id: Blueprints::Arrowhead as i32,
-        shortcut: KeyCode::Y,
+        shortcut: KeyCode::U,
         name: String::from("Arrowhead (Fighter)"),
         texture: String::from("ARROWHEAD"),
         constructor: build_arrowhead_ship,
-        cost: Cost { metal: 0.0, energy: 0.0 },
+        cost: Cost { metal: 25.0, energy: 25.0 },
+        is_building: false
+    }
+}
+
+pub fn create_grunt_ship_blueprint() -> Blueprint {
+    Blueprint {
+        id: Blueprints::Grunt as i32,
+        shortcut: KeyCode::I,
+        name: String::from("Grunt (Fighter)"),
+        texture: String::from("ENEMY_GRUNT"),
+        constructor: build_grunt_ship,
+        cost: Cost { metal: 10.0, energy: 10.0 },
         is_building: false
     }
 }
@@ -190,13 +214,84 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
 
 }
 
+pub fn build_commissar_ship(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
+
+    let commissar_ship_size = 32.0;
+    let commissar_bounds = Rect { x: 0.0, y: 0.0, w: commissar_ship_size, h: commissar_ship_size };
+
+    let initial_commissar_health = 250;
+    let maximum_commissar_health = 1000;
+
+    let commissar_build_speed = 100;
+    let commissar_build_range = 100;
+    let commissar_build_offset = -vec2(commissar_bounds.w / 8.0, 0.0);
+    let commissar_blueprints = vec![Blueprints::Shipyard as i32, Blueprints::SolarCollector as i32, Blueprints::EnergyStorage as i32, Blueprints::MetalStorage as i32];
+
+    let commissar_thruster_power = 64.0;
+    let commissar_turn_thruster_power = 16.0;
+
+    let commissar_metal_income = 10.0;
+    let commissar_energy_income = 10.0;
+
+    let commissar_steering_parameters = DEFAULT_STEERING_PARAMETERS;
+
+    let commissar_ship_parameters = ShipParameters {
+
+        initial_health: initial_commissar_health,
+        maximum_health: maximum_commissar_health,
+        blueprint: Blueprints::Commander,
+
+        bounds: commissar_bounds,
+        texture: "PLAYER_SHIP".to_string(),
+        texture_h_frames: 3,
+
+        steering_parameters: commissar_steering_parameters,
+        turn_rate: 4.0
+
+    };
+
+    let commissar_ship_body = create_ship(world, owner, position, commissar_ship_parameters);
+
+    let constructor = Constructor {
+        current_target: None,
+        constructibles: commissar_blueprints,
+        build_speed: commissar_build_speed,
+        build_range: commissar_build_range,
+        beam_offset: commissar_build_offset,
+        can_assist: true
+    };
+
+    let producer = Producer {
+        metal: commissar_metal_income,
+        energy: commissar_energy_income
+    };
+
+    let _ = world.insert(commissar_ship_body, (constructor, producer));
+
+    // add ship thrusters
+    let commissar_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), -Vec2::X, -(PI / 2.0), commissar_turn_thruster_power, ThrusterKind::Attitude, commissar_ship_body));
+    let commissar_ship_thuster_right_top = world.spawn(ShipThruster::new(vec2(14.0, 4.0), Vec2::X, PI / 2.0, commissar_turn_thruster_power, ThrusterKind::Attitude, commissar_ship_body));
+
+    let commissar_ship_thruster_left_bottom = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), Vec2::X, -(PI / 2.0), commissar_turn_thruster_power, ThrusterKind::Attitude, commissar_ship_body));
+    let commissar_ship_thuster_right_bottom = world.spawn(ShipThruster::new(vec2(14.0, 4.0), -Vec2::X, PI / 2.0, commissar_turn_thruster_power, ThrusterKind::Attitude, commissar_ship_body));
+
+    let commissar_ship_thruster_main = world.spawn(ShipThruster::new(vec2(0.0, 10.0), Vec2::Y, 0.0, commissar_thruster_power, ThrusterKind::Main, commissar_ship_body));
+
+    let mut commissar_ship = world.get::<&mut Ship>(commissar_ship_body).unwrap();
+    commissar_ship.thrusters.push(commissar_ship_thruster_left_top);
+    commissar_ship.thrusters.push(commissar_ship_thuster_right_top);
+    commissar_ship.thrusters.push(commissar_ship_thruster_left_bottom);
+    commissar_ship.thrusters.push(commissar_ship_thuster_right_bottom);
+    commissar_ship.thrusters.push(commissar_ship_thruster_main);
+
+    commissar_ship_body
+
+}
+
 pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
 
     let arrowhead_ship_size = 32.0;
     let arrowhead_bounds = Rect { x: 0.0, y: 0.0, w: arrowhead_ship_size, h: arrowhead_ship_size };
-    let is_enabled = false;
-    let is_static = false;
-    let mask = 1 << owner;
 
     let initial_arrowhead_health = 100;
     let maximum_arrowhead_health = 250;
@@ -250,5 +345,53 @@ pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     arrowhead_ship.thrusters.push(arrowhead_ship_thruster_main);
 
     arrowhead_ship_body
+
+}
+
+pub fn build_grunt_ship(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
+
+    let grunt_ship_size = 16.0;
+    let grunt_bounds = Rect { x: 0.0, y: 0.0, w: grunt_ship_size, h: grunt_ship_size };
+
+    let initial_grunt_health = 100;
+    let maximum_grunt_health = 100;
+
+    let grunt_thruster_power = 32.0;
+    let grunt_turn_thruster_power = 16.0;
+    let grunt_fire_rate = 0.75;
+    let grunt_range = 256.0;
+
+    let grunt_steering_parameters = DEFAULT_STEERING_PARAMETERS;
+
+    let grunt_ship_parameters = ShipParameters {
+
+        initial_health: initial_grunt_health,
+        maximum_health: maximum_grunt_health,
+        blueprint: Blueprints::Grunt,
+
+        bounds: grunt_bounds,
+        texture: "ENEMY_GRUNT".to_string(),
+        texture_h_frames: 1,
+
+        steering_parameters: grunt_steering_parameters,
+        turn_rate: 4.0
+
+    };
+
+    let grunt_ship_body = create_ship(world, owner, position, grunt_ship_parameters);
+
+    let weapon = Weapon { offset: vec2(0.0, -(grunt_ship_size / 2.0)), fire_rate: grunt_fire_rate, cooldown: 0.0 };
+    let attacker = Attacker {
+        range: grunt_range,
+        target: None
+    };
+
+    let _ = world.insert(grunt_ship_body, (weapon, attacker));
+    let grunt_ship_thruster_main = world.spawn(ShipThruster::new(vec2(0.0, 4.0), Vec2::Y, 0.0, grunt_thruster_power, ThrusterKind::Main, grunt_ship_body));
+
+    let mut grunt_ship = world.get::<&mut Ship>(grunt_ship_body).unwrap();
+    grunt_ship.thrusters.push(grunt_ship_thruster_main);
+
+    grunt_ship_body
 
 }

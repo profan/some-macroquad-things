@@ -483,6 +483,7 @@ impl Resources {
 
         // ship types of various kinds
         self.load_texture_or_placeholder("PLAYER_SHIP", "raw/player_ship.png", FilterMode::Nearest).await;
+        self.load_texture_or_placeholder("ENEMY_SHIP", "raw/enemy_spiker.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("ENEMY_GRUNT", "raw/enemy_grunt.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("ENEMY_MEDIUM_GRUNT", "raw/enemy_medium_grunt.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("ENEMY_GRUNT_REPAIR", "raw/enemy_grunt_repair.png", FilterMode::Nearest).await;
