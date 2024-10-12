@@ -3,11 +3,10 @@ use std::f32::consts::PI;
 
 use macroquad_particles::{EmitterConfig, Emitter};
 use utility::{draw_arrow, draw_rectangle_lines_centered, draw_text_centered, draw_texture_centered, draw_texture_centered_with_rotation, draw_texture_centered_with_rotation_frame, is_point_inside_rect, AsPerpendicular, AsVector, AverageLine2D, DebugText, RotatedBy, TextPosition, WithAlpha};
-use lockstep_client::{step::LockstepClient, app::yakui_min_column};
+use lockstep_client::{step::LockstepClient};
 use macroquad_particles::*;
 use macroquad::prelude::*;
 use hecs::*;
-use yakui::Alignment;
 
 use crate::PlayerID;
 use crate::game::RymdGameParameters;
@@ -1399,8 +1398,6 @@ impl RymdGameView {
 
     pub fn tick(&mut self, model: &mut RymdGameModel, lockstep: &mut LockstepClient, dt: f32) {
 
-        if yakui_macroquad::has_input_focus() { return; }
-
         self.handle_selection(&mut model.world);
         self.handle_order(&mut model.world, lockstep);
 
@@ -1618,17 +1615,17 @@ impl RymdGameView {
         }
 
         let should_toggle_debug_bounds = is_key_down(KeyCode::LeftShift) && is_key_released(KeyCode::C);
-        if should_toggle_debug_bounds && yakui_macroquad::has_keyboard_focus() == false {
+        if should_toggle_debug_bounds {
             self.debug.render_bounds = !self.debug.render_bounds;
         }
 
         let should_toggle_kinematic_debug = is_key_down(KeyCode::LeftShift) && is_key_released(KeyCode::K);
-        if should_toggle_kinematic_debug && yakui_macroquad::has_keyboard_focus() == false {
+        if should_toggle_kinematic_debug {
             self.debug.render_kinematic = !self.debug.render_kinematic
         }
 
         let should_toggle_spatial_debug = is_key_down(KeyCode::LeftShift) && is_key_released(KeyCode::S);
-        if should_toggle_spatial_debug && yakui_macroquad::has_keyboard_focus() == false {
+        if should_toggle_spatial_debug {
             self.debug.render_spatial = !self.debug.render_spatial
         }
 
@@ -1694,38 +1691,38 @@ impl RymdGameView {
 
     }
 
-    fn draw_construction_ui(&mut self, model: &mut RymdGameModel, lockstep: &mut LockstepClient) {
+    // fn draw_construction_ui(&mut self, model: &mut RymdGameModel, lockstep: &mut LockstepClient) {
 
-        let should_add_to_queue = is_key_down(KeyCode::LeftShift);
-        let available_blueprints = self.get_available_blueprints_from_current_selection(&model.world);
+    //     let should_add_to_queue = is_key_down(KeyCode::LeftShift);
+    //     let available_blueprints = self.get_available_blueprints_from_current_selection(&model.world);
 
-        let mut selected_constructors_query = model.world.query::<(&Transform, &Orderable, &Selectable, &Constructor)>();
-        let selected_constructor_units: Vec<(Entity, (&Transform, &Orderable, &Selectable, &Constructor))> = selected_constructors_query.into_iter().filter(|(q, (t, o, s, c))| s.is_selected).collect();
-        let current_build_position: Vec2 = self.camera.mouse_world_position();
+    //     let mut selected_constructors_query = model.world.query::<(&Transform, &Orderable, &Selectable, &Constructor)>();
+    //     let selected_constructor_units: Vec<(Entity, (&Transform, &Orderable, &Selectable, &Constructor))> = selected_constructors_query.into_iter().filter(|(q, (t, o, s, c))| s.is_selected).collect();
+    //     let current_build_position: Vec2 = self.camera.mouse_world_position();
 
-        yakui::align(Alignment::CENTER_LEFT, || {
-            yakui::colored_box_container(yakui::Color::GRAY, || {
-                yakui::pad(yakui::widgets::Pad::all(4.0), || {
+    //     yakui::align(Alignment::CENTER_LEFT, || {
+    //         yakui::colored_box_container(yakui::Color::GRAY, || {
+    //             yakui::pad(yakui::widgets::Pad::all(4.0), || {
 
-                    yakui_min_column(|| {
-                        for id in available_blueprints.into_iter() {
-                            let blueprint = model.blueprint_manager.get_blueprint(id).expect("could not find blueprint? this is a bug!");
-                            if yakui::button(blueprint.name.to_string()).clicked {
+    //                 yakui_min_column(|| {
+    //                     for id in available_blueprints.into_iter() {
+    //                         let blueprint = model.blueprint_manager.get_blueprint(id).expect("could not find blueprint? this is a bug!");
+    //                         if yakui::button(blueprint.name.to_string()).clicked {
                                 
-                                for (e, (t, o, s, c)) in &selected_constructor_units {
-                                    lockstep.send_build_order(*e, current_build_position, blueprint.id, should_add_to_queue, blueprint.is_building == false);
-                                    println!("[RymdGameView] attempted to send build order for position: {} and blueprint: {}", current_build_position, blueprint.id);
-                                }
+    //                             for (e, (t, o, s, c)) in &selected_constructor_units {
+    //                                 lockstep.send_build_order(*e, current_build_position, blueprint.id, should_add_to_queue, blueprint.is_building == false);
+    //                                 println!("[RymdGameView] attempted to send build order for position: {} and blueprint: {}", current_build_position, blueprint.id);
+    //                             }
 
-                            }
-                        }
-                    });
+    //                         }
+    //                     }
+    //                 });
 
-                });
-            });
-        });
+    //             });
+    //         });
+    //     });
 
-    }
+    // }
 
     fn draw_text_construction_ui(&mut self, model: &mut RymdGameModel, debug: &mut DebugText) {
 
@@ -1803,21 +1800,21 @@ impl RymdGameView {
 
     fn draw_ui(&mut self, model: &mut RymdGameModel, debug: &mut DebugText, lockstep: &mut LockstepClient) {
 
-        yakui::align(Alignment::TOP_CENTER, || {
+        // yakui::align(Alignment::TOP_CENTER, || {
 
-            let current_metal = current_metal(self.game_player_id, &model.world);
-            let maximum_metal = max_metal(self.game_player_id, &model.world);
-            let current_metal_income = current_metal_income(self.game_player_id, &model.world);
-            let current_metal_excess = 0;
+        //     let current_metal = current_metal(self.game_player_id, &model.world);
+        //     let maximum_metal = max_metal(self.game_player_id, &model.world);
+        //     let current_metal_income = current_metal_income(self.game_player_id, &model.world);
+        //     let current_metal_excess = 0;
 
-            let current_energy = current_energy(self.game_player_id, &model.world);
-            let maximum_energy = max_energy(self.game_player_id, &model.world);
-            let current_energy_income = current_energy_income(self.game_player_id, &model.world);
-            let current_energy_excess = 0;
+        //     let current_energy = current_energy(self.game_player_id, &model.world);
+        //     let maximum_energy = max_energy(self.game_player_id, &model.world);
+        //     let current_energy_income = current_energy_income(self.game_player_id, &model.world);
+        //     let current_energy_excess = 0;
 
-            yakui::label(format!("current metal: {:.0}/{:.0} ({:.0}), current energy: {:.0}/{:.0} ({:.0})", current_metal, maximum_metal, current_metal_income, current_energy, maximum_energy, current_energy_income));
+        //     yakui::label(format!("current metal: {:.0}/{:.0} ({:.0}), current energy: {:.0}/{:.0} ({:.0})", current_metal, maximum_metal, current_metal_income, current_energy, maximum_energy, current_energy_income));
 
-        });
+        // });
 
         if self.current_selection_has_constructor_unit(&model.world) {
             self.draw_text_construction_ui(model, debug);

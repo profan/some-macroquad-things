@@ -20,8 +20,6 @@ egui-macroquad = { path = "../third-party/egui-macroquad" }
 puffin_egui = "0.29.0"
 
 hecs = { version = "0.10.4", features = ["macros"] }
-yakui-macroquad = "0.3.0"
-yakui = "0.2.0"
 
 [profile.dev]
 opt-level = 1

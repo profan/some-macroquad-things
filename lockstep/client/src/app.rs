@@ -1,8 +1,8 @@
+use egui_macroquad::egui::{self, Align2};
 use macroquad::prelude::*;
 use lockstep::lobby::{DEFAULT_LOBBY_PORT, RelayMessage, LobbyClientID, LobbyState};
 use nanoserde::SerJson;
-use utility::DebugText;
-use yakui::{Direction, widgets::Pad};
+use utility::{screen_dimensions, DebugText};
 
 use crate::{game::Game, relay::RelayClient, network::{NetworkClient, ConnectionState}, step::{LockstepClient, TurnState}, extensions::RelayCommandsExt};
 
@@ -326,31 +326,39 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
     
     }
     
-    fn draw_lobby_ui(&mut self) {
+    fn draw_lobby_ui(&mut self, ui: &mut egui::Ui) {
 
         let lobby = self.relay.get_current_lobby().expect("called draw_lobby_ui without there being a current lobby!");
 
-        yakui::label(format!("lobby: {}", lobby.name.clone()));
+        ui.label(format!("lobby: {}", lobby.name.clone()));
 
-        yakui::column(|| {
-
+        ui.vertical_centered_justified(|ui| {
             for client_id in &lobby.clients {
                 let c = self.relay.client_with_id(*client_id).unwrap();
-                yakui::label(format!("{} ({})", c.name, client_id));
+                let client_rtt_to_us_in_ms = self.relay.get_client_ping(c.id);
+                ui.label(format!("{} ({}) - {} ms", c.name, client_id, client_rtt_to_us_in_ms));
             }
-
         });
 
-        yakui_min_row(|| {
-            if yakui::button("start").clicked {
+        ui.horizontal(|ui| {
+            if ui.button("start").clicked() {
                 self.net.start_lobby();
             }
 
-            if yakui::button("leave").clicked {
+            if ui.button("leave").clicked() {
                 self.net.leave_lobby();
             }
         });
 
+    }
+
+    fn leave_lobby_or_disconnect_from_server(&mut self) {
+        if self.relay.is_in_lobby() {
+            self.net.leave_lobby();
+        } else {
+            self.disconnect_from_server();
+            self.mode = ApplicationMode::Frontend;
+        }
     }
 
     fn draw_multiplayer_lobby_ui(&mut self) {
@@ -360,45 +368,42 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         };
     
         if is_key_pressed(KeyCode::Escape) {
-            if self.relay.is_in_lobby() {
-                self.net.leave_lobby();
-            } else {
-                self.disconnect_from_server();
-                self.mode = ApplicationMode::Frontend;
-            }
+            self.leave_lobby_or_disconnect_from_server();
         }
     
         let lobbies_title = format!("{} - lobbies", self.title);
         let lobby_title = format!("{} - lobby", self.title);
 
-        draw_menu_window_with_column(|| {
-
-            yakui::label(if self.relay.is_in_lobby() { lobby_title } else { lobbies_title });
+        let menu_window_title = if self.relay.is_in_lobby() { lobby_title } else { lobbies_title };
+        draw_centered_menu_window(&menu_window_title, |ui| {
 
             if self.net.is_connected() {
 
                 if self.relay.is_in_lobby() {
-                    self.draw_lobby_ui();
+                    self.draw_lobby_ui(ui);
                 } else {
                     if self.relay.get_lobbies().is_empty() == false {
 
                         for lobby in self.relay.get_lobbies() {
 
                             let lobby_text = format!("{} ({}) - {:?}", lobby.name, lobby.id, lobby.state);
-                            yakui_min_row(|| {
-                                yakui::label(lobby_text);
-                                if lobby.state == LobbyState::Open && yakui::button("join").clicked {
-                                    self.net.join_lobby(lobby.id);
+
+                            ui.horizontal_centered(|ui| {
+                                ui.label(lobby_text);
+                                if lobby.state == LobbyState::Open {
+                                    if ui.button("join").clicked() {
+                                        self.net.join_lobby(lobby.id);
+                                    }
                                 }
                             });
 
                         }
 
                     } else {
-                        yakui::label("there appears to be no lobbies!");
+                        ui.label("there appears to be no lobbies!");
                     }
 
-                    if yakui::button("create new lobby").clicked {
+                    if ui.button("create new lobby").clicked() {
                         self.net.query_active_state();
                         self.net.create_new_lobby();
                     }
@@ -410,7 +415,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
             if self.relay.is_in_lobby() == false {
 
                 if self.net.is_connecting() {
-                    yakui::label("connecting...");
+                    ui.label("connecting...");
                 }
 
                 if self.net.is_connected() == false {
@@ -422,14 +427,18 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                     //     self.set_target_host(&address);
                     // }
 
-                    yakui::label(self.target_host().to_string());
+                    ui.label(self.target_host());
 
-                    if yakui::button("connect to server").clicked {
+                    if ui.button("connect to server").clicked() {
                         self.connect_to_server();
                     }
 
+                    if ui.button("back to menu").clicked() {
+                        self.leave_lobby_or_disconnect_from_server();
+                    }
+
                 } else {
-                    if yakui::button("disconnect from server").clicked {
+                    if ui.button("disconnect from server").clicked() {
                         self.disconnect_from_server();
                     }
                 }
@@ -444,15 +453,13 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
     
         let lockstep_main_menu_title = format!("{}", self.title);
 
-        draw_menu_window_with_column(|| {
+        draw_centered_menu_window(&lockstep_main_menu_title, |ui| {
 
-            yakui::label(lockstep_main_menu_title);
-            
-            if yakui::button("singleplayer").clicked {
+            if ui.button("singleplayer").clicked() {
                 self.start_singleplayer_game();
             }
 
-            if yakui::button("multiplayer").clicked {
+            if ui.button("multiplayer").clicked() {
                 self.start_multiplayer_game();
             }
 
@@ -478,8 +485,6 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
     pub fn draw(&mut self, dt: f32) {
 
-        yakui_macroquad::start();
-
         if self.game.is_running() && let Some(lockstep) = &mut self.lockstep {
             self.game.draw(&mut self.debug, lockstep, dt);
         }
@@ -487,54 +492,26 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         self.draw_debug_text();
         self.draw_ui();
 
-        yakui_macroquad::finish();
-
-        yakui_macroquad::draw();
-
     }
 
 }
 
-pub fn draw_menu_window<F>(children: F)
-    where F: FnOnce() -> ()
+pub fn draw_centered_menu_window<F>(title: &str, mut contents: F)
+    where F: FnMut(&mut egui::Ui) -> ()
 {
-    yakui::center(|| {
-        yakui::pad(Pad::all(32.0), || {
-            yakui::colored_box_container(yakui::Color::WHITE.adjust(0.1), ||{
-                yakui::pad(Pad::all(32.0), || {
-                    children();               
+    let screen_center = screen_dimensions() / 2.0;
+    egui_macroquad::ui(|egui_ctx| {
+        egui::Window::new(title)
+            .pivot(Align2::CENTER_CENTER)
+            .fixed_pos((screen_center.x, screen_center.y))
+            .collapsible(false)
+            .resizable(false)
+            .show(egui_ctx, |ui| {
+
+                ui.vertical_centered_justified(|ui| {
+                    contents(ui);
                 });
+
             });
-        });
     });
-}
-
-pub fn draw_menu_window_with_column<F>(children: F)
-    where F: FnOnce() -> ()
-{
-    draw_menu_window(|| {
-        let mut list = yakui::widgets::List::new(Direction::Down);
-        list.cross_axis_alignment = yakui::CrossAxisAlignment::Center;
-        list.item_spacing = 16.0;
-        
-        list.show(|| {
-            children();
-        });
-    });
-}
-
-pub fn yakui_min_column<F>(children: F)
-    where F: FnOnce() -> ()
-{
-    let mut column = yakui::widgets::List::column();
-    column.main_axis_size = yakui::MainAxisSize::Min;
-    column.show(children);
-}
-
-pub fn yakui_min_row<F>(children: F)
-    where F: FnOnce() -> ()
-{
-    let mut row = yakui::widgets::List::row();
-    row.main_axis_size = yakui::MainAxisSize::Min;
-    row.show(children);
 }

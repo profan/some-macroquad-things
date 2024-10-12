@@ -25,7 +25,7 @@ async fn main() {
     let mut main_loop_update_time_ms = 0.0;
     let mut app = ApplicationState::new("multi-rymd", RymdGame::new());
 
-    app.set_target_host("94.13.52.142");
+    app.set_target_host("90.205.118.249");
     app.set_debug_text_colour(WHITE);
     app.load_resources().await;
 
@@ -52,8 +52,9 @@ async fn main() {
 
         if INGAME_PROFILER_ENABLED {
             egui_macroquad::ui(|ctx| { puffin_egui::profiler_window(ctx); });
-            egui_macroquad::draw();
         }
+       
+        egui_macroquad::draw();
 
         next_frame().await;
 
