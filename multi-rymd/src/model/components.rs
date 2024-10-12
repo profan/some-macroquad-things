@@ -375,13 +375,12 @@ impl Orderable {
 
 #[derive(Clone)]
 pub struct Ship {
-    pub turn_rate: f32,
     pub thrusters: Vec<Entity>
 }
 
 impl Ship {
-    pub fn new(turn_rate: f32) -> Ship {
-        Ship { turn_rate, thrusters: Vec::new() }
+    pub fn new() -> Ship {
+        Ship { thrusters: Vec::new() }
     }
 }
 

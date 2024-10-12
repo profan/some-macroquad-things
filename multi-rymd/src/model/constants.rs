@@ -37,6 +37,16 @@ pub const DEFAULT_STEERING_PARAMETERS: SteeringParameters = SteeringParameters {
 
 };
 
+pub const COMMANDER_STEERING_PARAMETERS: SteeringParameters = SteeringParameters {
+    align_max_angular_acceleration: 8.0,
+    ..DEFAULT_STEERING_PARAMETERS
+};
+
+pub const ARROWHEAD_STEERING_PARAMETERS: SteeringParameters = SteeringParameters {
+    align_max_angular_acceleration: 8.0,
+    ..DEFAULT_STEERING_PARAMETERS
+};
+
 pub fn create_default_kinematic_body(position: Vec2, orientation: f32) -> Kinematic {
     Kinematic {
         position,

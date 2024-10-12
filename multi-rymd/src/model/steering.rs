@@ -44,9 +44,6 @@ pub fn get_closest_position_with_entity_id_bounds(world: &World, entity_id: u64)
 
 fn entity_apply_steering(kinematic: &mut Kinematic, steering_maybe: Option<SteeringOutput>, dt: f32) {
 
-    // #FIXME: make this data driven, this should be defined per entity (type?)
-    let turn_rate = 4.0;
-
     if let Some(steering) = steering_maybe {
 
         let desired_linear_velocity = steering.linear * dt;
@@ -55,7 +52,7 @@ fn entity_apply_steering(kinematic: &mut Kinematic, steering_maybe: Option<Steer
         let projected_linear_velocity = desired_linear_velocity * desired_linear_velocity.dot(-kinematic.orientation.as_vector()).max(0.0);
         kinematic.velocity += projected_linear_velocity;
 
-        let turn_delta = steering.angular * turn_rate * dt;
+        let turn_delta = steering.angular * dt;
         kinematic.angular_velocity += turn_delta;
 
     }

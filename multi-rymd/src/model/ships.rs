@@ -6,7 +6,7 @@ use utility::{AsAngle, SteeringParameters};
 
 use crate::PlayerID;
 use crate::model::{Transform, Orderable, AnimatedSprite, Thruster, DynamicBody, Ship, ThrusterKind};
-use super::{create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Constructor, Controller, Cost, EntityState, Health, MovementTarget, Producer, RotationTarget, Steering, Weapon, DEFAULT_STEERING_PARAMETERS};
+use super::{create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Constructor, Controller, Cost, EntityState, Health, MovementTarget, Producer, RotationTarget, Steering, Weapon, ARROWHEAD_STEERING_PARAMETERS, COMMANDER_STEERING_PARAMETERS, DEFAULT_STEERING_PARAMETERS};
 
 #[derive(Bundle)]
 pub struct ShipThruster {
@@ -100,8 +100,7 @@ struct ShipParameters {
     pub texture_h_frames: i32,
 
     // steering related parameters
-    pub steering_parameters: SteeringParameters,
-    pub turn_rate: f32
+    pub steering_parameters: SteeringParameters
 
 }
 
@@ -124,7 +123,7 @@ fn create_ship(world: &mut World, owner: PlayerID, position: Vec2, parameters: S
     let dynamic_body = DynamicBody { is_static: is_body_static, is_enabled: is_body_enabled, kinematic: kinematic_body, mask: body_mask, bounds: parameters.bounds };
     let sprite = AnimatedSprite { texture: parameters.texture, current_frame: 0, h_frames: parameters.texture_h_frames };
     let steering = Steering { parameters: steering_parameters };
-    let ship = Ship::new(parameters.turn_rate);
+    let ship = Ship::new();
     let orderable = Orderable::new();
     let state = EntityState::Ghost;
     let attackable = Attackable;
@@ -159,7 +158,7 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let commander_metal_income = 10.0;
     let commander_energy_income = 10.0;
 
-    let commander_steering_parameters = DEFAULT_STEERING_PARAMETERS;
+    let commander_steering_parameters = COMMANDER_STEERING_PARAMETERS;
 
     let commander_ship_parameters = ShipParameters {
 
@@ -171,8 +170,7 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
         texture: "PLAYER_SHIP".to_string(),
         texture_h_frames: 3,
 
-        steering_parameters: commander_steering_parameters,
-        turn_rate: 4.0
+        steering_parameters: commander_steering_parameters
 
     };
 
@@ -245,8 +243,7 @@ pub fn build_commissar_ship(world: &mut World, owner: PlayerID, position: Vec2) 
         texture: "PLAYER_SHIP".to_string(),
         texture_h_frames: 3,
 
-        steering_parameters: commissar_steering_parameters,
-        turn_rate: 4.0
+        steering_parameters: commissar_steering_parameters
 
     };
 
@@ -301,7 +298,7 @@ pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let arrowhead_fire_rate = 0.25;
     let arrowhead_range = 256.0;
 
-    let arrowhead_steering_parameters = DEFAULT_STEERING_PARAMETERS;
+    let arrowhead_steering_parameters = ARROWHEAD_STEERING_PARAMETERS;
 
     let arrowhead_ship_parameters = ShipParameters {
 
@@ -313,8 +310,7 @@ pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) 
         texture: "ARROWHEAD".to_string(),
         texture_h_frames: 1,
 
-        steering_parameters: arrowhead_steering_parameters,
-        turn_rate: 4.0
+        steering_parameters: arrowhead_steering_parameters
 
     };
 
@@ -373,8 +369,7 @@ pub fn build_grunt_ship(world: &mut World, owner: PlayerID, position: Vec2) -> E
         texture: "ENEMY_GRUNT".to_string(),
         texture_h_frames: 1,
 
-        steering_parameters: grunt_steering_parameters,
-        turn_rate: 4.0
+        steering_parameters: grunt_steering_parameters
 
     };
 
