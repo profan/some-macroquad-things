@@ -352,6 +352,36 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
     }
 
+    fn draw_lobby_list_ui(&mut self, ui: &mut egui::Ui) {
+
+        if self.relay.get_lobbies().is_empty() == false {
+
+            for lobby in self.relay.get_lobbies() {
+
+                let lobby_text = format!("{} ({}) - {:?}", lobby.name, lobby.id, lobby.state);
+
+                ui.horizontal_centered(|ui| {
+                    ui.label(lobby_text);
+                    if lobby.state == LobbyState::Open {
+                        if ui.button("join").clicked() {
+                            self.net.join_lobby(lobby.id);
+                        }
+                    }
+                });
+
+            }
+
+        } else {
+            ui.label("there appears to be no lobbies!");
+        }
+
+        if ui.button("create new lobby").clicked() {
+            self.net.query_active_state();
+            self.net.create_new_lobby();
+        }
+
+    }
+
     fn leave_lobby_or_disconnect_from_server(&mut self) {
         if self.relay.is_in_lobby() {
             self.net.leave_lobby();
@@ -370,83 +400,57 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         if is_key_pressed(KeyCode::Escape) {
             self.leave_lobby_or_disconnect_from_server();
         }
-    
+
+        let current_lobby_name = self.relay.get_current_lobby().and_then(|l| Some(l.name.clone()));
+        let lobby_title = format!("{} - lobby - {}", self.title, current_lobby_name.unwrap_or("None".to_string()));
         let lobbies_title = format!("{} - lobbies", self.title);
-        let lobby_title = format!("{} - lobby", self.title);
 
         let menu_window_title = if self.relay.is_in_lobby() { lobby_title } else { lobbies_title };
+
         draw_centered_menu_window(&menu_window_title, |ui| {
 
             if self.net.is_connected() {
-
                 if self.relay.is_in_lobby() {
                     self.draw_lobby_ui(ui);
                 } else {
-                    if self.relay.get_lobbies().is_empty() == false {
-
-                        for lobby in self.relay.get_lobbies() {
-
-                            let lobby_text = format!("{} ({}) - {:?}", lobby.name, lobby.id, lobby.state);
-
-                            ui.horizontal_centered(|ui| {
-                                ui.label(lobby_text);
-                                if lobby.state == LobbyState::Open {
-                                    if ui.button("join").clicked() {
-                                        self.net.join_lobby(lobby.id);
-                                    }
-                                }
-                            });
-
-                        }
-
-                    } else {
-                        ui.label("there appears to be no lobbies!");
-                    }
-
-                    if ui.button("create new lobby").clicked() {
-                        self.net.query_active_state();
-                        self.net.create_new_lobby();
-                    }
-
+                    self.draw_lobby_list_ui(ui);
                 }
-
             }
 
             if self.relay.is_in_lobby() == false {
-
-                if self.net.is_connecting() {
-                    ui.label("connecting...");
-                }
-
-                if self.net.is_connected() == false {
-
-                    // let mut host_textbox = yakui::widgets::TextBox::new("localhost");
-                    // host_textbox.style.color = yakui::Color::WHITE;
-
-                    // if let Some(address) = &host_textbox.show().text {
-                    //     self.set_target_host(&address);
-                    // }
-
-                    ui.label(self.target_host());
-
-                    if ui.button("connect to server").clicked() {
-                        self.connect_to_server();
-                    }
-
-                    if ui.button("back to menu").clicked() {
-                        self.leave_lobby_or_disconnect_from_server();
-                    }
-
-                } else {
-                    if ui.button("disconnect from server").clicked() {
-                        self.disconnect_from_server();
-                    }
-                }
-
+                self.draw_lobbies_view(ui);
             }
 
         });
     
+    }
+    
+    fn draw_lobbies_view(&mut self, ui: &mut egui::Ui) {
+
+        if self.net.is_connecting() {
+            ui.label("connecting...");
+        }
+    
+        if self.net.is_connected() == false {
+    
+            if ui.button("connect to relay server").clicked() {
+                self.connect_to_server();
+            }
+    
+            if ui.button("back to menu").clicked() {
+                self.leave_lobby_or_disconnect_from_server();
+            }
+    
+        } else {
+
+            if ui.button("disconnect from server").clicked() {
+                self.disconnect_from_server();
+            }
+
+            ui.label(format!("connected to relay server: {}", self.target_host()));
+            
+        }
+
     }
     
     fn draw_main_menu_ui(&mut self) {
@@ -506,6 +510,7 @@ pub fn draw_centered_menu_window<F>(title: &str, mut contents: F)
             .fixed_pos((screen_center.x, screen_center.y))
             .collapsible(false)
             .resizable(false)
+            .frame(egui::Frame::default().inner_margin(egui::Margin::same(16.0)))
             .show(egui_ctx, |ui| {
 
                 ui.vertical_centered_justified(|ui| {
