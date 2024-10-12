@@ -377,7 +377,7 @@ impl RymdGameModel {
             }
 
             let steering_parameters = steering.parameters;
-            let nearby_entities = self.spatial_manager.entities_near(dynamic_body.position(), steering_parameters.separation_threshold);
+            let nearby_entities = self.spatial_manager.entities_within_radius(dynamic_body.position(), steering_parameters.separation_threshold);
             let nearby_entities_with_dynamic_body = nearby_entities.filter(|o| e != *o).filter_map(|e| self.world.get::<&DynamicBody>(e).and_then(|b| Ok(b.kinematic.clone())).ok());
 
             let steering_output = separation(
@@ -412,7 +412,7 @@ impl RymdGameModel {
 
             attacker.target = None; // reset current target every time we tick the attackers
 
-            for o in self.spatial_manager.entities_near(transform.world_position, attacker.range) {
+            for o in self.spatial_manager.entities_within_radius(transform.world_position, attacker.range) {
 
                 let mut other_query = self.world.query_one::<(&Controller, &Attackable, &Transform, &EntityState)>(o).unwrap();
                 let Some((other_controller, other_attackable, other_transform, other_state)) = other_query.get() else { continue };
@@ -666,16 +666,24 @@ impl RymdGameModel {
         let mut updated_entity_positions = Vec::new();
         let mut deleted_entity_positions = Vec::new();
         
-        for (e, (transform, _dynamic_body, health, previous_transform)) in self.world.query_mut::<(&mut Transform, &DynamicBody, Option<&Health>, Option<&mut PreviousTransform>)>() {
+        for (e, (transform, _dynamic_body, health, effect, previous_transform)) in self.world.query_mut::<(&mut Transform, &DynamicBody, Option<&Health>, Option<&Effect>, Option<&mut PreviousTransform>)>() {
+
+            // handle entities being created/updated
             if let Some(previous_transform) = previous_transform {        
                 if previous_transform.transform.world_position != transform.world_position {
                     updated_entity_positions.push((e, previous_transform.transform.world_position, transform.world_position));
                 }
-            } else if let Some(health) = health && health.is_at_or_below_zero_health() {
-                deleted_entity_positions.push((e, *transform));
             } else {
                 created_entity_positions.push((e, *transform));
             }
+            
+            // handle entities being destroyed
+            if let Some(health) = health && health.is_at_or_below_zero_health() {
+                deleted_entity_positions.push((e, *transform));
+            } else if let Some(effect) = effect && effect.lifetime <= 0.0 {
+                deleted_entity_positions.push((e, *transform));
+            }
+
         }
 
         for (e, transform) in created_entity_positions {

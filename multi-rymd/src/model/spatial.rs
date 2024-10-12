@@ -118,7 +118,7 @@ impl SpatialQueryManager {
 
     }
 
-    pub fn entities_within(&self, min: Vec2, max: Vec2) -> impl Iterator::<Item = Entity> + '_  {
+    pub fn entities_within_min_max(&self, min: Vec2, max: Vec2) -> impl Iterator::<Item = Entity> + '_  {
 
         let bucket_size = self.bucket_size;
         let position_bounds = Rect::new(min.x, min.y, max.x - min.x, max.y - max.y);
@@ -126,7 +126,7 @@ impl SpatialQueryManager {
 
     }
 
-    pub fn entities_near(&self, position: Vec2, radius: f32) -> impl Iterator::<Item = Entity> + '_  {
+    pub fn entities_within_radius(&self, position: Vec2, radius: f32) -> impl Iterator::<Item = Entity> + '_  {
         
         let bucket_size = self.bucket_size;
         let position_bounds = Rect::new(position.x - radius * 0.5, position.y - radius * 0.5, radius * 2.0, radius * 2.0);
