@@ -35,6 +35,10 @@ async fn main() {
 
     loop {
 
+        if app.was_quit_requested() {
+            break;
+        }
+
         if INGAME_PROFILER_ENABLED {
             puffin::GlobalProfiler::lock().new_frame();
         }

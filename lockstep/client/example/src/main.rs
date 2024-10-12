@@ -130,6 +130,10 @@ async fn main() {
 
     loop {
 
+        if app.was_quit_requested() {
+            break;
+        }
+
         let dt = get_frame_time();
 
         app.handle_messages();

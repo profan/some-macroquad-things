@@ -23,7 +23,8 @@ pub struct ApplicationState<GameType> where GameType: Game {
     net: NetworkClient,
     mode: ApplicationMode,
     debug_text_colour: Color,
-    current_frame: i64
+    current_frame: i64,
+    quit_requested: bool
 }
 
 impl<GameType> ApplicationState<GameType> where GameType: Game {
@@ -42,9 +43,14 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
             net: NetworkClient::new(),
             mode: ApplicationMode::Frontend,
             debug_text_colour: WHITE,
-            current_frame: 0
+            current_frame: 0,
+            quit_requested: false
         }
 
+    }
+
+    pub fn was_quit_requested(&self) -> bool {
+        self.quit_requested
     }
 
     pub fn get_game(&mut self) -> &mut GameType {
@@ -465,6 +471,10 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
             if ui.button("multiplayer").clicked() {
                 self.start_multiplayer_game();
+            }
+
+            if ui.button("quit").clicked() {
+                self.quit_requested = true;
             }
 
         });
