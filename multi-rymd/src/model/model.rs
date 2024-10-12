@@ -580,8 +580,8 @@ impl RymdGameModel {
             let metal_to_consume_this_tick = metal_to_consume * Self::TIME_STEP;
             let energy_to_consume_this_tick = energy_to_consume * Self::TIME_STEP;
 
-            consume_metal(controller.id, &self.world, metal_to_consume_this_tick);
-            consume_energy(controller.id, &self.world, energy_to_consume_this_tick);
+            consume_metal(controller.id, &self.world, metal_to_consume_this_tick, Self::TIME_STEP);
+            consume_energy(controller.id, &self.world, energy_to_consume_this_tick, Self::TIME_STEP);
 
             let entity_health_proportion = entity_remaining_health_fraction * entity_health.full_health();
             let entity_health_regain_amount = entity_health_proportion * clamped_min_available_proportion_with_build_power;
@@ -632,15 +632,15 @@ impl RymdGameModel {
             let mut total_energy_income = 0.0;
 
             if let Some(consumer) = consumer && state == EntityState::Constructed {
-                consume_metal(controller.id, &self.world, consumer.metal * Self::TIME_STEP);
-                consume_energy(controller.id, &self.world, consumer.energy * Self::TIME_STEP);
+                consume_metal(controller.id, &self.world, consumer.metal * Self::TIME_STEP, Self::TIME_STEP);
+                consume_energy(controller.id, &self.world, consumer.energy * Self::TIME_STEP, Self::TIME_STEP);
                 total_metal_income -= consumer.metal;
                 total_energy_income -= consumer.energy;
             }
 
             if let Some(producer) = producer && state == EntityState::Constructed {
-                provide_metal(controller.id, &self.world, producer.metal * Self::TIME_STEP);
-                provide_energy(controller.id, &self.world, producer.energy * Self::TIME_STEP);
+                provide_metal(controller.id, &self.world, producer.metal * Self::TIME_STEP, Self::TIME_STEP);
+                provide_energy(controller.id, &self.world, producer.energy * Self::TIME_STEP, Self::TIME_STEP);
                 total_metal_income += producer.metal;
                 total_energy_income += producer.energy;
             }

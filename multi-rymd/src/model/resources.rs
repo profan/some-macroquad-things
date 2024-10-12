@@ -46,25 +46,25 @@ pub struct Metal {
     pub current: f32,
     pub income: f32,
     pub base_size: f32,
-    pub pool_size: f32
+    pub pool_size: f32,
 }
 
 /// Attempts to provide this amount of metal to the given player's energy pool.
-pub fn provide_metal(player_id: PeerID, world: &World, amount: f32) -> bool {
-    consume_metal(player_id, world, -amount)
+pub fn provide_metal(player_id: PeerID, world: &World, amount: f32, dt: f32) -> bool {
+    consume_metal(player_id, world, -amount, dt)
 }
 
 /// Attempts to provide this amount of energy to the given player's energy pool.
-pub fn provide_energy(player_id: PeerID, world: &World, amount: f32) -> bool {
-    consume_energy(player_id, world, -amount)
+pub fn provide_energy(player_id: PeerID, world: &World, amount: f32, dt: f32) -> bool {
+    consume_energy(player_id, world, -amount, dt)
 }
 
 /// Attempts to consume the specific amount of metal from this player's resources, returns true if successful.
-pub fn consume_metal(player_id: PeerID, world: &World, amount: f32) -> bool {
+pub fn consume_metal(player_id: PeerID, world: &World, amount: f32, dt: f32) -> bool {
 
     if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().filter(|(e, p)| p.id == player_id).nth(0) {
         if let Ok(mut metal) = world.get::<&mut Metal>(current_player_entity) && metal.current >= amount {
-            metal.income -= amount;
+            metal.income -= amount / dt;
             metal.current = (metal.current - amount).clamp(0.0, metal.base_size + metal.pool_size); // #TODO: specifically distribute excess/overflow to other allied players maybe?
             true
         } else {
@@ -77,11 +77,11 @@ pub fn consume_metal(player_id: PeerID, world: &World, amount: f32) -> bool {
 }
 
 /// Attempts to consume the specific amount of energy from this player's resources, returns true if successful.
-pub fn consume_energy(player_id: PeerID, world: &World, amount: f32) -> bool {
+pub fn consume_energy(player_id: PeerID, world: &World, amount: f32, dt: f32) -> bool {
 
     if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().filter(|(e, p)| p.id == player_id).nth(0) {
         if let Ok(mut energy) = world.get::<&mut Energy>(current_player_entity) && energy.current >= amount {
-            energy.income -= amount;
+            energy.income -= amount / dt;
             energy.current = (energy.current - amount).clamp(0.0, energy.base_size + energy.pool_size);
             true
         } else {
