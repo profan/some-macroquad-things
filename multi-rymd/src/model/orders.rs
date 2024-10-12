@@ -22,7 +22,7 @@ use super::get_closest_position_with_entity_bounds;
 use super::steer_entity_towards_target;
 use super::{RymdGameModel, Constructor, Controller, Health, Orderable};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum GameOrderType {
     Order,
     Construct,
@@ -442,6 +442,10 @@ impl ConstructOrder {
         orderable.push_order(GameOrder::Move(MoveOrder { x: position.x, y: position.y }));
     }
 
+    fn is_entity_a_constructor(model: &RymdGameModel, new_entity: Entity) -> bool {
+        model.world.satisfies::<&Constructor>(new_entity).unwrap()
+    }
+
     fn inherit_orders_from_constructor_if_empty(&self, constructor_entity: Entity, new_entity: Entity, model: &mut RymdGameModel) {
 
         if constructor_entity == new_entity {
@@ -461,6 +465,9 @@ impl ConstructOrder {
                 && new_orderable.is_queue_empty(GameOrderType::Order)
             {
                 for order in constructor_orderable.orders(GameOrderType::Order) {
+                    if Self::is_entity_a_constructor(model, new_entity) == false && order.order_type() == GameOrderType::Construct {
+                        continue;
+                    }
                     new_orderable.queue_order(*order);
                 }
             }
