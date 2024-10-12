@@ -545,24 +545,21 @@ impl RymdGameModel {
             let build_power_metal_cost = (constructor.build_speed as f32 / 2.0).min(entity_remaining_metal_cost);
             let build_power_energy_cost = (constructor.build_speed as f32 / 2.0).min(entity_remaining_energy_cost);
 
-            let available_metal_proportion = (available_metal / build_power_metal_cost).max(1.0);
-            let available_energy_proportion = (available_energy / build_power_energy_cost).max(1.0);
+            let available_metal_proportion = (build_power_metal_cost / available_metal).max(1.0);
+            let available_energy_proportion = (build_power_energy_cost / available_energy).max(1.0);
             let min_available_proportion = available_metal_proportion.min(available_energy_proportion);
 
             let metal_to_consume = build_power_metal_cost * min_available_proportion;
             let energy_to_consume = build_power_energy_cost * min_available_proportion;
 
-            let actual_metal_to_consume = metal_to_consume.min(available_metal);
-            let actual_energy_to_consume = energy_to_consume.min(available_energy);
+            let metal_to_consume_this_tick = metal_to_consume * Self::TIME_STEP;
+            let energy_to_consume_this_tick = energy_to_consume * Self::TIME_STEP;
 
-            let actual_metal_to_consume_this_tick = actual_metal_to_consume * Self::TIME_STEP;
-            let actual_energy_to_consume_this_tick = actual_energy_to_consume * Self::TIME_STEP;
-
-            consume_metal(controller.id, &self.world, actual_metal_to_consume_this_tick);
-            consume_energy(controller.id, &self.world, actual_energy_to_consume_this_tick);
+            consume_metal(controller.id, &self.world, metal_to_consume_this_tick);
+            consume_energy(controller.id, &self.world, energy_to_consume_this_tick);
 
             let entity_health_regain_amount = entity_health.full_health() * min_available_proportion;
-            let entity_repair_health = (entity_health_regain_amount * Self::TIME_STEP);
+            let entity_repair_health = ((entity_health_regain_amount * Self::TIME_STEP)).min(entity_health.full_health());
             entity_health.heal(entity_repair_health);
 
             // let mut entity_health = self.world.get::<&mut Health>(constructing_entity).expect("entity must have health component to be possible to repair!");

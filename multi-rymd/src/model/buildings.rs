@@ -119,6 +119,8 @@ pub fn build_shipyard(world: &mut World, owner: PlayerID, position: Vec2) -> Ent
 
     let maximum_shipyard_health = 1000.0;
     let initial_shipyard_health = 10.0;
+
+    let shipyard_build_speed = 100.0;
     let shipyard_blueprints = vec![Blueprints::Arrowhead as i32, Blueprints::Grunt as i32];
 
     let shipyard_parameters = BuildingParameters {
@@ -135,7 +137,7 @@ pub fn build_shipyard(world: &mut World, owner: PlayerID, position: Vec2) -> Ent
     let shipyard = create_building(world, owner, position, shipyard_parameters);
 
     let spawner = Spawner { position: vec2(-(shipyard_size / 5.0), 0.0) };
-    let constructor = Constructor { current_target: None, constructibles: shipyard_blueprints, build_range: shipyard_size as i32 / 2, build_speed: 100, beam_offset: -vec2(0.0, 8.0), can_assist: false };
+    let constructor = Constructor { current_target: None, constructibles: shipyard_blueprints, build_range: shipyard_size as i32 / 2, build_speed: shipyard_build_speed, beam_offset: -vec2(0.0, 8.0), can_assist: false };
     let movement_target = MovementTarget { target: None };
     let orderable = Orderable::new();
 

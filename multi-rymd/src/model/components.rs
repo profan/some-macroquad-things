@@ -452,7 +452,7 @@ impl Health {
     }
 
     pub fn current_health_fraction(&self) -> f32 {
-        self.current_health as f32 / self.full_health as f32
+        self.current_health / self.full_health
     }
 }
 
