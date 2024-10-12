@@ -23,7 +23,7 @@ pub fn create_shipyard_blueprint() -> Blueprint {
         name: String::from("Shipyard"),
         texture: String::from("SHIPYARD"),
         constructor: build_shipyard,
-        cost: Cost { metal: 50.0, energy: 25.0 },
+        cost: Cost { metal: 100.0, energy: 100.0 },
         is_building: true
     }
 }
@@ -120,7 +120,7 @@ pub fn build_shipyard(world: &mut World, owner: PlayerID, position: Vec2) -> Ent
     let maximum_shipyard_health = 1000.0;
     let initial_shipyard_health = 10.0;
 
-    let shipyard_build_speed = 100.0;
+    let shipyard_build_speed = 100;
     let shipyard_blueprints = vec![Blueprints::Arrowhead as i32, Blueprints::Grunt as i32];
 
     let shipyard_parameters = BuildingParameters {

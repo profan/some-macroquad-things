@@ -431,6 +431,11 @@ impl Health {
         self.damage(-value);
     }
 
+    pub fn set_health(&mut self, value: f32) {
+        self.last_health = self.current_health;
+        self.current_health = value;
+    }
+
     pub fn current_health(&self) -> f32 {
         self.current_health
     }

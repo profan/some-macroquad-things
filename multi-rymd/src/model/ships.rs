@@ -54,7 +54,7 @@ pub fn create_arrowhead_ship_blueprint() -> Blueprint {
         name: String::from("Arrowhead (Fighter)"),
         texture: String::from("ARROWHEAD"),
         constructor: build_arrowhead_ship,
-        cost: Cost { metal: 250.0, energy: 100.0 },
+        cost: Cost { metal: 250.0, energy: 250.0 },
         is_building: false
     }
 }
@@ -155,8 +155,8 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let commander_thruster_power = 64.0;
     let commander_turn_thruster_power = 16.0;
 
-    let commander_metal_income = 10.0;
-    let commander_energy_income = 10.0;
+    let commander_metal_income = 0.0;
+    let commander_energy_income = 0.0;
 
     let commander_steering_parameters = COMMANDER_STEERING_PARAMETERS;
 
@@ -290,7 +290,7 @@ pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let arrowhead_ship_size = 32.0;
     let arrowhead_bounds = Rect { x: 0.0, y: 0.0, w: arrowhead_ship_size, h: arrowhead_ship_size };
 
-    let initial_arrowhead_health = 100.0;
+    let initial_arrowhead_health = 1.0;
     let maximum_arrowhead_health = 250.0;
 
     let arrowhead_thruster_power = 64.0;

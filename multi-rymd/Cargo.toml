@@ -22,7 +22,7 @@ puffin_egui = "0.29.0"
 hecs = { version = "0.10.4", features = ["macros"] }
 
 [profile.dev]
-opt-level = 1
+opt-level = 0
 incremental = true
 
 [profile.dev.build-override]
