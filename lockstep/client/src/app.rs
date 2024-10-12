@@ -52,6 +52,10 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
     pub fn was_quit_requested(&self) -> bool {
         self.quit_requested
     }
+    
+    pub fn set_quit_requested(&mut self, value: bool) {
+        self.quit_requested = value;
+    }
 
     pub fn get_game(&mut self) -> &mut GameType {
         &mut self.game
