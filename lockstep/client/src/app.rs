@@ -330,17 +330,16 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
         let lobby = self.relay.get_current_lobby().expect("called draw_lobby_ui without there being a current lobby!");
 
-        ui.label(format!("lobby: {}", lobby.name.clone()));
-
         ui.vertical_centered_justified(|ui| {
             for client_id in &lobby.clients {
                 let c = self.relay.client_with_id(*client_id).unwrap();
                 let client_rtt_to_us_in_ms = self.relay.get_client_ping(c.id);
-                ui.label(format!("{} ({}) - {} ms", c.name, client_id, client_rtt_to_us_in_ms));
+                ui.label(format!("{} (id: {}) - {} ms", c.name, client_id, client_rtt_to_us_in_ms));
             }
         });
 
         ui.horizontal(|ui| {
+
             if ui.button("start").clicked() {
                 self.net.start_lobby();
             }
@@ -348,6 +347,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
             if ui.button("leave").clicked() {
                 self.net.leave_lobby();
             }
+
         });
 
     }
@@ -391,7 +391,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         }
     }
 
-    fn draw_multiplayer_lobby_ui(&mut self) {
+    fn draw_multiplayer_lobby_ui(&mut self, ctx: &egui::Context) {
     
         if self.relay.is_in_currently_running_lobby() {
             return;   
@@ -407,7 +407,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
         let menu_window_title = if self.relay.is_in_lobby() { lobby_title } else { lobbies_title };
 
-        draw_centered_menu_window(&menu_window_title, |ui| {
+        draw_centered_menu_window(ctx, &menu_window_title, |ui| {
 
             if self.net.is_connected() {
                 if self.relay.is_in_lobby() {
@@ -453,11 +453,11 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
     }
     
-    fn draw_main_menu_ui(&mut self) {
+    fn draw_main_menu_ui(&mut self, ctx: &egui::Context) {
     
         let lockstep_main_menu_title = format!("{}", self.title);
 
-        draw_centered_menu_window(&lockstep_main_menu_title, |ui| {
+        draw_centered_menu_window(ctx, &lockstep_main_menu_title, |ui| {
 
             if ui.button("singleplayer").clicked() {
                 self.start_singleplayer_game();
@@ -471,10 +471,10 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
     
     }
     
-    fn draw_ui(&mut self) {
+    fn draw_ui(&mut self, ctx: &egui::Context) {
     
         if self.mode == ApplicationMode::Frontend {
-            self.draw_main_menu_ui();
+            self.draw_main_menu_ui(ctx);
         }
     
         if self.mode == ApplicationMode::Singleplayer {
@@ -482,7 +482,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         }
     
         if self.mode == ApplicationMode::Multiplayer {
-            self.draw_multiplayer_lobby_ui();
+            self.draw_multiplayer_lobby_ui(ctx);
         }
     
     }
@@ -494,29 +494,30 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         }
 
         self.draw_debug_text();
-        self.draw_ui();
+
+        egui_macroquad::ui(|ctx| {
+            self.draw_ui(ctx);
+        });
+
+        egui_macroquad::draw();
 
     }
 
 }
 
-pub fn draw_centered_menu_window<F>(title: &str, mut contents: F)
+pub fn draw_centered_menu_window<F>(ctx: &egui::Context, title: &str, mut contents: F)
     where F: FnMut(&mut egui::Ui) -> ()
 {
     let screen_center = screen_dimensions() / 2.0;
-    egui_macroquad::ui(|egui_ctx| {
-        egui::Window::new(title)
-            .pivot(Align2::CENTER_CENTER)
-            .fixed_pos((screen_center.x, screen_center.y))
-            .collapsible(false)
-            .resizable(false)
-            .frame(egui::Frame::default().inner_margin(egui::Margin::same(16.0)))
-            .show(egui_ctx, |ui| {
-
-                ui.vertical_centered_justified(|ui| {
-                    contents(ui);
-                });
-
+    egui::Window::new(title)
+        .pivot(Align2::CENTER_CENTER)
+        .fixed_pos((screen_center.x, screen_center.y))
+        .collapsible(false)
+        .resizable(false)
+        .frame(egui::Frame::default().inner_margin(egui::Margin::same(16.0)))
+        .show(ctx, |ui| {
+            ui.vertical_centered_justified(|ui| {
+                contents(ui);
             });
-    });
+        });
 }

@@ -17,7 +17,7 @@ mod view;
 type EntityID = u64;
 type PlayerID = lockstep_client::step::PeerID;
 
-const INGAME_PROFILER_ENABLED: bool = false;
+pub const INGAME_PROFILER_ENABLED: bool = false;
 
 #[macroquad::main("multi-rymd")]
 async fn main() {
@@ -49,12 +49,6 @@ async fn main() {
 
         app.update();
         app.draw(dt);
-
-        if INGAME_PROFILER_ENABLED {
-            egui_macroquad::ui(|ctx| { puffin_egui::profiler_window(ctx); });
-        }
-       
-        egui_macroquad::draw();
 
         next_frame().await;
 

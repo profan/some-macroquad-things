@@ -111,6 +111,7 @@ impl Game for RymdGame {
 
     #[profiling::function]
     fn draw(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient, dt: f32) {
+
         {
             measure_scope!(self.stats.tick_view_time_ms);
             self.view.tick(&mut self.model, lockstep, dt);
@@ -120,6 +121,11 @@ impl Game for RymdGame {
             self.view.draw(&mut self.model, debug, lockstep, dt);
         }
         self.draw_frame_stats(debug);
+
+        if crate::INGAME_PROFILER_ENABLED {
+            egui_macroquad::ui(|ctx| { puffin_egui::profiler_window(ctx); });
+        }
+
     }
 
     fn reset(&mut self) {
