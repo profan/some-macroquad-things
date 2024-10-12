@@ -17,6 +17,7 @@ use crate::game::RymdGameParameters;
 use super::create_commissar_ship_blueprint;
 use super::create_grunt_ship_blueprint;
 use super::entity_apply_raw_steering;
+use super::environment::create_asteroid;
 use super::spatial::SpatialQueryManager;
 use super::steer_entity_towards_target;
 use super::AnimatedSprite;
@@ -156,19 +157,27 @@ impl RymdGameModel {
 
     pub fn start(&mut self, parameters: RymdGameParameters) {
 
+        rand::srand(42);
+        let number_of_asteroids = 10;
+
         for player in &parameters.players {
 
             create_player_entity(&mut self.world, player.id);
 
-            for i in 0..1 {
+            let start_random_x = rand::gen_range(-400, 400);
+            let start_random_y = rand::gen_range(-400, 400);
 
-                let random_x = rand::gen_range(200, 400);
-                let random_y = rand::gen_range(200, 400);
+            let commander_ship = build_commander_ship(&mut self.world, player.id, vec2(start_random_x as f32, start_random_y as f32));
+            if let Ok(mut health) = self.world.get::<&mut Health>(commander_ship) {
+                health.heal_to_full_health();
+            }
 
-                let commander_ship = build_commander_ship(&mut self.world, player.id, vec2(random_x as f32, random_y as f32));
-                if let Ok(mut health) = self.world.get::<&mut Health>(commander_ship) {
-                    health.heal_to_full_health();
-                }
+            for i in 0..number_of_asteroids {
+
+                let random_x = rand::gen_range(start_random_x - 100, start_random_x + 100);
+                let random_y = rand::gen_range(start_random_y - 100, start_random_y + 100);
+
+                let new_asteroid = create_asteroid(&mut self.world, vec2(random_x as f32, random_y as f32), 0.0);
 
             }
             
