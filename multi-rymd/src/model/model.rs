@@ -541,29 +541,32 @@ impl RymdGameModel {
             let entity_metal_cost = entity_blueprint.cost.metal;
             let entity_energy_cost = entity_blueprint.cost.energy;
 
-            // #HACK: this is a very hackety sax way of fixing this lol
-            let entity_clamped_remaining_health_fraction = (1.0 - entity_health.current_health_fraction()).max(0.05);
+            // #HACK: this is a little hackety sax
+            let entity_remaining_health_fraction = 1.0 - entity_health.current_health_fraction();
             
-            let entity_remaining_metal_cost = entity_metal_cost * entity_clamped_remaining_health_fraction;
-            let entity_remaining_energy_cost = entity_energy_cost * entity_clamped_remaining_health_fraction;
+            let entity_remaining_metal_cost = entity_metal_cost * entity_remaining_health_fraction;
+            let entity_remaining_energy_cost = entity_energy_cost * entity_remaining_health_fraction;
 
             let available_metal = current_metal(controller.id, &self.world);
             let available_energy = current_energy(controller.id, &self.world);
 
-            // build power/metal cost is at the very least the remaining cost, but at most the build speed! .. over two
-            let build_power_metal_cost = (constructor.build_speed as f32).min(entity_remaining_metal_cost);
-            let build_power_energy_cost = (constructor.build_speed as f32).min(entity_remaining_energy_cost);
+            // build power/metal cost should actually be the max of the build speed and remaining cost, we clamp this later (this way build speed actually matters)
+            let build_power_metal_cost = (constructor.build_speed as f32).max(entity_remaining_metal_cost);
+            let build_power_energy_cost = (constructor.build_speed as f32).max(entity_remaining_energy_cost);
             
-            let build_power_metal_proportion = (build_power_metal_cost / entity_remaining_metal_cost).min(1.0);
-            let build_power_energy_proportion = (build_power_energy_cost / entity_remaining_energy_cost).min(1.0);
-            let min_available_proportion_with_build_power = build_power_metal_proportion.min(build_power_energy_proportion);
-
-            let available_metal_proportion = (available_metal / build_power_metal_cost).min(1.0);
-            let available_energy_proportion = (available_energy / build_power_energy_cost).min(1.0);
+            let available_metal_proportion = available_metal / entity_remaining_metal_cost;
+            let available_energy_proportion = available_energy / entity_remaining_energy_cost;
             let min_available_proportion = available_metal_proportion.min(available_energy_proportion);
 
-            let metal_to_consume = entity_remaining_metal_cost * min_available_proportion_with_build_power;
-            let energy_to_consume = entity_remaining_energy_cost * min_available_proportion_with_build_power;
+            let build_power_metal_proportion = build_power_metal_cost / entity_remaining_metal_cost;
+            let build_power_energy_proportion = build_power_energy_cost / entity_remaining_energy_cost;
+            let min_available_proportion_with_build_power = build_power_metal_proportion.min(build_power_energy_proportion);
+
+            // here we make sure that if our build speed exceeds our actually available resources, we take the minimum so we can actually use as much as is actually available
+            let clamped_min_available_proportion_with_build_power = min_available_proportion_with_build_power.min(min_available_proportion);
+
+            let metal_to_consume = entity_remaining_metal_cost * clamped_min_available_proportion_with_build_power;
+            let energy_to_consume = entity_remaining_energy_cost * clamped_min_available_proportion_with_build_power;
 
             let metal_to_consume_this_tick = metal_to_consume * Self::TIME_STEP;
             let energy_to_consume_this_tick = energy_to_consume * Self::TIME_STEP;
@@ -571,54 +574,10 @@ impl RymdGameModel {
             consume_metal(controller.id, &self.world, metal_to_consume_this_tick);
             consume_energy(controller.id, &self.world, energy_to_consume_this_tick);
 
-            // let entity_health_restorable_with_current = entity_health.full_health() * min_available_proportion;
-            let entity_health_proportion = entity_clamped_remaining_health_fraction * entity_health.full_health();
-            let entity_health_regain_amount = entity_health_proportion * min_available_proportion_with_build_power;
+            let entity_health_proportion = entity_remaining_health_fraction * entity_health.full_health();
+            let entity_health_regain_amount = entity_health_proportion * clamped_min_available_proportion_with_build_power;
             let entity_repair_health = entity_health_regain_amount * Self::TIME_STEP;
             entity_health.heal(entity_repair_health);
-
-            if entity_health.current_health_fraction() > 1.0 {
-                let full_health = entity_health.full_health();
-                entity_health.set_health(full_health);
-            }
-
-            // let mut entity_health = self.world.get::<&mut Health>(constructing_entity).expect("entity must have health component to be possible to repair!");
-            // let entity_blueprint_identity = self.world.get::<&BlueprintIdentity>(constructing_entity).expect("entity must have blueprint identity to be able to identify cost!");
-            // let entity_blueprint = self.blueprint_manager.get_blueprint(entity_blueprint_identity.blueprint_id).expect("entity must have blueprint!");
-
-            // let entity_metal_cost = entity_blueprint.cost.metal;
-            // let entity_energy_cost = entity_blueprint.cost.energy;
-            // let entity_total_cost = entity_metal_cost + entity_energy_cost;
-            // let entity_total_cost_to_full_health = entity_total_cost / entity_health.full_health() as f32;
-            // let entity_remaining_cost_to_full_health = entity_total_cost_to_full_health * entity_health.current_health_fraction();
-
-            // let entity_metal_proportion = entity_metal_cost / entity_total_cost;
-            // let entity_energy_proportion = entity_energy_cost / entity_total_cost;
-            // let entity_remaining_metal_cost = entity_remaining_cost_to_full_health * entity_metal_proportion;
-            // let entity_remaining_energy_cost = entity_remaining_cost_to_full_health * entity_energy_proportion;
-
-            // let build_power_metal_cost = constructor.build_speed as f32 * entity_remaining_metal_cost;
-            // let build_power_energy_cost = constructor.build_speed as f32 * entity_remaining_energy_cost;
-
-            // let available_metal = current_metal(controller.id, &self.world);
-            // let available_energy = current_energy(controller.id, &self.world);
-
-            // let available_metal_proportion = (available_metal / build_power_metal_cost).min(1.0);
-            // let available_energy_proportion = (available_energy / build_power_energy_cost).min(1.0);
-            // let min_available_proportion = available_energy_proportion.min(available_metal_proportion);
-            
-            // let metal_to_consume = build_power_metal_cost * available_metal_proportion;
-            // let energy_to_consume = build_power_energy_cost * available_energy_proportion;
-
-            // let actual_metal_to_consume = metal_to_consume.min(available_metal);
-            // let actual_energy_to_consume = energy_to_consume.min(available_energy);
-
-            // consume_metal(controller.id, &self.world, metal_to_consume * Self::TIME_STEP);
-            // consume_energy(controller.id, &self.world, energy_to_consume * Self::TIME_STEP);
-
-            // let entity_health_regain_amount = (entity_health.full_health() as f32 * min_available_proportion) / 2.0;
-            // let entity_repair_health = ((entity_health_regain_amount * Self::TIME_STEP) as i32).min(entity_health.full_health());
-            // entity_health.heal(entity_repair_health);
             
         }
 
