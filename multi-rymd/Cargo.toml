@@ -15,8 +15,8 @@ deterministic-hash = "1.0.1"
 nanoserde = "0.1.35"
 
 profiling = { version = "1.0.15", features = ["profile-with-puffin"] }
-egui-miniquad = { path = "egui-miniquad" }
-egui-macroquad = { path = "egui-macroquad" }
+egui-miniquad = { path = "../third-party/egui-miniquad" }
+egui-macroquad = { path = "../third-party/egui-macroquad" }
 puffin_egui = "0.29.0"
 
 hecs = { version = "0.10.4", features = ["macros"] }
