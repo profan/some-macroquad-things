@@ -1,3 +1,4 @@
+use egui_macroquad::egui;
 use utility::DebugText;
 use crate::step::{LockstepClient, PeerID};
 
@@ -17,6 +18,7 @@ pub trait Game where Self: Sized {
     fn handle_message(&mut self, peer_id: PeerID, message: &str);
     fn update(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient);
     fn draw(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient, dt: f32);
+    fn draw_ui(&mut self, ctx: &egui::Context, debug: &mut DebugText, lockstep: &mut LockstepClient) {}
     fn reset(&mut self);
     
 }

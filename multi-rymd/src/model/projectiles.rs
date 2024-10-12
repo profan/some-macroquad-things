@@ -12,7 +12,7 @@ fn on_bullet_impact(world: &World, buffer: &mut CommandBuffer, a: Entity, b: Ent
     }
 
     if let Ok(projectile) = world.get::<&Projectile>(a) && let Ok(mut target_health) = world.get::<&mut Health>(b) {
-        target_health.damage(projectile.damage as i32);
+        target_health.damage(projectile.damage);
     }
 
     let (target_position, target_bounds) = (b_body.position(), b_body.bounds());
@@ -28,7 +28,7 @@ fn on_bullet_impact(world: &World, buffer: &mut CommandBuffer, a: Entity, b: Ent
 
 pub fn create_simple_bullet(world: &mut World, owner: PlayerID, position: Vec2, direction: Vec2) -> Entity {
 
-    let simple_bullet_health = 10;
+    let simple_bullet_health = 10.0;
     let simple_bullet_lifetime = 4.0;
     let simple_bullet_velocity = 256.0;
     let simple_bullet_damage = 25.0;

@@ -30,7 +30,7 @@ pub fn create_commander_ship_blueprint() -> Blueprint {
         name: String::from("Commander Ship"),
         texture: String::from("PLAYER_SHIP"),
         constructor: build_commander_ship,
-        cost: Cost { metal: 25.0, energy: 25.0 },
+        cost: Cost { metal: 250.0, energy: 250.0 },
         is_building: false
     }
 }
@@ -42,7 +42,7 @@ pub fn create_commissar_ship_blueprint() -> Blueprint {
         name: String::from("Commissar Ship"),
         texture: String::from("ENEMY_SHIP"),
         constructor: build_commissar_ship,
-        cost: Cost { metal: 25.0, energy: 25.0 },
+        cost: Cost { metal: 250.0, energy: 250.0 },
         is_building: false
     }
 }
@@ -54,7 +54,7 @@ pub fn create_arrowhead_ship_blueprint() -> Blueprint {
         name: String::from("Arrowhead (Fighter)"),
         texture: String::from("ARROWHEAD"),
         constructor: build_arrowhead_ship,
-        cost: Cost { metal: 25.0, energy: 25.0 },
+        cost: Cost { metal: 250.0, energy: 100.0 },
         is_building: false
     }
 }
@@ -66,7 +66,7 @@ pub fn create_grunt_ship_blueprint() -> Blueprint {
         name: String::from("Grunt (Fighter)"),
         texture: String::from("ENEMY_GRUNT"),
         constructor: build_grunt_ship,
-        cost: Cost { metal: 10.0, energy: 10.0 },
+        cost: Cost { metal: 100.0, energy: 100.0 },
         is_building: false
     }
 }
@@ -90,8 +90,8 @@ fn on_ship_death(world: &World, buffer: &mut CommandBuffer, entity: Entity) {
 
 struct ShipParameters {
 
-    pub initial_health: i32,
-    pub maximum_health: i32,
+    pub initial_health: f32,
+    pub maximum_health: f32,
     pub blueprint: Blueprints,
 
     // texture, bounds of the ship accordingly
@@ -144,8 +144,8 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let commander_ship_size = 32.0;
     let commander_bounds = Rect { x: 0.0, y: 0.0, w: commander_ship_size, h: commander_ship_size };
 
-    let initial_commander_health = 250;
-    let maximum_commander_health = 1000;
+    let initial_commander_health = 250.0;
+    let maximum_commander_health = 1000.0;
 
     let commander_build_speed = 100;
     let commander_build_range = 100;
@@ -217,8 +217,8 @@ pub fn build_commissar_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let commissar_ship_size = 32.0;
     let commissar_bounds = Rect { x: 0.0, y: 0.0, w: commissar_ship_size, h: commissar_ship_size };
 
-    let initial_commissar_health = 250;
-    let maximum_commissar_health = 1000;
+    let initial_commissar_health = 250.0;
+    let maximum_commissar_health = 1000.0;
 
     let commissar_build_speed = 100;
     let commissar_build_range = 100;
@@ -290,8 +290,8 @@ pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let arrowhead_ship_size = 32.0;
     let arrowhead_bounds = Rect { x: 0.0, y: 0.0, w: arrowhead_ship_size, h: arrowhead_ship_size };
 
-    let initial_arrowhead_health = 100;
-    let maximum_arrowhead_health = 250;
+    let initial_arrowhead_health = 100.0;
+    let maximum_arrowhead_health = 250.0;
 
     let arrowhead_thruster_power = 64.0;
     let arrowhead_turn_thruster_power = 16.0;
@@ -349,8 +349,8 @@ pub fn build_grunt_ship(world: &mut World, owner: PlayerID, position: Vec2) -> E
     let grunt_ship_size = 16.0;
     let grunt_bounds = Rect { x: 0.0, y: 0.0, w: grunt_ship_size, h: grunt_ship_size };
 
-    let initial_grunt_health = 100;
-    let maximum_grunt_health = 100;
+    let initial_grunt_health = 100.0;
+    let maximum_grunt_health = 100.0;
 
     let grunt_thruster_power = 32.0;
     let grunt_turn_thruster_power = 16.0;

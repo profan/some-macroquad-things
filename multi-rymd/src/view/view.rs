@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::f32::consts::PI;
 
 use macroquad_particles::{EmitterConfig, Emitter};
+use puffin_egui::egui::{self, Align2};
 use utility::{draw_arrow, draw_rectangle_lines_centered, draw_text_centered, draw_texture_centered, draw_texture_centered_with_rotation, draw_texture_centered_with_rotation_frame, is_point_inside_rect, AsPerpendicular, AsVector, AverageLine2D, DebugText, RotatedBy, TextPosition, WithAlpha};
 use lockstep_client::{step::LockstepClient};
 use macroquad_particles::*;
@@ -1691,39 +1692,6 @@ impl RymdGameView {
 
     }
 
-    // fn draw_construction_ui(&mut self, model: &mut RymdGameModel, lockstep: &mut LockstepClient) {
-
-    //     let should_add_to_queue = is_key_down(KeyCode::LeftShift);
-    //     let available_blueprints = self.get_available_blueprints_from_current_selection(&model.world);
-
-    //     let mut selected_constructors_query = model.world.query::<(&Transform, &Orderable, &Selectable, &Constructor)>();
-    //     let selected_constructor_units: Vec<(Entity, (&Transform, &Orderable, &Selectable, &Constructor))> = selected_constructors_query.into_iter().filter(|(q, (t, o, s, c))| s.is_selected).collect();
-    //     let current_build_position: Vec2 = self.camera.mouse_world_position();
-
-    //     yakui::align(Alignment::CENTER_LEFT, || {
-    //         yakui::colored_box_container(yakui::Color::GRAY, || {
-    //             yakui::pad(yakui::widgets::Pad::all(4.0), || {
-
-    //                 yakui_min_column(|| {
-    //                     for id in available_blueprints.into_iter() {
-    //                         let blueprint = model.blueprint_manager.get_blueprint(id).expect("could not find blueprint? this is a bug!");
-    //                         if yakui::button(blueprint.name.to_string()).clicked {
-                                
-    //                             for (e, (t, o, s, c)) in &selected_constructor_units {
-    //                                 lockstep.send_build_order(*e, current_build_position, blueprint.id, should_add_to_queue, blueprint.is_building == false);
-    //                                 println!("[RymdGameView] attempted to send build order for position: {} and blueprint: {}", current_build_position, blueprint.id);
-    //                             }
-
-    //                         }
-    //                     }
-    //                 });
-
-    //             });
-    //         });
-    //     });
-
-    // }
-
     fn draw_text_construction_ui(&mut self, model: &mut RymdGameModel, debug: &mut DebugText) {
 
         let available_blueprints = self.get_available_blueprints_from_current_selection(&model.world);
@@ -1798,23 +1766,36 @@ impl RymdGameView {
 
     }
 
-    fn draw_ui(&mut self, model: &mut RymdGameModel, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+    fn draw_game_ui(&mut self, ctx: &egui::Context, model: &mut RymdGameModel, debug: &mut DebugText, lockstep: &mut LockstepClient) {
 
-        // yakui::align(Alignment::TOP_CENTER, || {
+        egui::Window::new("")
+            .title_bar(false)
+            .collapsible(false)
+            .resizable(false)
+            .anchor(Align2::CENTER_TOP, (0.0, 16.0))
+            .frame(egui::Frame::default())
+            .show(ctx, |ui| {
 
-        //     let current_metal = current_metal(self.game_player_id, &model.world);
-        //     let maximum_metal = max_metal(self.game_player_id, &model.world);
-        //     let current_metal_income = current_metal_income(self.game_player_id, &model.world);
-        //     let current_metal_excess = 0;
+                let current_metal = current_metal(self.game_player_id, &model.world);
+                let maximum_metal = max_metal(self.game_player_id, &model.world);
+                let current_metal_income = current_metal_income(self.game_player_id, &model.world);
+                let current_metal_excess = 0;
 
-        //     let current_energy = current_energy(self.game_player_id, &model.world);
-        //     let maximum_energy = max_energy(self.game_player_id, &model.world);
-        //     let current_energy_income = current_energy_income(self.game_player_id, &model.world);
-        //     let current_energy_excess = 0;
+                let current_energy = current_energy(self.game_player_id, &model.world);
+                let maximum_energy = max_energy(self.game_player_id, &model.world);
+                let current_energy_income = current_energy_income(self.game_player_id, &model.world);
+                let current_energy_excess = 0;
 
-        //     yakui::label(format!("current metal: {:.0}/{:.0} ({:.0}), current energy: {:.0}/{:.0} ({:.0})", current_metal, maximum_metal, current_metal_income, current_energy, maximum_energy, current_energy_income));
+                let current_metal_proportion = current_metal / maximum_metal;
+                let current_energy_proportion = current_energy / maximum_energy;
 
-        // });
+                let metal_progress_bar = egui::ProgressBar::new(current_metal_proportion).text(format!("Metal = {:.0} / {:.0} ({:.0})", current_metal, maximum_metal, current_metal_income));
+                let energy_progress_bar = egui::ProgressBar::new(current_energy_proportion).text(format!("Energy = {:.0} / {:.0} ({:.0})", current_energy, maximum_energy, current_energy_income));
+
+                ui.add(metal_progress_bar);
+                ui.add(energy_progress_bar);
+
+        });
 
         if self.current_selection_has_constructor_unit(&model.world) {
             self.draw_text_construction_ui(model, debug);
@@ -1841,7 +1822,7 @@ impl RymdGameView {
             }
 
             let health_difference = health.current_health() - health.last_health();
-            let health_difference_to_max = (health.full_health() - health.current_health()).max(0);
+            let health_difference_to_max = (health.full_health() - health.current_health()).max(0.0);
             let health_difference_per_second = (1.0 / RymdGameModel::TIME_STEP) * health_difference as f32;
             let time_remaining_seconds = health_difference_to_max as f32 / health_difference_per_second;
             
@@ -1986,7 +1967,11 @@ impl RymdGameView {
         
         self.camera.pop();
 
-        self.draw_ui(model, debug, lockstep);
+    }
+
+    pub fn draw_ui(&mut self, ctx: &egui::Context, model: &mut RymdGameModel, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+
+        self.draw_game_ui(ctx, model, debug, lockstep);
         self.draw_debug_ui(model, debug, lockstep);
 
     }

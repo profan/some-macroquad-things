@@ -1,5 +1,6 @@
 use lockstep_client::{game::Game, step::LockstepClient};
 use lockstep_client::step::PeerID;
+use puffin_egui::egui;
 use utility::{DebugText, TextPosition};
 
 use crate::PlayerID;
@@ -120,10 +121,17 @@ impl Game for RymdGame {
             measure_scope!(self.stats.draw_time_ms);
             self.view.draw(&mut self.model, debug, lockstep, dt);
         }
+
         self.draw_frame_stats(debug);
 
+    }
+
+    fn draw_ui(&mut self, ctx: &egui::Context, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+
+        self.view.draw_ui(ctx, &mut self.model, debug, lockstep);
+        
         if crate::INGAME_PROFILER_ENABLED {
-            egui_macroquad::ui(|ctx| { puffin_egui::profiler_window(ctx); });
+            puffin_egui::profiler_window(ctx);
         }
 
     }

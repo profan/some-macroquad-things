@@ -387,28 +387,28 @@ impl Ship {
 #[derive(Clone)]
 pub struct Health {
 
-    full_health: i32,
-    current_health: i32,
-    last_health: i32,
+    full_health: f32,
+    current_health: f32,
+    last_health: f32,
 
     pub on_death: Option<fn(world: &World, buffer: &mut CommandBuffer, entity: Entity) -> ()>
 
 }
 
 impl Health {
-    pub fn new(full_health: i32) -> Health {
+    pub fn new(full_health: f32) -> Health {
         Health { full_health, current_health: full_health, last_health: full_health, on_death: None }
     }
 
-    pub fn new_with_callback(full_health: i32, on_death_fn: fn(world: &World, buffer: &mut CommandBuffer, entity: Entity) -> ()) -> Health {
+    pub fn new_with_callback(full_health: f32, on_death_fn: fn(world: &World, buffer: &mut CommandBuffer, entity: Entity) -> ()) -> Health {
         Health { full_health, current_health: full_health, last_health: full_health, on_death: Some(on_death_fn) }
     }
 
-    pub fn new_with_current_health(full_health: i32, current_health: i32) -> Health {
+    pub fn new_with_current_health(full_health: f32, current_health: f32) -> Health {
         Health { full_health, current_health, last_health: current_health, on_death: None }
     }
 
-    pub fn new_with_current_health_and_callback(full_health: i32, current_health: i32, on_death_fn: fn(world: &World, buffer: &mut CommandBuffer, entity: Entity) -> ()) -> Health {
+    pub fn new_with_current_health_and_callback(full_health: f32, current_health: f32, on_death_fn: fn(world: &World, buffer: &mut CommandBuffer, entity: Entity) -> ()) -> Health {
         Health { full_health, current_health, last_health: current_health, on_death: Some(on_death_fn) }
     }
 
@@ -417,29 +417,29 @@ impl Health {
         self.last_health = self.current_health;
     }
 
-    pub fn damage(&mut self, value: i32) {
+    pub fn damage(&mut self, value: f32) {
         self.last_health = self.current_health;
         self.current_health -= value;
     }
 
     pub fn kill(&mut self) {
         self.last_health = self.current_health;
-        self.current_health = 0;
+        self.current_health = 0.0;
     }
 
-    pub fn heal(&mut self, value: i32) {
+    pub fn heal(&mut self, value: f32) {
         self.damage(-value);
     }
 
-    pub fn current_health(&self) -> i32 {
+    pub fn current_health(&self) -> f32 {
         self.current_health
     }
 
-    pub fn last_health(&self) -> i32 {
+    pub fn last_health(&self) -> f32 {
         self.last_health
     }
 
-    pub fn full_health(&self) -> i32 {
+    pub fn full_health(&self) -> f32 {
         self.full_health
     }
 
@@ -448,11 +448,11 @@ impl Health {
     }
     
     pub fn is_at_or_below_zero_health(&self) -> bool {
-        self.current_health <= 0
+        self.current_health <= 0.0
     }
 
     pub fn current_health_fraction(&self) -> f32 {
-        self.full_health as f32 / self.current_health as f32
+        self.current_health as f32 / self.full_health as f32
     }
 }
 
@@ -533,11 +533,11 @@ impl BlueprintIdentity {
     }
 }
 
-pub fn current_health(world: &World, entity: Entity) -> i32 {
+pub fn current_health(world: &World, entity: Entity) -> f32 {
     world.get::<&Health>(entity).unwrap().current_health
 }
 
-pub fn max_health(world: &World, entity: Entity) -> i32 {
+pub fn max_health(world: &World, entity: Entity) -> f32 {
     world.get::<&Health>(entity).unwrap().full_health
 }
 

@@ -54,8 +54,8 @@ pub fn create_metal_storage_blueprint() -> Blueprint {
 
 struct BuildingParameters {
 
-    initial_health: i32,
-    maximum_health: i32,
+    initial_health: f32,
+    maximum_health: f32,
     blueprint: Blueprints,
 
     pub bounds: Rect,
@@ -89,8 +89,8 @@ pub fn build_solar_collector(world: &mut World, owner: PlayerID, position: Vec2)
     let solar_collector_size = 64.0;
     let solar_collector_bounds = Rect { x: 0.0, y: 0.0, w: solar_collector_size, h: solar_collector_size };
 
-    let maximum_solar_collector_health = 1000;
-    let initial_solar_collector_health = 10;
+    let maximum_solar_collector_health = 1000.0;
+    let initial_solar_collector_health = 10.0;
 
     let solar_collector_parameters = BuildingParameters {
 
@@ -117,8 +117,8 @@ pub fn build_shipyard(world: &mut World, owner: PlayerID, position: Vec2) -> Ent
     let shipyard_size = 128.0;
     let shipyard_bounds = Rect { x: shipyard_size / 4.0, y: 0.0, w: shipyard_size / 2.0, h: shipyard_size };
 
-    let maximum_shipyard_health = 1000;
-    let initial_shipyard_health = 10;
+    let maximum_shipyard_health = 1000.0;
+    let initial_shipyard_health = 10.0;
     let shipyard_blueprints = vec![Blueprints::Arrowhead as i32, Blueprints::Grunt as i32];
 
     let shipyard_parameters = BuildingParameters {
@@ -150,8 +150,8 @@ pub fn build_energy_storage(world: &mut World, owner: PlayerID, position: Vec2) 
     let energy_storage_size = 32.0;
     let energy_storage_bounds = Rect { x: 0.0, y: 0.0, w: energy_storage_size, h: energy_storage_size };
 
-    let maximum_energy_storage_health = 250;
-    let initial_energy_storage_health = 10;
+    let maximum_energy_storage_health = 250.0;
+    let initial_energy_storage_health = 10.0;
     let energy_storage_amount = 1000.0;
 
     let energy_storage_parameters = BuildingParameters {
@@ -179,8 +179,8 @@ pub fn build_metal_storage(world: &mut World, owner: PlayerID, position: Vec2) -
     let metal_storage_size = 32.0;
     let metal_storage_bounds = Rect { x: 0.0, y: 0.0, w: metal_storage_size, h: metal_storage_size };
 
-    let maximum_metal_storage_health = 250;
-    let initial_metal_storage_health = 10;
+    let maximum_metal_storage_health = 250.0;
+    let initial_metal_storage_health = 10.0;
     let metal_storage_amount = 1000.0;
 
     let metal_storage_parameters = BuildingParameters {

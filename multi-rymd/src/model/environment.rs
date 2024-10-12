@@ -22,7 +22,7 @@ pub fn create_asteroid(world: &mut World, position: Vec2, rotation: f32) -> Enti
         bounds
     };
 
-    let health = Health::new(100);
+    let health = Health::new(100.0);
     let transform = Transform::new(position, rotation, None);
     let sprite = Sprite::new("ASTEROID");
     

@@ -510,6 +510,9 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         self.draw_debug_text();
 
         egui_macroquad::ui(|ctx| {
+            if let Some(lockstep) = &mut self.lockstep {
+                self.game.draw_ui(ctx, &mut self.debug, lockstep);
+            }
             self.draw_ui(ctx);
         });
 
