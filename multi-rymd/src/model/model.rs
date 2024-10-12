@@ -174,8 +174,8 @@ impl RymdGameModel {
 
             for i in 0..number_of_asteroids {
 
-                let random_x = rand::gen_range(start_random_x - 100, start_random_x + 100);
-                let random_y = rand::gen_range(start_random_y - 100, start_random_y + 100);
+                let random_x = rand::gen_range(start_random_x - 400, start_random_x + 400);
+                let random_y = rand::gen_range(start_random_y - 400, start_random_y + 400);
 
                 let new_asteroid = create_asteroid(&mut self.world, vec2(random_x as f32, random_y as f32), 0.0);
 

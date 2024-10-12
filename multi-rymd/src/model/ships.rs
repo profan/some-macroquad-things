@@ -30,7 +30,7 @@ pub fn create_commander_ship_blueprint() -> Blueprint {
         name: String::from("Commander Ship"),
         texture: String::from("PLAYER_SHIP"),
         constructor: build_commander_ship,
-        cost: Cost { metal: 250.0, energy: 250.0 },
+        cost: Cost { metal: 500.0, energy: 500.0 },
         is_building: false
     }
 }
@@ -42,7 +42,7 @@ pub fn create_commissar_ship_blueprint() -> Blueprint {
         name: String::from("Commissar Ship"),
         texture: String::from("ENEMY_SHIP"),
         constructor: build_commissar_ship,
-        cost: Cost { metal: 250.0, energy: 250.0 },
+        cost: Cost { metal: 500.0, energy: 500.0 },
         is_building: false
     }
 }
@@ -54,7 +54,7 @@ pub fn create_arrowhead_ship_blueprint() -> Blueprint {
         name: String::from("Arrowhead (Fighter)"),
         texture: String::from("ARROWHEAD"),
         constructor: build_arrowhead_ship,
-        cost: Cost { metal: 250.0, energy: 250.0 },
+        cost: Cost { metal: 250.0, energy: 100.0 },
         is_building: false
     }
 }
@@ -66,7 +66,7 @@ pub fn create_grunt_ship_blueprint() -> Blueprint {
         name: String::from("Grunt (Fighter)"),
         texture: String::from("ENEMY_GRUNT"),
         constructor: build_grunt_ship,
-        cost: Cost { metal: 100.0, energy: 100.0 },
+        cost: Cost { metal: 100.0, energy: 50.0 },
         is_building: false
     }
 }
@@ -349,7 +349,7 @@ pub fn build_grunt_ship(world: &mut World, owner: PlayerID, position: Vec2) -> E
     let grunt_ship_size = 16.0;
     let grunt_bounds = Rect { x: 0.0, y: 0.0, w: grunt_ship_size, h: grunt_ship_size };
 
-    let initial_grunt_health = 100.0;
+    let initial_grunt_health = 1.0;
     let maximum_grunt_health = 100.0;
 
     let grunt_thruster_power = 32.0;
