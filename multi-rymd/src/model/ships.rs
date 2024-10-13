@@ -6,7 +6,7 @@ use utility::{AsAngle, SteeringParameters};
 
 use crate::PlayerID;
 use crate::model::{Transform, Orderable, AnimatedSprite, Thruster, DynamicBody, Ship, ThrusterKind};
-use super::{create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Constructor, Controller, Cost, EntityState, Health, MovementTarget, Producer, RotationTarget, Steering, Weapon, ARROWHEAD_STEERING_PARAMETERS, COMMANDER_STEERING_PARAMETERS, DEFAULT_STEERING_PARAMETERS};
+use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Constructor, Controller, Cost, EntityState, GameOrderType, Health, MovementTarget, Producer, RotationTarget, Steering, Weapon, ARROWHEAD_STEERING_PARAMETERS, COMMANDER_STEERING_PARAMETERS, DEFAULT_STEERING_PARAMETERS};
 
 #[derive(Bundle)]
 pub struct ShipThruster {
@@ -73,6 +73,15 @@ pub fn create_grunt_ship_blueprint() -> Blueprint {
 
 fn on_ship_death(world: &World, buffer: &mut CommandBuffer, entity: Entity) {
 
+    destroy_ship_thrusters(world, entity, buffer);
+    cancel_pending_orders(world, entity);
+    
+    let ship_position = get_entity_position(world, entity).unwrap();
+    create_explosion_effect_in_buffer(buffer, ship_position);
+    
+}
+
+fn destroy_ship_thrusters(world: &World, entity: Entity, buffer: &mut CommandBuffer) {
     if let Ok(ship) = world.get::<&Ship>(entity) {
         for &target in &ship.thrusters {
             if let Ok(mut health) = world.get::<&mut Health>(target) {
@@ -82,10 +91,6 @@ fn on_ship_death(world: &World, buffer: &mut CommandBuffer, entity: Entity) {
             }
         }
     }
-    
-    let ship_position = get_entity_position(world, entity).unwrap();
-    create_explosion_effect_in_buffer(buffer, ship_position);
-    
 }
 
 struct ShipParameters {

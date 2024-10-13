@@ -304,8 +304,15 @@ impl Order for ConstructOrder {
     fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
         
         if let Some(constructing_entity) = self.entity() {
-            let entity_health = model.world.get::<&Health>(constructing_entity).expect("building must have entity health component to be able to construct!");
+
+            // #FIXME: we should resolve these lifetime issues properly somehow
+            if model.world.contains(constructing_entity) == false {
+                return true
+            }
+
+            let entity_health = model.world.get::<&Health>(constructing_entity).expect("entity must have entity health component to be able to construct!");
             entity_health.is_at_full_health()
+
         } else {
             false
         }
@@ -512,6 +519,13 @@ impl Order for CancelOrder {
 
     fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
         let mut orderable = model.world.get::<&mut Orderable>(entity).expect("entity must have orderable!");
+        orderable.cancel_orders(GameOrderType::Order);
+    }
+}
+
+pub fn cancel_pending_orders(world: &World, entity: Entity) {
+    if let Ok(mut orderable) = world.get::<&mut Orderable>(entity) {
+        orderable.cancel_orders(GameOrderType::Construct);
         orderable.cancel_orders(GameOrderType::Order);
     }
 }

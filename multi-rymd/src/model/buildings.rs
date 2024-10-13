@@ -2,7 +2,7 @@ use hecs::{CommandBuffer, Entity, World};
 use macroquad::{math::{Vec2, Rect, vec2}, miniquad::KeyCode};
 
 use crate::PlayerID;
-use super::{create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Blueprint, BlueprintIdentity, Blueprints, Building, Constructor, Controller, Cost, DynamicBody, EntityState, Health, MovementTarget, Orderable, Producer, Spawner, Sprite, Storage, Transform};
+use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Blueprint, BlueprintIdentity, Blueprints, Building, Constructor, Controller, Cost, DynamicBody, EntityState, GameOrderType, Health, MovementTarget, Orderable, Producer, Spawner, Sprite, Storage, Transform};
 
 pub fn create_solar_collector_blueprint() -> Blueprint {
     Blueprint {
@@ -54,21 +54,28 @@ pub fn create_metal_storage_blueprint() -> Blueprint {
 
 fn on_building_death(world: &World, buffer: &mut CommandBuffer, entity: Entity) {
 
-    // let Ok(constructor) = world.get::<&Constructor>(entity) else { return; };
-    // let Some(target) = constructor.current_target else { return; };
-
-    // let Ok(target_state) = world.get::<&EntityState>(target) else { return; };
-    // if *target_state != EntityState::Ghost { return; }
-
-    // if let Ok(mut health) = world.get::<&mut Health>(target) {
-    //     health.kill();
-    // } else {
-    //     buffer.despawn(target);
-    // }
+    destroy_entity_in_construction(world, entity, buffer);
+    cancel_pending_orders(world, entity);
     
     let building_position = get_entity_position(world, entity).unwrap();
     create_explosion_effect_in_buffer(buffer, building_position);
     
+}
+
+fn destroy_entity_in_construction(world: &World, entity: Entity, buffer: &mut CommandBuffer) {
+
+    let Ok(constructor) = world.get::<&Constructor>(entity) else { return; };
+    let Some(target) = constructor.current_target else { return; };
+
+    let Ok(target_state) = world.get::<&EntityState>(target) else { return; };
+    if *target_state != EntityState::Ghost { return; };
+
+    if let Ok(mut health) = world.get::<&mut Health>(target) {
+        health.kill();
+    } else {
+        buffer.despawn(target);
+    }
+
 }
 
 struct BuildingParameters {
@@ -93,7 +100,7 @@ fn create_building(world: &mut World, owner: PlayerID, position: Vec2, parameter
     let controller = Controller { id: owner };
     let transform = Transform::new(position, 0.0, None);
     let blueprint_identity = BlueprintIdentity::new(parameters.blueprint);
-    let health = Health::new_with_current_health(parameters.maximum_health, parameters.initial_health);
+    let health = Health::new_with_current_health_and_callback(parameters.maximum_health, parameters.initial_health, on_building_death);
     let sprite = Sprite { texture: parameters.texture };
     let dynamic_body = DynamicBody { is_enabled: is_body_enabled, is_static: is_body_static, bounds: parameters.bounds, kinematic, mask: body_mask };
     let state = EntityState::Ghost;
@@ -160,10 +167,6 @@ pub fn build_shipyard(world: &mut World, owner: PlayerID, position: Vec2) -> Ent
     let constructor = Constructor { current_target: None, constructibles: shipyard_blueprints, build_range: shipyard_size as i32 / 2, build_speed: shipyard_build_speed, beam_offset: -vec2(0.0, 8.0), can_assist: false };
     let movement_target = MovementTarget { target: None };
     let orderable = Orderable::new();
-
-    if let Ok(mut health) = world.get::<&mut Health>(shipyard) {
-        health.on_death = Some(on_building_death);
-    }
 
     let _ = world.insert(shipyard, (spawner, constructor, movement_target, orderable));
 
