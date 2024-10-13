@@ -648,6 +648,8 @@ impl RymdGameModel {
                 
             }
 
+            extractor.last_target = extractor.current_target;
+
         }
 
     }
