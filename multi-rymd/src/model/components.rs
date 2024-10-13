@@ -536,6 +536,14 @@ pub struct ResourceSource {
 
 impl ResourceSource {
 
+    pub fn is_exhausted(&self) -> bool {
+        self.is_finite && self.current_metal <= 0.0 && self.current_energy <= 0.0
+    }
+
+    pub fn is_occupied(&self) -> bool {
+        self.current_metal <= 0.0 && self.current_energy <= 0.0
+    }
+
     pub fn new_metal_source(metal: f32) -> ResourceSource {
         ResourceSource { total_metal: metal, total_energy: 0.0, current_metal: metal, current_energy: 0.0, is_finite: false }
     }

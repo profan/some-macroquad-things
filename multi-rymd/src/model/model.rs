@@ -637,8 +637,13 @@ impl RymdGameModel {
                 provide_metal(controller.id, &self.world, source_metal_provided, Self::TIME_STEP);
                 provide_energy(controller.id, &self.world, source_energy_provided, Self::TIME_STEP);
 
-                source.current_metal = (source.current_metal - actual_source_metal_provided).max(0.0);
-                source.current_energy = (source.current_energy - actual_source_energy_provided).max(0.0);
+                if source.is_finite == false {
+                    source.current_metal = (source.current_metal - actual_source_metal_provided).max(0.0);
+                    source.current_energy = (source.current_energy - actual_source_energy_provided).max(0.0);
+                } else {
+                    source.current_metal = (source.current_metal - source_metal_provided).max(0.0);
+                    source.current_energy = (source.current_energy - source_energy_provided).max(0.0);
+                }
 
                 movement_target.target = None;
                 rotation_target.target = Some(current_extractor_target_position);
