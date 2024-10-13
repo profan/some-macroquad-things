@@ -63,7 +63,7 @@ pub fn create_extractor_ship_blueprint() -> Blueprint {
     Blueprint {
         id: Blueprints::Extractor as i32,
         shortcut: KeyCode::U,
-        name: String::from("Extractor (Fighter)"),
+        name: String::from("Extractor (Assist)"),
         texture: String::from("EXTRACTOR"),
         constructor: build_extractor_ship,
         cost: Cost { metal: 250.0, energy: 250.0 },
