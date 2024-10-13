@@ -207,7 +207,8 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
         last_target: None,
         extraction_range: commander_build_range,
         extraction_speed: commander_build_speed,
-        beam_offset: commander_build_offset
+        beam_offset: commander_build_offset,
+        is_active: false
     };
 
     let producer = Producer {
@@ -406,6 +407,7 @@ pub fn build_extractor_ship(world: &mut World, owner: PlayerID, position: Vec2) 
         extraction_range: extractor_build_speed,
         extraction_speed: extractor_build_range,
         beam_offset: extractor_build_offset,
+        is_active: false
     };
 
     let extractor_ship_body = create_ship(world, owner, position, extractor_ship_parameters);

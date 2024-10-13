@@ -618,6 +618,7 @@ impl RymdGameModel {
                 movement_target.target = None;
                 rotation_target.target = None;
                 extractor.last_target = None;
+                extractor.is_active = false;
             }
 
             let Some(current_extractor_target) = extractor.current_target else { continue; };
@@ -643,9 +644,11 @@ impl RymdGameModel {
 
                 movement_target.target = None;
                 rotation_target.target = Some(current_extractor_target_position);
+                extractor.is_active = true;
 
             } else {
 
+                extractor.is_active = false;
                 movement_target.target = Some(current_extractor_target_position);
                 rotation_target.target = None;
                 

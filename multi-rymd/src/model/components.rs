@@ -516,12 +516,13 @@ pub struct Extractor {
     pub last_target: Option<Entity>,
     pub extraction_range: i32,
     pub extraction_speed: i32,
-    pub beam_offset: Vec2
+    pub beam_offset: Vec2,
+    pub is_active: bool
 }
 
 impl Extractor {
     pub fn is_extracting(&self) -> bool {
-        self.current_target.is_some()
+        self.is_active
     }
 }
 
