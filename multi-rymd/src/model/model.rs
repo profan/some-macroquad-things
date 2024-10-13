@@ -21,9 +21,11 @@ use super::environment::create_asteroid;
 use super::spatial::SpatialQueryManager;
 use super::steer_entity_towards_target;
 use super::AnimatedSprite;
+use super::Building;
 use super::MovementTarget;
 use super::PreviousTransform;
 use super::RotationTarget;
+use super::UnitState;
 use super::DEFAULT_STEERING_PARAMETERS;
 use super::{create_simple_bullet, Effect};
 use super::get_entity_position;
@@ -225,15 +227,24 @@ impl RymdGameModel {
     //#[profiling::function]
     fn tick_constructing_entities(&mut self) {
 
-        for (e, (state, health, body)) in self.world.query_mut::<(&mut EntityState, &Health, Option<&mut DynamicBody>)>() {
-            if *state == EntityState::Ghost {
-                if health.is_at_full_health() {
-                    *state = EntityState::Constructed;
-                    if let Some(body) = body {
-                        body.is_enabled = true;
-                    }
-                }
-            }       
+        for (e, (state, health, body, building)) in self.world.query_mut::<(&mut EntityState, &Health, Option<&mut DynamicBody>, Option<&Building>)>() {
+
+            let is_entity_ghost = *state == EntityState::Ghost;
+            if is_entity_ghost == false { continue; }
+
+            let is_entity_at_full_health = health.is_at_full_health();
+            if is_entity_at_full_health == false { continue; };
+
+            // all entities that are ghosts which reach full health are then considered constructed
+            *state = EntityState::Constructed;
+
+            let Some(body) = body else { continue; };
+
+            // only things that aren't buildings and have bodies should be made non-static after construction
+            if building.is_none() {
+                body.is_static = false;                            
+            }
+
         }
 
     }
@@ -382,7 +393,7 @@ impl RymdGameModel {
 
         for (e, (dynamic_body, steering)) in self.world.query::<(&DynamicBody, &Steering)>().iter() {
 
-            if dynamic_body.is_static {
+            if dynamic_body.is_enabled == false || dynamic_body.is_static {
                 continue;
             }
 

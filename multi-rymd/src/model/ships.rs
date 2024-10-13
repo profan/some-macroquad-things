@@ -74,11 +74,11 @@ pub fn create_grunt_ship_blueprint() -> Blueprint {
 fn on_ship_death(world: &World, buffer: &mut CommandBuffer, entity: Entity) {
 
     if let Ok(ship) = world.get::<&Ship>(entity) {
-        for &t in &ship.thrusters {
-            if let Ok(mut h) = world.get::<&mut Health>(t) {
-                h.kill();
+        for &target in &ship.thrusters {
+            if let Ok(mut health) = world.get::<&mut Health>(target) {
+                health.kill();
             } else {
-                buffer.despawn(t);
+                buffer.despawn(target);
             }
         }
     }
@@ -113,8 +113,8 @@ fn create_ship(world: &mut World, owner: PlayerID, position: Vec2, parameters: S
     let blueprint_identity = BlueprintIdentity::new(parameters.blueprint);
     let health = Health::new_with_current_health_and_callback(parameters.maximum_health, parameters.initial_health, on_ship_death);
 
-    let is_body_enabled: bool = false;
-    let is_body_static: bool = false;
+    let is_body_enabled: bool = true;
+    let is_body_static: bool = true;
     let body_mask = 1 << owner;
 
     let steering_parameters = parameters.steering_parameters;

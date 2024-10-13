@@ -77,7 +77,11 @@ impl PhysicsManager {
                     continue;
                 }
 
-                if let Ok(other_body) = unsafe { world.get_unchecked::<&DynamicBody>(e2) } && other_body.is_enabled {
+                if let Ok(other_body) = world.get::<&DynamicBody>(e2) {
+
+                    if other_body.is_enabled == false {
+                        continue;
+                    }
 
                     let should_collide = self.collides_with(body, &other_body);
                     if should_collide && intersect_rect(&body.bounds(), &other_body.bounds()) {
