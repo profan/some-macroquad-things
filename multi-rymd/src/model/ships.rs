@@ -66,7 +66,7 @@ pub fn create_grunt_ship_blueprint() -> Blueprint {
         name: String::from("Grunt (Fighter)"),
         texture: String::from("ENEMY_GRUNT"),
         constructor: build_grunt_ship,
-        cost: Cost { metal: 100.0, energy: 50.0 },
+        cost: Cost { metal: 50.0, energy: 25.0 },
         is_building: false
     }
 }
