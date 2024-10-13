@@ -352,6 +352,7 @@ impl Resources {
                 initial_velocity: 0.0,
                 size: 1.0,
                 blend_mode: BlendMode::Additive,
+                colors_curve: ColorCurve { start: WHITE, mid: WHITE.with_alpha(0.5), end: WHITE.with_alpha(0.0) },
                 ..Default::default()
             }
         }
@@ -366,6 +367,7 @@ impl Resources {
                 initial_velocity: 0.0,
                 size: 0.5,
                 blend_mode: BlendMode::Additive,
+                colors_curve: ColorCurve { start: WHITE, mid: WHITE.with_alpha(0.5), end: WHITE.with_alpha(0.0) },
                 ..Default::default()
             }
         }
@@ -380,6 +382,7 @@ impl Resources {
                 initial_velocity: 0.0,
                 size: 0.75,
                 blend_mode: BlendMode::Additive,
+                colors_curve: ColorCurve { start: WHITE, mid: WHITE.with_alpha(0.5), end: WHITE.with_alpha(0.0) },
                 ..Default::default()
             }
         }
