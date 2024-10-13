@@ -6,7 +6,7 @@ use utility::{AsAngle, SteeringParameters};
 
 use crate::PlayerID;
 use crate::model::{Transform, Orderable, AnimatedSprite, Thruster, DynamicBody, Ship, ThrusterKind};
-use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Constructor, Controller, Cost, EntityState, Extractor, GameOrderType, Health, MovementTarget, Producer, RotationTarget, Steering, Weapon, ARROWHEAD_STEERING_PARAMETERS, COMMANDER_STEERING_PARAMETERS, DEFAULT_STEERING_PARAMETERS};
+use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Constructor, Controller, Cost, EntityState, Extractor, GameOrderType, Health, MovementTarget, Producer, RotationTarget, Steering, Weapon, ARROWHEAD_STEERING_PARAMETERS, COMMANDER_STEERING_PARAMETERS, DEFAULT_STEERING_PARAMETERS, EXTRACTOR_STEERING_PARAMETERS};
 
 #[derive(Bundle)]
 pub struct ShipThruster {
@@ -26,7 +26,7 @@ impl ShipThruster {
 pub fn create_commander_ship_blueprint() -> Blueprint {
     Blueprint {
         id: Blueprints::Commander as i32,
-        shortcut: KeyCode::T,
+        shortcut: KeyCode::J,
         name: String::from("Commander Ship"),
         texture: String::from("PLAYER_SHIP"),
         constructor: build_commander_ship,
@@ -38,7 +38,7 @@ pub fn create_commander_ship_blueprint() -> Blueprint {
 pub fn create_commissar_ship_blueprint() -> Blueprint {
     Blueprint {
         id: Blueprints::Commander as i32,
-        shortcut: KeyCode::Y,
+        shortcut: KeyCode::K,
         name: String::from("Commissar Ship"),
         texture: String::from("ENEMY_SHIP"),
         constructor: build_commissar_ship,
@@ -50,11 +50,23 @@ pub fn create_commissar_ship_blueprint() -> Blueprint {
 pub fn create_arrowhead_ship_blueprint() -> Blueprint {
     Blueprint {
         id: Blueprints::Arrowhead as i32,
-        shortcut: KeyCode::U,
+        shortcut: KeyCode::Y,
         name: String::from("Arrowhead (Fighter)"),
         texture: String::from("ARROWHEAD"),
         constructor: build_arrowhead_ship,
         cost: Cost { metal: 250.0, energy: 100.0 },
+        is_building: false
+    }
+}
+
+pub fn create_extractor_ship_blueprint() -> Blueprint {
+    Blueprint {
+        id: Blueprints::Extractor as i32,
+        shortcut: KeyCode::U,
+        name: String::from("Extractor (Fighter)"),
+        texture: String::from("EXTRACTOR"),
+        constructor: build_extractor_ship,
+        cost: Cost { metal: 250.0, energy: 250.0 },
         is_building: false
     }
 }
@@ -354,6 +366,68 @@ pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     arrowhead_ship.thrusters.push(arrowhead_ship_thruster_main);
 
     arrowhead_ship_body
+
+}
+
+pub fn build_extractor_ship(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
+
+    let extractor_ship_size = 32.0;
+    let extractor_bounds = Rect { x: 0.0, y: 0.0, w: extractor_ship_size, h: extractor_ship_size };
+
+    let initial_extractor_health = 1.0;
+    let maximum_extractor_health = 250.0;
+
+    let extractor_build_speed = 100;
+    let extractor_build_range = 100;
+    let extractor_build_offset = -vec2(extractor_bounds.w / 8.0, 0.0);
+
+    let extractor_thruster_power = 64.0;
+    let extractor_turn_thruster_power = 16.0;
+
+    let extractor_steering_parameters = EXTRACTOR_STEERING_PARAMETERS;
+
+    let extractor_ship_parameters = ShipParameters {
+
+        initial_health: initial_extractor_health,
+        maximum_health: maximum_extractor_health,
+        blueprint: Blueprints::Extractor,
+
+        bounds: extractor_bounds,
+        texture: "EXTRACTOR".to_string(),
+        texture_h_frames: 1,
+
+        steering_parameters: extractor_steering_parameters
+
+    };
+
+    let extractor = Extractor {
+        current_target: None,
+        last_target: None,
+        extraction_range: extractor_build_speed,
+        extraction_speed: extractor_build_range,
+        beam_offset: extractor_build_offset,
+    };
+
+    let extractor_ship_body = create_ship(world, owner, position, extractor_ship_parameters);
+    let _ = world.insert(extractor_ship_body, (extractor,));
+
+    // add ship thrusters
+    let extractor_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), -Vec2::X, -(PI / 2.0), extractor_turn_thruster_power, ThrusterKind::Attitude, extractor_ship_body));
+    let extractor_ship_thuster_right_top = world.spawn(ShipThruster::new(vec2(14.0, 4.0), Vec2::X, PI / 2.0, extractor_turn_thruster_power, ThrusterKind::Attitude, extractor_ship_body));
+
+    let extractor_ship_thruster_left_bottom = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), Vec2::X, -(PI / 2.0), extractor_turn_thruster_power, ThrusterKind::Attitude, extractor_ship_body));
+    let extractor_ship_thuster_right_bottom = world.spawn(ShipThruster::new(vec2(14.0, 4.0), -Vec2::X, PI / 2.0, extractor_turn_thruster_power, ThrusterKind::Attitude, extractor_ship_body));
+
+    let extractor_ship_thruster_main = world.spawn(ShipThruster::new(vec2(0.0, 10.0), Vec2::Y, 0.0, extractor_thruster_power, ThrusterKind::Main, extractor_ship_body));
+
+    let mut extractor_ship = world.get::<&mut Ship>(extractor_ship_body).unwrap();
+    extractor_ship.thrusters.push(extractor_ship_thruster_left_top);
+    extractor_ship.thrusters.push(extractor_ship_thuster_right_top);
+    extractor_ship.thrusters.push(extractor_ship_thruster_left_bottom);
+    extractor_ship.thrusters.push(extractor_ship_thuster_right_bottom);
+    extractor_ship.thrusters.push(extractor_ship_thruster_main);
+
+    extractor_ship_body
 
 }
 

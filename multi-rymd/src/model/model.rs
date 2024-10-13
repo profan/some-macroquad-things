@@ -15,6 +15,7 @@ use crate::model::GameMessage;
 use crate::game::RymdGameParameters;
 
 use super::create_commissar_ship_blueprint;
+use super::create_extractor_ship_blueprint;
 use super::create_grunt_ship_blueprint;
 use super::entity_apply_raw_steering;
 use super::environment::create_asteroid;
@@ -98,9 +99,11 @@ fn create_blue_side_blueprints() -> HashMap<i32, Blueprint> {
     // units
     let commander_ship_blueprint = create_commander_ship_blueprint();
     let arrowhead_ship_blueprint = create_arrowhead_ship_blueprint();
+    let extractor_ship_blueprint = create_extractor_ship_blueprint();
 
     blueprints.insert(commander_ship_blueprint.id, commander_ship_blueprint);
     blueprints.insert(arrowhead_ship_blueprint.id, arrowhead_ship_blueprint);
+    blueprints.insert(extractor_ship_blueprint.id, extractor_ship_blueprint);
 
     blueprints
 

@@ -492,6 +492,7 @@ impl Resources {
         self.load_texture_or_placeholder("ENEMY_GRUNT_REPAIR", "raw/enemy_grunt_repair.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("HAMMERHEAD", "raw/hammerhead.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("ARROWHEAD", "raw/arrowhead.png", FilterMode::Nearest).await;
+        self.load_texture_or_placeholder("EXTRACTOR", "raw/extractor.png", FilterMode::Nearest).await;
         
         // buildings of various kinds
         self.load_texture_or_placeholder("SHIPYARD", "raw/shipyard.png", FilterMode::Nearest).await;
@@ -1363,10 +1364,17 @@ impl RymdGameView {
         let mut thruster_components_to_add = Vec::new();
         let mut bounds_components_to_add = Vec::new();
 
-        for (e, (transform, constructor)) in model.world.query::<Without<(&Transform, &Constructor), &ParticleBeam>>().iter() {
+        for (e, (transform, constructor_or_extractor)) in model.world.query::<Without<(&Transform, Or<&Constructor, &Extractor>), &ParticleBeam>>().iter() {
             let emitter_config_name = "REPAIR";
             let particle_emitter = Emitter::new(self.resources.get_emitter_config_by_name(emitter_config_name));
-            let constructor_beam = ParticleBeam { emitter: particle_emitter, offset: constructor.beam_offset };
+
+            let constructor_beam_offset = match constructor_or_extractor {
+                Or::Left(constructor) => constructor.beam_offset,
+                Or::Right(extractor) => extractor.beam_offset,
+                Or::Both(constructor, extractor) => constructor.beam_offset,
+            };
+
+            let constructor_beam = ParticleBeam { emitter: particle_emitter, offset: constructor_beam_offset };
             beam_components_to_add.push((e, constructor_beam));
         }
 
