@@ -11,7 +11,7 @@ pub fn create_solar_collector_blueprint() -> Blueprint {
         name: String::from("Solar Collector"),
         texture: String::from("SOLAR_COLLECTOR"),
         constructor: build_solar_collector,
-        cost: Cost { metal: 25.0, energy: 25.0 },
+        cost: Cost { metal: 250.0, energy: 250.0 },
         is_building: true
     }
 }

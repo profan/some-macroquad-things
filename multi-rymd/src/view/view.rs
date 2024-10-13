@@ -976,11 +976,11 @@ impl RymdGameView {
         let mouse_position: Vec2 = self.camera.mouse_world_position();
         let should_cancel_current_orders: bool = is_key_released(KeyCode::S);
 
-        let about_to_issue_attack_move_order = is_key_down(KeyCode::LeftControl) == false && is_key_down(KeyCode::A);
+        let about_to_issue_attack_move_order = is_key_down(KeyCode::LeftControl) == false && is_key_released(KeyCode::LeftControl) == false && is_key_down(KeyCode::A);
         let about_to_issue_order = is_mouse_button_down(MouseButton::Right);
         let about_to_issue_any_order = about_to_issue_order || about_to_issue_attack_move_order;
 
-        let should_issue_attack_move_order = is_key_down(KeyCode::LeftControl) == false && is_key_released(KeyCode::A);
+        let should_issue_attack_move_order = is_key_down(KeyCode::LeftControl) == false && is_key_released(KeyCode::LeftControl) == false && is_key_released(KeyCode::A);
         let should_issue_order = is_mouse_button_released(MouseButton::Right);
         let should_issue_any_order = should_issue_order || should_issue_attack_move_order;
 
@@ -1245,7 +1245,7 @@ impl RymdGameView {
     }
 
     fn is_currently_issuing_an_attack_order(&self) -> bool {
-        is_key_down(KeyCode::LeftControl) == false && is_key_down(KeyCode::A)
+        is_key_down(KeyCode::LeftControl) == false && is_key_released(KeyCode::LeftControl) == false && is_key_down(KeyCode::A)
     }
     
     fn draw_ordering(&self, world: &World) {
