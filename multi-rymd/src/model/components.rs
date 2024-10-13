@@ -527,35 +527,37 @@ impl Extractor {
 }
 
 pub struct ResourceSource {
-    pub metal: f32,
-    pub energy: f32,
+    pub total_metal: f32,
+    pub total_energy: f32,
+    pub current_metal: f32,
+    pub current_energy: f32,
     pub is_finite: bool
 }
 
 impl ResourceSource {
 
     pub fn new_metal_source(metal: f32) -> ResourceSource {
-        ResourceSource { metal, energy: 0.0, is_finite: false }
+        ResourceSource { total_metal: metal, total_energy: 0.0, current_metal: metal, current_energy: 0.0, is_finite: false }
     }
 
     pub fn new_energy_source(energy: f32) -> ResourceSource {
-        ResourceSource { metal: 0.0, energy, is_finite: false }
+        ResourceSource { total_metal: 0.0, total_energy: energy, current_metal: 0.0, current_energy: energy, is_finite: false }
     }
 
     pub fn new_finite_metal_source(metal: f32) -> ResourceSource {
-        ResourceSource { metal, energy: 0.0, is_finite: true }
+        ResourceSource { total_metal: metal, total_energy: 0.0, current_metal: metal, current_energy: 0.0, is_finite: true }
     }
 
-    pub fn new_finite_energy_source(metal: f32) -> ResourceSource {
-        ResourceSource { metal, energy: 0.0, is_finite: true }
+    pub fn new_finite_energy_source(energy: f32) -> ResourceSource {
+        ResourceSource { total_metal: 0.0, total_energy: energy, current_metal: 0.0, current_energy: energy, is_finite: true }
     }
 
     pub fn new_source(metal: f32, energy: f32) -> ResourceSource {
-        ResourceSource { metal, energy, is_finite: false }
+        ResourceSource { total_metal: metal, total_energy: energy, current_metal: metal, current_energy: energy, is_finite: false }
     }
 
     pub fn new_finite_source(metal: f32, energy: f32) -> ResourceSource {
-        ResourceSource { metal, energy, is_finite: true }
+        ResourceSource { total_metal: metal, total_energy: energy, current_metal: metal, current_energy: energy, is_finite: true }
     }
 
 }

@@ -626,10 +626,10 @@ impl RymdGameModel {
 
             if is_within_extractor_range_with_extractor(e, &self.world, extractor, current_extractor_target_position) {
 
-                let source = self.world.get::<&ResourceSource>(current_extractor_target).expect("extractor target must have resource source!");
+                let mut source = self.world.get::<&mut ResourceSource>(current_extractor_target).expect("extractor target must have resource source!");
                 
-                let actual_source_metal_provided = source.metal.min(extractor.extraction_speed as f32);
-                let actual_source_energy_provided = source.energy.min(extractor.extraction_speed as f32);
+                let actual_source_metal_provided = source.current_metal.min(extractor.extraction_speed as f32);
+                let actual_source_energy_provided = source.current_energy.min(extractor.extraction_speed as f32);
 
                 let source_metal_provided = actual_source_metal_provided * Self::TIME_STEP;
                 let source_energy_provided = actual_source_energy_provided * Self::TIME_STEP;
@@ -637,10 +637,8 @@ impl RymdGameModel {
                 provide_metal(controller.id, &self.world, source_metal_provided, Self::TIME_STEP);
                 provide_energy(controller.id, &self.world, source_energy_provided, Self::TIME_STEP);
 
-                // if source.is_finite {
-                //     source.metal = (source.metal - source_energy_provided).max(0.0);
-                //     source.energy = (source.energy - source_energy_provided).max(0.0);
-                // }
+                source.current_metal = (source.current_metal - actual_source_metal_provided).max(0.0);
+                source.current_energy = (source.current_energy - actual_source_energy_provided).max(0.0);
 
                 movement_target.target = None;
                 rotation_target.target = Some(current_extractor_target_position);
@@ -727,6 +725,21 @@ impl RymdGameModel {
                 metal.income = 0.0;
                 energy.income = 0.0;
             }
+        }
+
+    }
+
+    fn tick_sources(&mut self) {
+
+        for (e, resource_source) in self.world.query::<&mut ResourceSource>().iter() {
+
+            if resource_source.is_finite {
+                continue;
+            }
+
+            resource_source.current_metal = resource_source.total_metal;
+            resource_source.current_energy = resource_source.total_energy;
+
         }
 
     }
@@ -880,6 +893,7 @@ impl RymdGameModel {
         self.tick_orderables();
         self.tick_transforms();
         self.tick_resources();
+        self.tick_sources();
         self.tick_rotation_targets();
         self.tick_movement_targets();
         self.tick_separation();
