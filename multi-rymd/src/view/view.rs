@@ -264,7 +264,7 @@ struct Particles {
     emitter: Emitter
 }
 
-struct ConstructorBeam {
+struct ParticleBeam {
     emitter: Emitter,
     offset: Vec2
 }
@@ -1363,10 +1363,10 @@ impl RymdGameView {
         let mut thruster_components_to_add = Vec::new();
         let mut bounds_components_to_add = Vec::new();
 
-        for (e, (transform, constructor)) in model.world.query::<Without<(&Transform, &Constructor), &ConstructorBeam>>().iter() {
+        for (e, (transform, constructor)) in model.world.query::<Without<(&Transform, &Constructor), &ParticleBeam>>().iter() {
             let emitter_config_name = "REPAIR";
             let particle_emitter = Emitter::new(self.resources.get_emitter_config_by_name(emitter_config_name));
-            let constructor_beam = ConstructorBeam { emitter: particle_emitter, offset: constructor.beam_offset };
+            let constructor_beam = ParticleBeam { emitter: particle_emitter, offset: constructor.beam_offset };
             beam_components_to_add.push((e, constructor_beam));
         }
 
@@ -1516,26 +1516,21 @@ impl RymdGameView {
 
     fn update_constructor_beams(&mut self, model: &RymdGameModel) {
 
-        for (e, (transform, body, orderable, constructor, beam)) in model.world.query::<(&Transform, &DynamicBody, &Orderable, &Constructor, &mut ConstructorBeam)>().iter() {
+        for (e, (transform, body, orderable, constructor, beam)) in model.world.query::<(&Transform, &DynamicBody, &Orderable, &Constructor, &mut ParticleBeam)>().iter() {
 
             let center_of_dynamic_body = body.bounds().center();
 
             if let Some(current_order @ GameOrder::Construct(_)) = orderable.first_order(GameOrderType::Order) && constructor.is_constructing() {
 
-                let beam_emitter_offset = beam.offset.rotated_by(transform.world_rotation + (PI/2.0));
-                let beam_emit_target = current_order.get_target_position(model).unwrap();
-                let beam_emit_delta = beam_emit_target - (transform.world_position + beam_emitter_offset);
-                let beam_emit_direction = beam_emit_delta.normalize();
-                let beam_emit_distance = beam_emit_delta.length();
+                let current_target_position = current_order.get_target_position(model).unwrap();
 
-                beam.emitter.config.initial_direction = beam_emit_direction;
-                beam.emitter.config.initial_velocity = ((body.velocity() + beam_emit_direction * 16.0).length()).max(48.0);
-
-                // calculate lifetime depending on how far we want the particle to go (preferably reaching our target!)
-                let lifetime = (beam_emit_distance / beam.emitter.config.initial_velocity) * 1.1;
-                beam.emitter.config.lifetime = lifetime;
-
-                beam.emitter.emit(beam.offset.rotated_by(transform.world_rotation + (PI/2.0)), (constructor.build_speed / 100) as usize);
+                emit_construction_beam(
+                    beam,
+                    transform,
+                    current_target_position,
+                    body.velocity(),
+                    constructor.build_speed as f32 / 100.0
+                );
 
             }
 
@@ -1545,27 +1540,21 @@ impl RymdGameView {
 
     fn update_extractor_beams(&mut self, model: &RymdGameModel) {
 
-        for (e, (transform, body, orderable, extractor, beam)) in model.world.query::<(&Transform, &DynamicBody, &Orderable, &Extractor, &mut ConstructorBeam)>().iter() {
+        for (e, (transform, body, orderable, extractor, beam)) in model.world.query::<(&Transform, &DynamicBody, &Orderable, &Extractor, &mut ParticleBeam)>().iter() {
 
             let center_of_dynamic_body = body.bounds().center();
 
             if let Some(current_order @ GameOrder::Extract(_)) = orderable.first_order(GameOrderType::Order) && extractor.is_extracting() {
 
-                let beam_emitter_offset = beam.offset.rotated_by(transform.world_rotation + (PI/2.0));
-                let beam_emit_target = current_order.get_target_position(model).unwrap();
-                let beam_emit_delta = beam_emit_target - (transform.world_position + beam_emitter_offset);
-                let beam_emit_direction = beam_emit_delta.normalize();
-                let beam_emit_distance = beam_emit_delta.length();
+                let current_target_position = current_order.get_target_position(model).unwrap();
 
-                beam.emitter.config.initial_direction = -beam_emit_direction;
-                beam.emitter.config.initial_velocity = ((body.velocity() + beam_emit_direction * 16.0).length()).max(48.0);
-
-                // calculate lifetime depending on how far we want the particle to go (preferably reaching our target!)
-                let lifetime = (beam_emit_distance / beam.emitter.config.initial_velocity) * 1.1;
-                beam.emitter.config.lifetime = lifetime;
-
-                // beam.emitter.emit(beam.offset.rotated_by(transform.world_rotation + (PI/2.0)), (extractor.extraction_speed / 100) as usize);
-                beam.emitter.emit(beam.offset.rotated_by(transform.world_rotation + (PI/2.0)) + (beam_emit_target - transform.world_position), (extractor.extraction_speed / 100) as usize);
+                emit_reclaim_beam(
+                    beam,
+                    transform,
+                    current_target_position,
+                    body.velocity(),
+                    extractor.extraction_speed as f32 / 100.0
+                );
 
             }
 
@@ -1640,7 +1629,7 @@ impl RymdGameView {
             emitter.draw(Vec2::ZERO);
         }
 
-        for (e, (transform, beam)) in world.query_mut::<(&Transform, &mut ConstructorBeam)>() {
+        for (e, (transform, beam)) in world.query_mut::<(&Transform, &mut ParticleBeam)>() {
             beam.emitter.draw(transform.world_position);
         }
 
@@ -2029,6 +2018,46 @@ impl RymdGameView {
         self.draw_debug_ui(model, debug, lockstep);
 
     }
+
+}
+
+fn emit_construction_beam(beam: &mut ParticleBeam, source_world_transform: &Transform, target_world_position: Vec2, source_body_velocity: Vec2, emission_rate: f32) {
+
+    let beam_emitter_offset = beam.offset.rotated_by(source_world_transform.world_rotation + (PI/2.0));
+    let beam_emit_target = target_world_position;
+    let beam_emit_delta = beam_emit_target - (source_world_transform.world_position + beam_emitter_offset);
+
+    let beam_emit_direction = beam_emit_delta.normalize();
+    let beam_emit_distance = beam_emit_delta.length();
+
+    beam.emitter.config.initial_direction = beam_emit_direction;
+    beam.emitter.config.initial_velocity = ((source_body_velocity + beam_emit_direction * 16.0).length()).max(48.0);
+
+    // calculate lifetime depending on how far we want the particle to go (preferably reaching our target!)
+    let lifetime = (beam_emit_distance / beam.emitter.config.initial_velocity) * 1.1;
+    beam.emitter.config.lifetime = lifetime;
+
+    beam.emitter.emit(beam.offset.rotated_by(source_world_transform.world_rotation + (PI/2.0)), emission_rate as usize);
+
+}
+
+fn emit_reclaim_beam(beam: &mut ParticleBeam, source_world_transform: &Transform, target_world_position: Vec2, source_body_velocity: Vec2, emission_rate: f32) {
+
+    let beam_emitter_offset = beam.offset.rotated_by(source_world_transform.world_rotation + (PI/2.0));
+    let beam_emit_target = target_world_position;
+    let beam_emit_delta = beam_emit_target - (source_world_transform.world_position + beam_emitter_offset);
+
+    let beam_emit_direction = -beam_emit_delta.normalize();
+    let beam_emit_distance = beam_emit_delta.length();
+
+    beam.emitter.config.initial_direction = beam_emit_direction;
+    beam.emitter.config.initial_velocity = ((source_body_velocity + beam_emit_direction * 16.0).length()).max(48.0);
+
+    // calculate lifetime depending on how far we want the particle to go (preferably reaching our target!)
+    let lifetime = (beam_emit_distance / beam.emitter.config.initial_velocity) * 1.1;
+    beam.emitter.config.lifetime = lifetime;
+
+    beam.emitter.emit(beam.offset.rotated_by(source_world_transform.world_rotation + (PI/2.0)) + (beam_emit_target - source_world_transform.world_position), emission_rate as usize);
 
 }
 
