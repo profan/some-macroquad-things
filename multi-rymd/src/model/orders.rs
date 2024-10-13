@@ -15,6 +15,7 @@ use super::Attacker;
 use super::BlueprintID;
 use super::DynamicBody;
 use super::EntityState;
+use super::Extractor;
 use super::PhysicsBody;
 use super::get_entity_position;
 use super::get_entity_position_from_id;
@@ -35,6 +36,7 @@ pub trait GameOrdersExt {
     fn send_move_order(&mut self, entity: Entity, target_position: Vec2, should_add: bool);
     fn send_build_order(&mut self, entity: Entity, target_position: Vec2, blueprint_id: BlueprintID, should_add: bool, is_self: bool);
     fn send_repair_order(&mut self, entity: Entity, target_position: Vec2, target: Entity, should_add: bool);
+    fn send_extract_order(&mut self, entity: Entity, target: Entity, should_add: bool);
     fn cancel_current_orders(&mut self, entity: Entity);
 
 }
@@ -76,6 +78,12 @@ impl GameOrdersExt for LockstepClient {
         let cancel_order_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: cancel_order, add: false };
         self.send_command(cancel_order_message.serialize_json());
     }
+    
+    fn send_extract_order(&mut self, entity: Entity, target: Entity, should_add: bool) {
+        let extract_order = GameOrder::Extract(ExtractOrder { entity_id: target.to_bits().get() });
+        let extract_order_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: extract_order, add: should_add };
+        self.send_command(extract_order_message.serialize_json());
+    }
 
 }
 
@@ -100,6 +108,7 @@ impl GameOrder {
             GameOrder::Attack(order) => order.is_order_valid(entity, model),
             GameOrder::AttackMove(order) => order.is_order_valid(entity, model),
             GameOrder::Construct(order) => order.is_order_valid(entity, model),
+            GameOrder::Extract(order) => order.is_order_valid(entity, model),
             GameOrder::Cancel(order) => order.is_order_valid(entity, model)
         }
     }
@@ -110,6 +119,7 @@ impl GameOrder {
             GameOrder::Attack(order) => order.is_order_completed(entity, model),
             GameOrder::AttackMove(order) => order.is_order_completed(entity, model),
             GameOrder::Construct(order) => order.is_order_completed(entity, model),
+            GameOrder::Extract(order) => order.is_order_completed(entity, model),
             GameOrder::Cancel(order) => order.is_order_completed(entity, model)
         }
     }
@@ -120,6 +130,7 @@ impl GameOrder {
             GameOrder::Attack(order) => order.get_target_position(model),
             GameOrder::AttackMove(order) => order.get_target_position(model),
             GameOrder::Construct(order) => order.get_target_position(model),
+            GameOrder::Extract(order) => order.get_target_position(model),
             GameOrder::Cancel(order) => order.get_target_position(model)
         }
     }
@@ -130,6 +141,7 @@ impl GameOrder {
             GameOrder::Attack(order) => order.tick(entity, model, dt),
             GameOrder::AttackMove(order) => order.tick(entity, model, dt),
             GameOrder::Construct(order) => order.tick(entity, model, dt),
+            GameOrder::Extract(order) => order.tick(entity, model, dt),
             GameOrder::Cancel(order) => order.tick(entity, model, dt)
         }
     }
@@ -140,6 +152,7 @@ impl GameOrder {
             GameOrder::Attack(order) => order.on_completed(entity, model),
             GameOrder::AttackMove(order) => order.on_completed(entity, model),
             GameOrder::Construct(order) => order.on_completed(entity, model),
+            GameOrder::Extract(order) => order.on_completed(entity, model),
             GameOrder::Cancel(order) => order.on_completed(entity, model)
         }     
     }
@@ -150,6 +163,7 @@ impl GameOrder {
             GameOrder::Attack(_) => GameOrderType::Order,
             GameOrder::AttackMove(_) => GameOrderType::Order,
             GameOrder::Construct(order) => if order.is_self_order { GameOrderType::Construct } else { GameOrderType::Order },
+            GameOrder::Extract(order) => GameOrderType::Order,
             GameOrder::Cancel(_) => GameOrderType::Order
         }
     }
@@ -162,6 +176,7 @@ pub enum GameOrder {
     Attack(AttackOrder),
     AttackMove(AttackMoveOrder),
     Construct(ConstructOrder),
+    Extract(ExtractOrder),
     Cancel(CancelOrder)
 }
 
@@ -528,4 +543,55 @@ pub fn cancel_pending_orders(world: &World, entity: Entity) {
         orderable.cancel_orders(GameOrderType::Construct);
         orderable.cancel_orders(GameOrderType::Order);
     }
+}
+
+#[derive(Debug, Copy, Clone, SerJson, DeJson)]
+pub struct ExtractOrder {
+    pub entity_id: EntityID
+}
+
+impl ExtractOrder {
+
+    pub fn entity(&self) -> Entity {
+        Entity::from_bits(self.entity_id).unwrap()
+    }
+
+}
+
+impl Order for ExtractOrder {
+    fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
+        model.world.contains(self.entity()) == false
+    }
+
+    fn get_target_position(&self, model: &RymdGameModel) -> Option<Vec2> {
+        get_entity_position(&model.world, self.entity())
+    }
+
+    fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {      
+        let mut extractor = model.world.get::<&mut Extractor>(entity).expect("can't issue an extract order to something without an Extractor component!");
+        extractor.current_target = Some(self.entity());   
+    }
+
+    fn on_completed(&self, entity: Entity, model: &mut RymdGameModel) {
+        let mut extractor = model.world.get::<&mut Extractor>(entity).expect("can't issue an extract order to something without an Extractor component!");
+        extractor.current_target = None;
+    }
+}
+
+pub fn is_within_extractor_range(entity: Entity, world: &World, target: Vec2) -> bool {
+
+    let extractor = world.get::<&Extractor>(entity).expect("must have extractor to be asking about if within extraction range!");
+    is_within_extractor_range_with_extractor(entity, world, &extractor, target)
+
+}
+
+pub fn is_within_extractor_range_with_extractor(entity: Entity, world: &World, extractor: &Extractor, target: Vec2) -> bool {
+
+    if let Some((entity_position, bounds)) = get_closest_position_with_entity_bounds(world, entity) {
+        (entity_position.distance(target) as i32) < extractor.extraction_range + (bounds.size().max_element() / 2.0) as i32
+    } else {
+        let entity_position = get_entity_position_from_id(world, entity.to_bits().get()).expect("must have position!");
+        (entity_position.distance(target) as i32) < extractor.extraction_range
+    }
+
 }

@@ -511,6 +511,55 @@ impl Constructor {
 }
 
 #[derive(Debug, Clone)]
+pub struct Extractor {
+    pub current_target: Option<Entity>,
+    pub last_target: Option<Entity>,
+    pub extraction_range: i32,
+    pub extraction_speed: i32,
+    pub beam_offset: Vec2
+}
+
+impl Extractor {
+    pub fn is_extracting(&self) -> bool {
+        self.current_target.is_some()
+    }
+}
+
+pub struct ResourceSource {
+    pub metal: f32,
+    pub energy: f32,
+    pub is_finite: bool
+}
+
+impl ResourceSource {
+
+    pub fn new_metal_source(metal: f32) -> ResourceSource {
+        ResourceSource { metal, energy: 0.0, is_finite: false }
+    }
+
+    pub fn new_energy_source(energy: f32) -> ResourceSource {
+        ResourceSource { metal: 0.0, energy, is_finite: false }
+    }
+
+    pub fn new_finite_metal_source(metal: f32) -> ResourceSource {
+        ResourceSource { metal, energy: 0.0, is_finite: true }
+    }
+
+    pub fn new_finite_energy_source(metal: f32) -> ResourceSource {
+        ResourceSource { metal, energy: 0.0, is_finite: true }
+    }
+
+    pub fn new_source(metal: f32, energy: f32) -> ResourceSource {
+        ResourceSource { metal, energy, is_finite: false }
+    }
+
+    pub fn new_finite_source(metal: f32, energy: f32) -> ResourceSource {
+        ResourceSource { metal, energy, is_finite: true }
+    }
+
+}
+
+#[derive(Debug, Clone)]
 pub struct Spawner {
     /// This position is a local offset from the position of the transform this is attached to, and is where units will spawn.
     pub position: Vec2
@@ -551,6 +600,10 @@ pub struct RotationTarget {
 }
 
 pub struct MovementTarget { 
+    pub target: Option<Vec2>
+}
+
+pub struct ExtractionTarget {
     pub target: Option<Vec2>
 }
 

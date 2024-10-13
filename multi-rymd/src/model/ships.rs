@@ -6,7 +6,7 @@ use utility::{AsAngle, SteeringParameters};
 
 use crate::PlayerID;
 use crate::model::{Transform, Orderable, AnimatedSprite, Thruster, DynamicBody, Ship, ThrusterKind};
-use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Constructor, Controller, Cost, EntityState, GameOrderType, Health, MovementTarget, Producer, RotationTarget, Steering, Weapon, ARROWHEAD_STEERING_PARAMETERS, COMMANDER_STEERING_PARAMETERS, DEFAULT_STEERING_PARAMETERS};
+use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Constructor, Controller, Cost, EntityState, Extractor, GameOrderType, Health, MovementTarget, Producer, RotationTarget, Steering, Weapon, ARROWHEAD_STEERING_PARAMETERS, COMMANDER_STEERING_PARAMETERS, DEFAULT_STEERING_PARAMETERS};
 
 #[derive(Bundle)]
 pub struct ShipThruster {
@@ -190,12 +190,20 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
         can_assist: true
     };
 
+    let extractor = Extractor {
+        current_target: None,
+        last_target: None,
+        extraction_range: commander_build_range,
+        extraction_speed: commander_build_speed,
+        beam_offset: commander_build_offset
+    };
+
     let producer = Producer {
         metal: commander_metal_income,
         energy: commander_energy_income
     };
 
-    let _ = world.insert(commander_ship_body, (constructor, producer));
+    let _ = world.insert(commander_ship_body, (constructor, extractor, producer));
 
     // add ship thrusters
     let commander_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), -Vec2::X, -(PI / 2.0), commander_turn_thruster_power, ThrusterKind::Attitude, commander_ship_body));

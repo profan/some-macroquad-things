@@ -3,7 +3,7 @@ use macroquad::math::Rect;
 use macroquad::prelude::Vec2;
 use utility::Kinematic;
 
-use super::{Transform, Sprite, DynamicBody, Health, create_default_kinematic_body};
+use super::{create_default_kinematic_body, DynamicBody, Health, ResourceSource, Sprite, Transform};
 
 pub fn create_asteroid(world: &mut World, position: Vec2, rotation: f32) -> Entity {
 
@@ -15,6 +15,7 @@ pub fn create_asteroid(world: &mut World, position: Vec2, rotation: f32) -> Enti
         h: size
     };
 
+    let asteroid_metal_amount = 10.0;
     let asteroid_kinematic_body = Kinematic {
         ..create_default_kinematic_body(position, rotation)
     };
@@ -29,8 +30,9 @@ pub fn create_asteroid(world: &mut World, position: Vec2, rotation: f32) -> Enti
 
     let health = Health::new(100.0);
     let transform = Transform::new(position, rotation, None);
+    let resource_source = ResourceSource::new_metal_source(asteroid_metal_amount);
     let sprite = Sprite::new("ASTEROID");
     
-    world.spawn((transform, sprite, health, body))
+    world.spawn((transform, resource_source, sprite, health, body))
     
 }

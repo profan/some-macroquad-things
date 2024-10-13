@@ -11,7 +11,7 @@ use hecs::*;
 
 use crate::PlayerID;
 use crate::game::RymdGameParameters;
-use crate::model::{current_energy, current_energy_income, current_metal, current_metal_income, max_energy, max_metal, Attackable, Attacker, Blueprint, BlueprintID, BlueprintIdentity, Blueprints, Building, Effect, EntityState, GameOrder, GameOrderType, Impact, PhysicsBody, Spawner};
+use crate::model::{current_energy, current_energy_income, current_metal, current_metal_income, max_energy, max_metal, Attackable, Attacker, Blueprint, BlueprintID, BlueprintIdentity, Blueprints, Building, Effect, EntityState, Extractor, GameOrder, GameOrderType, Impact, PhysicsBody, ResourceSource, Spawner};
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Controller, Health, get_entity_position};
 
 use super::{calculate_sprite_bounds, GameCamera2D};
@@ -917,16 +917,16 @@ impl RymdGameView {
 
         let mut closest_entity = None;
         let mut closest_distance = f32::MAX;
-        let mouse_position: Vec2 = self.camera.mouse_world_position();
+        let mouse_world_position: Vec2 = self.camera.mouse_world_position();
 
         for (e, (transform, bounds, body)) in world.query::<(&Transform, &Bounds, Option<&DynamicBody>)>().iter() {
 
-            let current_distance_to_mouse = mouse_position.distance(transform.world_position);
+            let current_distance_to_mouse = mouse_world_position.distance(transform.world_position);
             let is_position_within_bounds = if let Some(body) = body {
                 let physics_bounds = body.bounds().offset(-(body.bounds().size() / 2.0));
-                is_point_inside_rect(&mouse_position, &physics_bounds)
+                is_point_inside_rect(&mouse_world_position, &physics_bounds)
             } else {
-                is_point_inside_rect(&mouse_position, &bounds.rect.offset(transform.world_position))
+                is_point_inside_rect(&mouse_world_position, &bounds.rect.offset(transform.world_position))
             };
             
             if is_position_within_bounds && current_distance_to_mouse < closest_distance {
@@ -955,6 +955,10 @@ impl RymdGameView {
     fn is_entity_attackable(&self, entity: Entity, world: &World) -> bool {
         let controller = world.get::<&Controller>(entity).expect("must have controller!");
         self.is_controller_attackable(&controller) && world.get::<&Attackable>(entity).is_ok()
+    }
+
+    fn is_entity_extractable(&self, entity: Entity, world: &World) -> bool {
+        world.satisfies::<&ResourceSource>(entity).unwrap_or(false)
     }
 
     fn is_entity_friendly(&self, entity: Entity, world: &World) -> bool {
@@ -988,9 +992,10 @@ impl RymdGameView {
 
             if let Some(target_entity) = entity_under_cursor {
 
-                if self.is_entity_friendly(target_entity, world) {
+                if self.is_entity_extractable(target_entity, world) {
+                    self.handle_extract_order(world, target_entity, lockstep, should_add);
+                } else if self.is_entity_friendly(target_entity, world) {
                     self.handle_repair_order(world, target_entity, lockstep, should_add);
-
                 } else if self.is_entity_attackable(target_entity, world) {
                     self.handle_attack_order(world, target_entity, lockstep, should_add);
                 }
@@ -1055,6 +1060,21 @@ impl RymdGameView {
             if selectable.is_selected && is_target_self == false && is_capable_of_assisting {
                 lockstep.send_repair_order(e, target_position, target_entity, should_add);
                 println!("[RymdGameView] ordered: {:?} to repair: {:?}", e, target_entity);
+            }
+    
+        }
+
+    }
+
+    fn handle_extract_order(&mut self, world: &mut World, target_entity: Entity, lockstep: &mut LockstepClient, should_add: bool) {
+
+        for (e, (transform, orderable, selectable, extractor)) in world.query_mut::<(&Transform, &Orderable, &Selectable, &Extractor)>() {
+    
+            let is_target_self = target_entity == e;
+
+            if selectable.is_selected && is_target_self == false {
+                lockstep.send_extract_order(e, target_entity, should_add);
+                println!("[RymdGameView] ordered: {:?} to extract from: {:?}", e, target_entity);
             }
     
         }
@@ -1361,7 +1381,7 @@ impl RymdGameView {
             thruster_components_to_add.push((e, particle_emitter));
         }
 
-        for (e, (transform, selectable, sprite, animated_sprite)) in model.world.query::<(&Transform, &Selectable, Option<&Sprite>, Option<&AnimatedSprite>)>().iter() {
+        for (e, (transform, sprite, animated_sprite)) in model.world.query::<Without<(&Transform, Option<&Sprite>, Option<&AnimatedSprite>), &Bounds>>().iter() {
 
             if let Some(sprite) = sprite {
                 let sprite_v_frames = 1;
@@ -1516,6 +1536,36 @@ impl RymdGameView {
                 beam.emitter.config.lifetime = lifetime;
 
                 beam.emitter.emit(beam.offset.rotated_by(transform.world_rotation + (PI/2.0)), (constructor.build_speed / 100) as usize);
+
+            }
+
+        }
+
+    }
+
+    fn update_extractor_beams(&mut self, model: &RymdGameModel) {
+
+        for (e, (transform, body, orderable, extractor, beam)) in model.world.query::<(&Transform, &DynamicBody, &Orderable, &Extractor, &mut ConstructorBeam)>().iter() {
+
+            let center_of_dynamic_body = body.bounds().center();
+
+            if let Some(current_order @ GameOrder::Extract(_)) = orderable.first_order(GameOrderType::Order) && extractor.is_extracting() {
+
+                let beam_emitter_offset = beam.offset.rotated_by(transform.world_rotation + (PI/2.0));
+                let beam_emit_target = current_order.get_target_position(model).unwrap();
+                let beam_emit_delta = beam_emit_target - (transform.world_position + beam_emitter_offset);
+                let beam_emit_direction = beam_emit_delta.normalize();
+                let beam_emit_distance = beam_emit_delta.length();
+
+                beam.emitter.config.initial_direction = -beam_emit_direction;
+                beam.emitter.config.initial_velocity = ((body.velocity() + beam_emit_direction * 16.0).length()).max(48.0);
+
+                // calculate lifetime depending on how far we want the particle to go (preferably reaching our target!)
+                let lifetime = (beam_emit_distance / beam.emitter.config.initial_velocity) * 1.1;
+                beam.emitter.config.lifetime = lifetime;
+
+                // beam.emitter.emit(beam.offset.rotated_by(transform.world_rotation + (PI/2.0)), (extractor.extraction_speed / 100) as usize);
+                beam.emitter.emit(beam.offset.rotated_by(transform.world_rotation + (PI/2.0)) + (beam_emit_target - transform.world_position), (extractor.extraction_speed / 100) as usize);
 
             }
 
@@ -1932,6 +1982,7 @@ impl RymdGameView {
         self.camera.tick(dt);
 
         self.update_constructor_beams(&model);
+        self.update_extractor_beams(&model);
         self.update_thrusters(&model.world);
         self.update_impacts(&model.world);
 

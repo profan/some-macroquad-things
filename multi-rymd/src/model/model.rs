@@ -18,12 +18,16 @@ use super::create_commissar_ship_blueprint;
 use super::create_grunt_ship_blueprint;
 use super::entity_apply_raw_steering;
 use super::environment::create_asteroid;
+use super::is_within_extractor_range;
+use super::is_within_extractor_range_with_extractor;
 use super::spatial::SpatialQueryManager;
 use super::steer_entity_towards_target;
 use super::AnimatedSprite;
 use super::Building;
+use super::Extractor;
 use super::MovementTarget;
 use super::PreviousTransform;
+use super::ResourceSource;
 use super::RotationTarget;
 use super::UnitState;
 use super::DEFAULT_STEERING_PARAMETERS;
@@ -603,6 +607,51 @@ impl RymdGameModel {
 
     }
 
+    fn tick_extractors(&mut self) {
+
+        for (e, (controller, extractor, movement_target, rotation_target)) in self.world.query::<(&Controller, &mut Extractor, &mut MovementTarget, &mut RotationTarget)>().iter() {
+
+            if let Some(last_extractor_target) = extractor.last_target {
+                movement_target.target = None;
+                rotation_target.target = None;
+                extractor.last_target = None;
+            }
+
+            let Some(current_extractor_target) = extractor.current_target else { continue; };
+            let Some(current_extractor_target_position) = get_entity_position(&self.world, current_extractor_target) else { continue; };
+
+            if is_within_extractor_range_with_extractor(e, &self.world, extractor, current_extractor_target_position) {
+
+                let source = self.world.get::<&ResourceSource>(current_extractor_target).expect("extractor target must have resource source!");
+                
+                let actual_source_metal_provided = source.metal.min(extractor.extraction_speed as f32);
+                let actual_source_energy_provided = source.energy.min(extractor.extraction_speed as f32);
+
+                let source_metal_provided = actual_source_metal_provided * Self::TIME_STEP;
+                let source_energy_provided = actual_source_energy_provided * Self::TIME_STEP;
+
+                provide_metal(controller.id, &self.world, source_metal_provided, Self::TIME_STEP);
+                provide_energy(controller.id, &self.world, source_energy_provided, Self::TIME_STEP);
+
+                // if source.is_finite {
+                //     source.metal = (source.metal - source_energy_provided).max(0.0);
+                //     source.energy = (source.energy - source_energy_provided).max(0.0);
+                // }
+
+                movement_target.target = None;
+                rotation_target.target = Some(current_extractor_target_position);
+
+            } else {
+
+                movement_target.target = Some(current_extractor_target_position);
+                rotation_target.target = None;
+                
+            }
+
+        }
+
+    }
+
     //#[profiling::function]
     fn tick_resource_storage(&mut self) {
 
@@ -831,6 +880,7 @@ impl RymdGameModel {
         self.tick_projectiles();
         self.tick_effects();
         self.tick_constructors();
+        self.tick_extractors();
         self.tick_physics_engine();
         self.tick_spatial_engine();
         self.tick_transform_updates();
