@@ -263,11 +263,20 @@ impl Order for AttackMoveOrder {
 
     fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
         let attacker = model.world.get::<&Attacker>(entity);
+        let extractor = model.world.get::<&mut Extractor>(entity);
 
-        // if the entity isn't an attacker, just have them move instead of attack
+        // if the entity is an attacker and there's a current target, unset the current movement target
         let target_position = if let Ok(attacker) = attacker && attacker.target.is_some() {
            None
+        } else if let Ok(mut extractor) = extractor {
+            if extractor.current_target.is_none() {
+                extractor.is_searching = true;
+                self.get_target_position(model)
+            } else {
+                None
+            }
         } else {
+            // if the entity isn't an attacker, just have them move instead of attack
             self.get_target_position(model)
         };
 

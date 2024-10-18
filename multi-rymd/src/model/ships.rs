@@ -202,21 +202,12 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
         can_assist: true
     };
 
-    let extractor = Extractor {
-        current_target: None,
-        last_target: None,
-        extraction_range: commander_build_range,
-        extraction_speed: commander_build_speed,
-        beam_offset: commander_build_offset,
-        is_active: false
-    };
-
     let producer = Producer {
         metal: commander_metal_income,
         energy: commander_energy_income
     };
 
-    let _ = world.insert(commander_ship_body, (constructor, extractor, producer));
+    let _ = world.insert(commander_ship_body, (constructor, producer));
 
     // add ship thrusters
     let commander_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), -Vec2::X, -(PI / 2.0), commander_turn_thruster_power, ThrusterKind::Attitude, commander_ship_body));
@@ -407,6 +398,7 @@ pub fn build_extractor_ship(world: &mut World, owner: PlayerID, position: Vec2) 
         extraction_range: extractor_build_speed,
         extraction_speed: extractor_build_range,
         beam_offset: extractor_build_offset,
+        is_searching: false,
         is_active: false
     };
 

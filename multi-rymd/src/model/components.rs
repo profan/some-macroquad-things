@@ -517,6 +517,7 @@ pub struct Extractor {
     pub extraction_range: i32,
     pub extraction_speed: i32,
     pub beam_offset: Vec2,
+    pub is_searching: bool,
     pub is_active: bool
 }
 
@@ -537,11 +538,11 @@ pub struct ResourceSource {
 impl ResourceSource {
 
     pub fn is_exhausted(&self) -> bool {
-        self.is_finite && self.current_metal <= 0.0 && self.current_energy <= 0.0
+        self.is_finite && (self.current_metal - 0.1) <= 0.0 && (self.current_energy - 0.1) <= 0.0
     }
 
     pub fn is_occupied(&self) -> bool {
-        self.current_metal <= 0.0 && self.current_energy <= 0.0
+        (self.current_metal - 0.1) <= 0.0 && (self.current_energy - 0.1) <= 0.0
     }
 
     pub fn new_metal_source(metal: f32) -> ResourceSource {

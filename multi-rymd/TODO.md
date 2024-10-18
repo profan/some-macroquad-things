@@ -63,6 +63,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] cap the maximum amount of metal and energy by the current size of the energy/metal storage pools
 [x] fix issue where resource consumption for unit construction falls over when item being constructed has health lower than the build power of the unit involved
 [x] fix problem with resource consumption seemingly not actually being at a linear rate like it should be
+[x] allow entities which extract metal to use attack move to find a good place to extract metal
 
 # units
 [x] represent health of units

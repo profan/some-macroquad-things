@@ -962,6 +962,10 @@ impl RymdGameView {
         world.satisfies::<&ResourceSource>(entity).unwrap_or(false)
     }
 
+    fn is_entity_extractor(&self, entity: Entity, world: &World) -> bool {
+        world.satisfies::<&Extractor>(entity).unwrap_or(false)
+    }
+
     fn is_entity_friendly(&self, entity: Entity, world: &World) -> bool {
         let controller = world.get::<&Controller>(entity).expect("must have controller!");
         self.is_controller_friendly(&controller)
@@ -1554,7 +1558,7 @@ impl RymdGameView {
 
             if let Some(current_order @ GameOrder::Extract(_)) = orderable.first_order(GameOrderType::Order) && extractor.is_extracting() {
 
-                let current_target_position = current_order.get_target_position(model).unwrap();
+                let Some(current_target_position) = current_order.get_target_position(model) else { continue; };
 
                 emit_reclaim_beam(
                     beam,
@@ -1863,6 +1867,21 @@ impl RymdGameView {
 
     }
 
+    fn draw_resource_labels(&self, world: &World) {
+        
+        for (e, (transform, resource_source)) in world.query::<(&Transform, &ResourceSource)>().iter() {
+            let resource_label_position = transform.world_position + vec2(0.0, -32.0);
+            draw_text_centered(
+                &format!("{:.0}/{:.0} m, {:.0}/{:.0} e", resource_source.current_metal, resource_source.total_metal, resource_source.total_energy, resource_source.current_energy),
+                resource_label_position.x,
+                resource_label_position.y,
+                24.0,
+                WHITE
+            );
+        }
+
+    }
+
     fn draw_build_time_labels(&self, world: &World) {
 
         for (e, (transform, bounds, health, &state)) in world.query::<(&Transform, &Bounds, &Health, &EntityState)>().iter() {
@@ -2014,6 +2033,7 @@ impl RymdGameView {
         self.draw_sprites(&model.world);
 
         // self.draw_health_labels(&model.world);
+        self.draw_resource_labels(&model.world);
         self.draw_build_time_labels(&model.world);
         
         self.camera.pop();

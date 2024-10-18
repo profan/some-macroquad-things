@@ -15,7 +15,7 @@ pub fn create_asteroid(world: &mut World, position: Vec2, rotation: f32) -> Enti
         h: size
     };
 
-    let asteroid_metal_amount = 10.0;
+    let asteroid_metal_amount = 1000.0;
     let asteroid_kinematic_body = Kinematic {
         ..create_default_kinematic_body(position, rotation)
     };
@@ -30,7 +30,7 @@ pub fn create_asteroid(world: &mut World, position: Vec2, rotation: f32) -> Enti
 
     let health = Health::new(100.0);
     let transform = Transform::new(position, rotation, None);
-    let resource_source = ResourceSource::new_metal_source(asteroid_metal_amount);
+    let resource_source = ResourceSource::new_finite_metal_source(asteroid_metal_amount);
     let sprite = Sprite::new("ASTEROID");
     
     world.spawn((transform, resource_source, sprite, health, body))

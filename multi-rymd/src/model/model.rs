@@ -25,9 +25,11 @@ use super::spatial::SpatialQueryManager;
 use super::steer_entity_towards_target;
 use super::AnimatedSprite;
 use super::Building;
+use super::ExtractOrder;
 use super::Extractor;
 use super::MovementTarget;
 use super::PreviousTransform;
+use super::Resource;
 use super::ResourceSource;
 use super::RotationTarget;
 use super::UnitState;
@@ -167,6 +169,8 @@ impl RymdGameModel {
     pub fn start(&mut self, parameters: RymdGameParameters) {
 
         rand::srand(42);
+
+        let number_of_asteroid_clumps = 10;
         let number_of_asteroids = 10;
 
         for player in &parameters.players {
@@ -180,16 +184,23 @@ impl RymdGameModel {
             if let Ok(mut health) = self.world.get::<&mut Health>(commander_ship) {
                 health.heal_to_full_health();
             }
+            
+        }
+
+        for i in 0..number_of_asteroid_clumps {
+
+            let asteroid_clump_random_x = rand::gen_range(-4000, 4000);
+            let asteroid_clump_random_y = rand::gen_range(-4000, 4000);
 
             for i in 0..number_of_asteroids {
 
-                let random_x = rand::gen_range(start_random_x - 400, start_random_x + 400);
-                let random_y = rand::gen_range(start_random_y - 400, start_random_y + 400);
+                let random_x = rand::gen_range(asteroid_clump_random_x - 400, asteroid_clump_random_x + 400);
+                let random_y = rand::gen_range(asteroid_clump_random_y - 400, asteroid_clump_random_y + 400);
 
                 let new_asteroid = create_asteroid(&mut self.world, vec2(random_x as f32, random_y as f32), 0.0);
 
             }
-            
+
         }
         
     }
@@ -612,13 +623,38 @@ impl RymdGameModel {
 
     fn tick_extractors(&mut self) {
 
-        for (e, (controller, extractor, movement_target, rotation_target)) in self.world.query::<(&Controller, &mut Extractor, &mut MovementTarget, &mut RotationTarget)>().iter() {
+        for (e, (controller, transform, orderable, extractor, movement_target, rotation_target)) in self.world.query::<(&Controller, &Transform, &mut Orderable, &mut Extractor, &mut MovementTarget, &mut RotationTarget)>().iter() {
 
             if let Some(last_extractor_target) = extractor.last_target {
                 movement_target.target = None;
                 rotation_target.target = None;
                 extractor.last_target = None;
                 extractor.is_active = false;
+                extractor.is_searching = false;
+            }
+
+            if extractor.is_searching && extractor.current_target.is_none() {
+
+                for o in self.spatial_manager.entities_within_radius(transform.world_position, extractor.extraction_range as f32) {
+
+                    if e == o {
+                        continue;
+                    }
+
+                    if self.world.contains(o) == false {
+                        continue;
+                    }
+
+                    let Ok(source) = self.world.get::<&ResourceSource>(o) else { continue; };
+
+                    if source.is_occupied() == false {
+                        orderable.push_order(GameOrder::Extract(ExtractOrder { entity_id: o.to_bits().into() }));
+                        extractor.is_searching = false;
+                        continue;
+                    }
+
+                }
+
             }
 
             let Some(current_extractor_target) = extractor.current_target else { continue; };
@@ -736,10 +772,17 @@ impl RymdGameModel {
 
     fn tick_sources(&mut self) {
 
-        for (e, resource_source) in self.world.query::<&mut ResourceSource>().iter() {
+        for (e, (resource_source, health)) in self.world.query::<(&mut ResourceSource, &mut Health)>().iter() {
 
             if resource_source.is_finite {
+
+                if resource_source.is_exhausted() {
+                    println!("killed resource source, ran out!");
+                    health.kill();
+                }
+
                 continue;
+
             }
 
             resource_source.current_metal = resource_source.total_metal;
