@@ -1,5 +1,7 @@
-use macroquad::prelude::Vec2;
+use macroquad::{math::Rect, prelude::Vec2};
 use utility::{SteeringParameters, Kinematic};
+
+use super::BulletParameters;
 
 pub enum Blueprints {
 
@@ -52,6 +54,16 @@ pub const EXTRACTOR_STEERING_PARAMETERS: SteeringParameters = SteeringParameters
     max_speed: 256.0,
     align_max_angular_acceleration: 8.0,
     ..DEFAULT_STEERING_PARAMETERS
+};
+
+pub const SIMPLE_BULLET_PARAMETERS: BulletParameters = BulletParameters {
+    health: 10.0,
+    lifetime:  4.0,
+    velocity: 256.0,
+    damage: 25.0,
+
+    bounds: Rect { x: 0.0, y: 0.0, w: 2.0, h: 2.0 },
+    texture: "SIMPLE_BULLET"
 };
 
 pub fn create_default_kinematic_body(position: Vec2, orientation: f32) -> Kinematic {

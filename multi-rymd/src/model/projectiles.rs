@@ -5,15 +5,16 @@ use crate::PlayerID;
 
 use super::{create_default_kinematic_body, create_impact_effect_in_buffer, create_muzzle_flash_effect_in_world, get_entity_physics_position, Controller, DynamicBody, DynamicBodyCallback, Health, PhysicsBody, Projectile, Sprite, Transform};
 
+#[derive(Clone, Copy, Debug)]
 pub struct BulletParameters {
 
-    health: f32,
-    lifetime: f32,
-    velocity: f32,
-    damage: f32,
+    pub health: f32,
+    pub lifetime: f32,
+    pub velocity: f32,
+    pub damage: f32,
 
-    bounds: Rect,
-    texture: String
+    pub bounds: Rect,
+    pub texture: &'static str
 
 }
 
@@ -58,7 +59,7 @@ fn create_bullet(world: &mut World, owner: PlayerID, position: Vec2, direction: 
 
     let controller = Controller { id: owner };
     let transform = Transform::new(position, orientation, None);
-    let sprite = Sprite { texture: parameters.texture };
+    let sprite = Sprite { texture: parameters.texture.to_string() };
     let dynamic_body = DynamicBody { is_static, is_enabled, bounds, kinematic, mask };
     let dynamic_body_callback = DynamicBodyCallback { on_collision: on_bullet_impact };
     let projectile = Projectile { damage: bullet_damage, lifetime: bullet_lifetime, velocity: bullet_velocity };
@@ -77,7 +78,7 @@ pub fn create_simple_bullet(world: &mut World, owner: PlayerID, position: Vec2, 
     let simple_bullet_damage = 25.0;
 
     let simple_bullet_bounds = Rect { x: 0.0, y: 0.0, w: 2.0, h: 2.0 };
-    let simple_bullet_texture = "SIMPLE_BULLET".to_string();
+    let simple_bullet_texture = "SIMPLE_BULLET";
 
     let simple_bullet_parameters = BulletParameters {
         health: simple_bullet_health,
