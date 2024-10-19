@@ -71,7 +71,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] allow finding the next idle constructor unit
 
 # environment
-[] add asteroids which are dynamic bodies
+[x] add asteroids which are dynamic bodies
 
 # collisions
 [x] figure out why the bounds of some entities are completely wrong sometimes
