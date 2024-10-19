@@ -335,24 +335,24 @@ pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) 
 
     let arrowhead_ship_body = create_ship(world, owner, position, arrowhead_ship_parameters);
 
-    let projectile_weapon = ProjectileWeapon {
-        offset: vec2(0.0, -(arrowhead_ship_size / 2.0)),
-        fire_rate: arrowhead_fire_rate,
-        deviation: arrowhead_fire_deviation,
-        cooldown: arrowhead_fire_cooldown,
-        projectile: SIMPLE_BULLET_PARAMETERS
-    };
-
-    // let beam_weapon = BeamWeapon {
+    // let projectile_weapon = ProjectileWeapon {
     //     offset: vec2(0.0, -(arrowhead_ship_size / 2.0)),
     //     fire_rate: arrowhead_fire_rate,
     //     deviation: arrowhead_fire_deviation,
     //     cooldown: arrowhead_fire_cooldown,
-    //     beam: SIMPLE_BEAM_PARAMETERS
+    //     projectile: SIMPLE_BULLET_PARAMETERS
     // };
 
+    let beam_weapon = BeamWeapon {
+        offset: vec2(0.0, -(arrowhead_ship_size / 2.0)),
+        fire_rate: arrowhead_fire_rate,
+        deviation: arrowhead_fire_deviation,
+        cooldown: arrowhead_fire_cooldown,
+        beam: SIMPLE_BEAM_PARAMETERS
+    };
+
     let attacker = Attacker::new(arrowhead_range);
-    let _ = world.insert(arrowhead_ship_body, (projectile_weapon, attacker));
+    let _ = world.insert(arrowhead_ship_body, (beam_weapon, attacker));
 
     // add ship thrusters
     let arrowhead_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), -Vec2::X, -(PI / 2.0), arrowhead_turn_thruster_power, ThrusterKind::Attitude, arrowhead_ship_body));

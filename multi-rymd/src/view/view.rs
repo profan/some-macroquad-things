@@ -3,7 +3,7 @@ use std::f32::consts::PI;
 
 use macroquad_particles::{EmitterConfig, Emitter};
 use puffin_egui::egui::{self, Align2};
-use utility::{draw_arrow, draw_rectangle_lines_centered, draw_text_centered, draw_texture_centered, draw_texture_centered_with_rotation, draw_texture_centered_with_rotation_frame, is_point_inside_rect, AsPerpendicular, AsVector, AverageLine2D, DebugText, RotatedBy, TextPosition, WithAlpha};
+use utility::{draw_arrow, draw_rectangle_lines_centered, draw_text_centered, draw_texture_centered, draw_texture_centered_with_rotation, draw_texture_centered_with_rotation_frame, is_point_inside_rect, normalize, AsPerpendicular, AsVector, AverageLine2D, DebugText, RotatedBy, TextPosition, WithAlpha};
 use lockstep_client::{step::LockstepClient};
 use macroquad_particles::*;
 use macroquad::prelude::*;
@@ -411,7 +411,7 @@ impl Resources {
                 initial_velocity: 0.0,
                 size: 1.0,
                 blend_mode: BlendMode::Additive,
-                colors_curve: ColorCurve { start: WHITE, mid: WHITE.with_alpha(0.5), end: WHITE.with_alpha(0.0) },
+                colors_curve: ColorCurve { start: WHITE, mid: WHITE.with_alpha(0.5), end: WHITE.with_alpha(0.25) },
                 ..Default::default()
             }
         }
@@ -426,7 +426,7 @@ impl Resources {
                 initial_velocity: 0.0,
                 size: 1.0,
                 blend_mode: BlendMode::Additive,
-                colors_curve: ColorCurve { start: WHITE, mid: WHITE.with_alpha(0.75), end: WHITE.with_alpha(0.5) },
+                colors_curve: ColorCurve { start: WHITE, mid: WHITE.with_alpha(0.875), end: WHITE.with_alpha(0.75) },
                 ..Default::default()
             }
         }
@@ -1469,16 +1469,28 @@ impl RymdGameView {
     fn draw_beam_weapons(&self, world: &World) {
 
         let beam_thickness = 1.0;
+        let beam_segments = 16;
 
         for (e, beam) in world.query::<&Beam>().iter() {
-            draw_line(
-                beam.position.x,
-                beam.position.y,
-                beam.target.x,
-                beam.target.y,
-                beam_thickness,
-                GREEN.with_alpha(0.5)
-            );  
+
+            for i in 0..beam_segments / 2 {
+
+                let current_beam_start = beam.position + (beam.target - beam.position) / beam_segments as f32 * (i * 2) as f32;
+                let current_beam_end = beam.position + (beam.target - beam.position) / beam_segments as f32 * ((i + 1) * 2) as f32;
+
+                let current_beam_alpha = 1.0 - ((i * 2) as f32 / beam_segments as f32);
+                let current_beam_alpha_remapped = normalize(current_beam_alpha, 0.5, 1.0, 1.0);
+
+                draw_line(
+                    current_beam_start.x,
+                    current_beam_start.y,
+                    current_beam_end.x,
+                    current_beam_end.y,
+                    beam_thickness,
+                    Color::from_hex(0xfed452).with_alpha(current_beam_alpha_remapped)
+                );  
+
+            }
         }
 
     }
