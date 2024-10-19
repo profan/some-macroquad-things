@@ -62,7 +62,7 @@ pub fn draw_arrow(x1: f32, y1: f32, x2: f32, y2: f32, thickness: f32, head_size:
 
 }
 
-/// Returns a random number in \[0.0, 1.0\]
+/// Returns a random number in \[-1.0, 1.0\]
 pub fn random_binomial() -> f32 {
     rand::gen_range(0.0, 1.0) - rand::gen_range(0.0, 1.0)
 }
