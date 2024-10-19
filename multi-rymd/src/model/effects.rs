@@ -29,7 +29,7 @@ fn create_muzzle_flash_effect(position: Vec2, direction: Vec2) -> (Transform, An
 fn create_impact_effect(position: Vec2, direction: Vec2) -> (Transform, Effect, Impact) {
     
     let transform = Transform::new(position, -direction.as_angle(), None);
-    let effect = Effect { total_lifetime: 0.5, lifetime: RymdGameModel::TIME_STEP };
+    let effect = Effect { total_lifetime: 0.5, lifetime: RymdGameModel::TIME_STEP * 2.0 };
     let impact = Impact;
 
     (transform, effect, impact)

@@ -10,6 +10,9 @@ use utility::separation;
 use utility::AsVector;
 use utility::RotatedBy;
 
+use crate::model::create_simple_beam;
+use crate::model::BeamParameters;
+use crate::model::BeamWeapon;
 use crate::model::Steering;
 use crate::EntityID;
 use crate::model::BlueprintID;
@@ -20,14 +23,17 @@ use crate::PlayerID;
 use super::create_commissar_ship_blueprint;
 use super::create_extractor_ship_blueprint;
 use super::create_grunt_ship_blueprint;
+use super::create_impact_effect_in_world;
 use super::entity_apply_raw_steering;
 use super::environment::create_asteroid;
+use super::get_position_and_normal_on_targeted_entity_relative_to;
 use super::is_within_extractor_range;
 use super::is_within_extractor_range_with_extractor;
 use super::spatial::entity_distance_sort_function;
 use super::spatial::SpatialQueryManager;
 use super::steer_entity_towards_target;
 use super::AnimatedSprite;
+use super::Beam;
 use super::Building;
 use super::BulletParameters;
 use super::ExtractOrder;
@@ -529,27 +535,27 @@ impl RymdGameModel {
 
         let mut queued_projectile_creations: Vec<Bullet> = Vec::new();
 
-        for (e, (controller, transform, attacker, weapon)) in self.world.query::<(&Controller, &Transform, &Attacker, &mut ProjectileWeapon)>().iter() {
+        for (e, (controller, transform, attacker, projectile_weapon)) in self.world.query::<(&Controller, &Transform, &Attacker, &mut ProjectileWeapon)>().iter() {
 
             if let Some(attacker) = attacker.target {
 
-                if weapon.cooldown == 0.0 {
+                if projectile_weapon.cooldown == 0.0 {
 
                     let attacker_position = get_entity_position(&self.world, attacker).unwrap();
 
-                    let attack_direction_deviation = random_binomial() * weapon.deviation;
+                    let attack_direction_deviation = random_binomial() * projectile_weapon.deviation;
                     let attack_direction = (attacker_position - transform.world_position).normalize();
                     let attack_direction_with_deviation = attack_direction.rotated_by(attack_direction_deviation);
 
                     let id = controller.id;
-                    let creation_world_position = transform.world_position + weapon.offset.rotated_by(transform.world_rotation);
+                    let creation_world_position = transform.world_position + projectile_weapon.offset.rotated_by(transform.world_rotation);
 
-                    queued_projectile_creations.push(Bullet { owner: controller.id, position: creation_world_position, direction: attack_direction_with_deviation, parameters: weapon.projectile });
-                    weapon.cooldown += weapon.fire_rate;
+                    queued_projectile_creations.push(Bullet { owner: controller.id, position: creation_world_position, direction: attack_direction_with_deviation, parameters: projectile_weapon.projectile });
+                    projectile_weapon.cooldown += projectile_weapon.fire_rate;
 
                 } else {
 
-                    weapon.cooldown = (weapon.cooldown - Self::TIME_STEP).max(0.0);
+                    projectile_weapon.cooldown = (projectile_weapon.cooldown - Self::TIME_STEP).max(0.0);
 
                 }
 
@@ -559,6 +565,84 @@ impl RymdGameModel {
 
         for projectile in queued_projectile_creations {
             create_simple_bullet(&mut self.world, projectile.owner, projectile.position, projectile.direction);
+        }
+
+    }
+    
+    fn tick_beam_weapons(&mut self) {
+
+        struct Beam {
+            owner: PlayerID,
+            position: Vec2,
+            direction: Vec2,
+            parameters: BeamParameters
+        }
+
+        let mut queued_beam_creations: Vec<Beam> = Vec::new();
+
+        for (e, (controller, transform, attacker, beam_weapon)) in self.world.query::<(&Controller, &Transform, &Attacker, &mut BeamWeapon)>().iter() {
+
+            if let Some(attacker) = attacker.target {
+
+                if beam_weapon.cooldown == 0.0 {
+
+                    let attacker_position = get_entity_position(&self.world, attacker).unwrap();
+
+                    let attack_direction_deviation = random_binomial() * beam_weapon.deviation;
+                    let attack_direction = (attacker_position - transform.world_position).normalize();
+                    let attack_direction_with_deviation = attack_direction.rotated_by(attack_direction_deviation);
+
+                    let id = controller.id;
+                    let creation_world_position = transform.world_position + beam_weapon.offset.rotated_by(transform.world_rotation);
+
+                    queued_beam_creations.push(Beam { owner: controller.id, position: creation_world_position, direction: attack_direction_with_deviation, parameters: beam_weapon.beam });
+                    beam_weapon.cooldown += beam_weapon.fire_rate;
+
+                } else {
+
+                    beam_weapon.cooldown = (beam_weapon.cooldown - Self::TIME_STEP).max(0.0);
+
+                }
+
+            }
+
+        }
+
+        for projectile in queued_beam_creations {
+            create_simple_beam(&mut self.world, projectile.owner, projectile.position, projectile.direction);
+        }  
+
+    }
+
+    fn tick_beams(&mut self) {
+
+        let mut hit_entities = Vec::new();
+
+        for (e, (controller, beam)) in self.world.query::<(&Controller, &mut Beam)>().iter() {
+
+            if beam.fired {
+                continue
+            }
+            
+            let beam_range = 1000.0;
+            if let Some((entity, intersection)) = self.physics_manager.ray_cast(beam.position, beam.target, &self.world, &self.spatial_manager, 1 << controller.id) {
+                hit_entities.push((entity, intersection, (intersection - beam.position).normalize(), beam.damage));
+                beam.target = intersection;
+            }
+
+            beam.fired = true;
+
+        }
+
+        for (e, position, hit_normal, damage) in hit_entities {
+
+            {
+                let Ok(health) = self.world.query_one_mut::<&mut Health>(e) else { continue; };
+                health.damage(damage);
+            }
+
+            create_impact_effect_in_world(&mut self.world, position, hit_normal);
+
         }
 
     }
@@ -966,7 +1050,9 @@ impl RymdGameModel {
         self.tick_separation();
         self.tick_attackers();
         self.tick_projectile_weapons();
+        self.tick_beam_weapons();
         self.tick_projectiles();
+        self.tick_beams();
         self.tick_effects();
         self.tick_constructors();
         self.tick_extractors();

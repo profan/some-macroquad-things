@@ -11,7 +11,7 @@ use hecs::*;
 
 use crate::PlayerID;
 use crate::game::RymdGameParameters;
-use crate::model::{current_energy, current_energy_income, current_metal, current_metal_income, max_energy, max_metal, Attackable, Attacker, Blueprint, BlueprintID, BlueprintIdentity, Blueprints, Building, Effect, EntityState, Extractor, GameOrder, GameOrderType, Impact, PhysicsBody, ResourceSource, Spawner};
+use crate::model::{current_energy, current_energy_income, current_metal, current_metal_income, max_energy, max_metal, Attackable, Attacker, Beam, Blueprint, BlueprintID, BlueprintIdentity, Blueprints, Building, Effect, EntityState, Extractor, GameOrder, GameOrderType, Impact, PhysicsBody, ResourceSource, Spawner};
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Controller, Health, get_entity_position};
 
 use super::{calculate_sprite_bounds, GameCamera2D};
@@ -1462,38 +1462,21 @@ impl RymdGameView {
             }
         }
 
-        // debug raycasting?
+    }
 
-        for (e, (transform, body, ship)) in model.world.query::<(&Transform, &DynamicBody, &Ship)>().iter() {
+    fn draw_beam_weapons(&self, world: &World) {
 
-            let ray_length = 256.0;
-            let source = transform.world_position;
-            let target = transform.world_position + (-transform.world_rotation.as_vector() * ray_length);
+        let beam_thickness = 1.0;
 
-            if let Some((entity, intersection)) = model.physics_manager.ray_cast(source, target, &model.world, &model.spatial_manager, body.mask) {
-
-                draw_line(
-                    source.x,
-                    source.y,
-                    intersection.x,
-                    intersection.y,
-                    2.0,
-                    RED
-                );
-
-            } else {
-
-                draw_line(
-                    source.x,
-                    source.y,
-                    target.x,
-                    target.y,
-                    2.0,
-                    GREEN
-                );
-
-            }
-
+        for (e, beam) in world.query::<&Beam>().iter() {
+            draw_line(
+                beam.position.x,
+                beam.position.y,
+                beam.target.x,
+                beam.target.y,
+                beam_thickness,
+                GREEN.with_alpha(0.5)
+            );  
         }
 
     }
@@ -2066,6 +2049,7 @@ impl RymdGameView {
         self.construction.tick_and_draw(model, &self.camera, &self.resources, lockstep);
 
         self.draw_particles(&mut model.world);
+        self.draw_beam_weapons(&model.world);
         self.draw_sprites(&model.world);
 
         // self.draw_health_labels(&model.world);

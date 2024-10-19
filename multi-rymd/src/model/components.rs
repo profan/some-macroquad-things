@@ -5,7 +5,7 @@ use utility::{Kinematic, RotatedBy, SteeringParameters};
 use lockstep_client::step::PeerID;
 
 use crate::PlayerID;
-use super::{Blueprints, BulletParameters, Cost, GameOrder, GameOrderType, PhysicsBody};
+use super::{BeamParameters, Blueprints, BulletParameters, Cost, GameOrder, GameOrderType, PhysicsBody};
 
 #[derive(Clone)]
 pub struct Thruster {
@@ -644,6 +644,13 @@ pub struct Projectile {
     pub velocity: f32
 }
 
+pub struct Beam {
+    pub position: Vec2,
+    pub target: Vec2,
+    pub damage: f32,
+    pub fired: bool
+}
+
 pub struct ProjectileWeapon {
 
     pub offset: Vec2,
@@ -652,6 +659,17 @@ pub struct ProjectileWeapon {
     pub cooldown: f32,
 
     pub projectile: BulletParameters
+
+}
+
+pub struct BeamWeapon {
+
+    pub offset: Vec2,
+    pub fire_rate: f32,
+    pub deviation: f32,
+    pub cooldown: f32,
+
+    pub beam: BeamParameters
 
 }
 

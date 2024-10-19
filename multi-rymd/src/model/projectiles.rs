@@ -3,7 +3,7 @@ use macroquad::{math::Rect, prelude::Vec2};
 use utility::{AsAngle, Kinematic};
 use crate::PlayerID;
 
-use super::{create_default_kinematic_body, create_impact_effect_in_buffer, create_muzzle_flash_effect_in_world, get_entity_physics_position, Controller, DynamicBody, DynamicBodyCallback, Health, PhysicsBody, Projectile, Sprite, Transform};
+use super::{create_default_kinematic_body, create_impact_effect_in_buffer, create_muzzle_flash_effect_in_world, get_entity_physics_position, Beam, Controller, DynamicBody, DynamicBodyCallback, Effect, Health, PhysicsBody, Projectile, Sprite, Transform, SIMPLE_BEAM_PARAMETERS, SIMPLE_BULLET_PARAMETERS};
 
 #[derive(Clone, Copy, Debug)]
 pub struct BulletParameters {
@@ -18,6 +18,15 @@ pub struct BulletParameters {
 
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct BeamParameters {
+
+    pub damage: f32,
+    pub lifetime: f32,
+    pub range: f32
+
+}
+
 fn on_bullet_impact(world: &World, buffer: &mut CommandBuffer, a: Entity, b: Entity, b_body: &DynamicBody) {
     
     if let Ok(mut bullet_health) = world.get::<&mut Health>(a) {
@@ -28,14 +37,21 @@ fn on_bullet_impact(world: &World, buffer: &mut CommandBuffer, a: Entity, b: Ent
         target_health.damage(projectile.damage);
     }
 
-    let (target_position, target_bounds) = (b_body.position(), b_body.bounds());
-    let target_direction = -(target_position - get_entity_physics_position(world, a).unwrap()).normalize();
+    let entity_a_physics_position = get_entity_physics_position(world, a).unwrap();
+    let (position_on_target_radius, normal_on_targeted_entity) = get_position_and_normal_on_targeted_entity_relative_to(world, b_body, entity_a_physics_position);
+    create_impact_effect_in_buffer(buffer, position_on_target_radius, -normal_on_targeted_entity);
+
+}
+
+pub fn get_position_and_normal_on_targeted_entity_relative_to(world: &World, body: &DynamicBody, position: Vec2) -> (Vec2, Vec2) {
+
+    let (target_position, target_bounds) = (body.position(), body.bounds());
+    let target_direction = -(target_position - position).normalize();
     let target_radius = target_bounds.size().max_element() / 2.0;
 
     let position_on_target_radius = target_position + target_direction * target_radius;
     let normal_on_targeted_entity = (position_on_target_radius - target_position).normalize();
-
-    create_impact_effect_in_buffer(buffer, position_on_target_radius, -normal_on_targeted_entity);
+    (position_on_target_radius, normal_on_targeted_entity)
 
 }
 
@@ -71,24 +87,30 @@ fn create_bullet(world: &mut World, owner: PlayerID, position: Vec2, direction: 
 }
 
 pub fn create_simple_bullet(world: &mut World, owner: PlayerID, position: Vec2, direction: Vec2) -> Entity {
+    create_bullet(world, owner, position, direction, SIMPLE_BULLET_PARAMETERS)
+}
 
-    let simple_bullet_health = 10.0;
-    let simple_bullet_lifetime = 4.0;
-    let simple_bullet_velocity = 256.0;
-    let simple_bullet_damage = 25.0;
+fn create_beam(world: &mut World, owner: PlayerID, position: Vec2, direction: Vec2, parameters: BeamParameters) -> Entity {
 
-    let simple_bullet_bounds = Rect { x: 0.0, y: 0.0, w: 2.0, h: 2.0 };
-    let simple_bullet_texture = "SIMPLE_BULLET";
+    let beam_damage = parameters.damage;
+    let beam_lifetime = parameters.lifetime;
+    let beam_range = parameters.range;
 
-    let simple_bullet_parameters = BulletParameters {
-        health: simple_bullet_health,
-        lifetime: simple_bullet_lifetime,
-        velocity: simple_bullet_velocity,
-        damage: simple_bullet_damage,
-        bounds: simple_bullet_bounds,
-        texture: simple_bullet_texture
-    };
+    let is_static = false;
+    let is_enabled = true;
+    let mask = 1 << owner;
+    
+    let orientation = -direction.as_angle();
+    let controller = Controller { id: owner };
+    let transform = Transform::new(position, orientation, None);
+    let beam = Beam { position, target: position + direction * beam_range, damage: beam_damage, fired: false };
+    let effect = Effect::new(0.5);
 
-    create_bullet(world, owner, position, direction, simple_bullet_parameters)
+    create_muzzle_flash_effect_in_world(world, position, -direction);
+    world.spawn((controller, transform, beam, effect))
 
+}
+
+pub fn create_simple_beam(world: &mut World, owner: PlayerID, position: Vec2, direction: Vec2) -> Entity {
+    create_beam(world, owner, position, direction, SIMPLE_BEAM_PARAMETERS)
 }
