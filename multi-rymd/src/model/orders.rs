@@ -537,13 +537,19 @@ pub struct CancelOrder {
 
 impl Order for CancelOrder {
     fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
-        let orderable = model.world.get::<&Orderable>(entity).expect("entity must have orderable!");
-        orderable.is_queue_empty(GameOrderType::Order)
+        has_pending_orders(&model.world, entity) == false
     }
 
     fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
-        let mut orderable = model.world.get::<&mut Orderable>(entity).expect("entity must have orderable!");
-        orderable.cancel_orders(GameOrderType::Order);
+        cancel_pending_orders(&model.world, entity);
+    }
+}
+
+pub fn has_pending_orders(world: &World, entity: Entity) -> bool {
+    if let Ok(orderable) = world.get::<&Orderable>(entity) {
+        orderable.orders(GameOrderType::Order).len() > 0 || orderable.orders(GameOrderType::Construct).len() > 0
+    } else {
+        false
     }
 }
 
