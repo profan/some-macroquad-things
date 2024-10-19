@@ -640,10 +640,11 @@ pub struct Projectile {
     pub velocity: f32
 }
 
-pub struct Weapon {
+pub struct ProjectileWeapon {
     pub offset: Vec2,
     pub fire_rate: f32,
-    pub cooldown: f32
+    pub deviation: f32,
+    pub cooldown: f32,
 }
 
 pub struct Effect {

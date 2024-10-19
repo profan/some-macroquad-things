@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use hecs::{CommandBuffer, Entity, World};
 use macroquad::{*, math::vec2};
 use nanoserde::DeJson;
+use utility::random_binomial;
 use utility::separation;
 use utility::AsVector;
 use utility::RotatedBy;
@@ -70,7 +71,7 @@ use super::current_energy;
 use super::current_metal;
 use super::provide_energy;
 use super::provide_metal;
-use super::Weapon;
+use super::ProjectileWeapon;
 use super::{build_commander_ship, GameOrder, Orderable, Transform, DynamicBody, Blueprint};
 
 pub struct RymdGameModel {
@@ -514,23 +515,26 @@ impl RymdGameModel {
     }
 
     //#[profiling::function]
-    fn tick_attacker_weapons(&mut self) {
+    fn tick_projectile_weapons(&mut self) {
 
         let mut queued_projectile_creations: Vec<Box<dyn Fn(&mut World) -> Entity>> = Vec::new();
 
-        for (e, (controller, transform, attacker, weapon)) in self.world.query::<(&Controller, &Transform, &Attacker, &mut Weapon)>().iter() {
+        for (e, (controller, transform, attacker, weapon)) in self.world.query::<(&Controller, &Transform, &Attacker, &mut ProjectileWeapon)>().iter() {
 
             if let Some(attacker) = attacker.target {
 
                 if weapon.cooldown == 0.0 {
 
                     let attacker_position = get_entity_position(&self.world, attacker).unwrap();
+
+                    let attack_direction_deviation = random_binomial() * weapon.deviation;
                     let attack_direction = (attacker_position - transform.world_position).normalize();
+                    let attack_direction_with_deviation = attack_direction.rotated_by(attack_direction_deviation);
 
                     let id = controller.id;
                     let creation_world_position = transform.world_position + weapon.offset.rotated_by(transform.world_rotation);
 
-                    queued_projectile_creations.push(Box::new(move |w| create_simple_bullet(w, id, creation_world_position, attack_direction)));
+                    queued_projectile_creations.push(Box::new(move |w| create_simple_bullet(w, id, creation_world_position, attack_direction_with_deviation)));
                     weapon.cooldown += weapon.fire_rate;
 
                 } else {
@@ -954,7 +958,7 @@ impl RymdGameModel {
         self.tick_movement_targets();
         self.tick_separation();
         self.tick_attackers();
-        self.tick_attacker_weapons();
+        self.tick_projectile_weapons();
         self.tick_projectiles();
         self.tick_effects();
         self.tick_constructors();

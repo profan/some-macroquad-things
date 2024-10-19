@@ -5,7 +5,7 @@ use crate::PlayerID;
 
 use super::{create_default_kinematic_body, create_impact_effect_in_buffer, create_muzzle_flash_effect_in_world, get_entity_physics_position, Controller, DynamicBody, DynamicBodyCallback, Health, PhysicsBody, Projectile, Sprite, Transform};
 
-struct BulletParameters {
+pub struct BulletParameters {
 
     health: f32,
     lifetime: f32,
@@ -77,6 +77,7 @@ pub fn create_simple_bullet(world: &mut World, owner: PlayerID, position: Vec2, 
     let simple_bullet_damage = 25.0;
 
     let simple_bullet_bounds = Rect { x: 0.0, y: 0.0, w: 2.0, h: 2.0 };
+    let simple_bullet_texture = "SIMPLE_BULLET".to_string();
 
     let simple_bullet_parameters = BulletParameters {
         health: simple_bullet_health,
@@ -84,7 +85,7 @@ pub fn create_simple_bullet(world: &mut World, owner: PlayerID, position: Vec2, 
         velocity: simple_bullet_velocity,
         damage: simple_bullet_damage,
         bounds: simple_bullet_bounds,
-        texture: "SIMPLE_BULLET".to_string()
+        texture: simple_bullet_texture
     };
 
     create_bullet(world, owner, position, direction, simple_bullet_parameters)

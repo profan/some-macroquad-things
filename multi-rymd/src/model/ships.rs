@@ -6,7 +6,7 @@ use utility::{AsAngle, SteeringParameters};
 
 use crate::PlayerID;
 use crate::model::{Transform, Orderable, AnimatedSprite, Thruster, DynamicBody, Ship, ThrusterKind};
-use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Constructor, Controller, Cost, EntityState, Extractor, GameOrderType, Health, MovementTarget, Producer, RotationTarget, Steering, Weapon, ARROWHEAD_STEERING_PARAMETERS, COMMANDER_STEERING_PARAMETERS, DEFAULT_STEERING_PARAMETERS, EXTRACTOR_STEERING_PARAMETERS};
+use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Constructor, Controller, Cost, EntityState, Extractor, GameOrderType, Health, MovementTarget, Producer, RotationTarget, Steering, ProjectileWeapon, ARROWHEAD_STEERING_PARAMETERS, COMMANDER_STEERING_PARAMETERS, DEFAULT_STEERING_PARAMETERS, EXTRACTOR_STEERING_PARAMETERS};
 
 #[derive(Bundle)]
 pub struct ShipThruster {
@@ -313,6 +313,8 @@ pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let arrowhead_thruster_power = 64.0;
     let arrowhead_turn_thruster_power = 16.0;
     let arrowhead_fire_rate = 0.25;
+    let arrowhead_fire_deviation = 0.1;
+    let arrowhead_fire_cooldown = 0.0;
     let arrowhead_range = 256.0;
 
     let arrowhead_steering_parameters = ARROWHEAD_STEERING_PARAMETERS;
@@ -333,7 +335,7 @@ pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) 
 
     let arrowhead_ship_body = create_ship(world, owner, position, arrowhead_ship_parameters);
 
-    let weapon = Weapon { offset: vec2(0.0, -(arrowhead_ship_size / 2.0)), fire_rate: arrowhead_fire_rate, cooldown: 0.0 };
+    let weapon = ProjectileWeapon { offset: vec2(0.0, -(arrowhead_ship_size / 2.0)), fire_rate: arrowhead_fire_rate, deviation: arrowhead_fire_deviation, cooldown: arrowhead_fire_cooldown };
     let attacker = Attacker {
         range: arrowhead_range,
         target: None
@@ -436,7 +438,9 @@ pub fn build_grunt_ship(world: &mut World, owner: PlayerID, position: Vec2) -> E
     let grunt_thruster_power = 32.0;
     let grunt_turn_thruster_power = 16.0;
     let grunt_fire_rate = 0.75;
-    let grunt_range = 256.0;
+    let grunt_fire_deviation = 0.1;
+    let grunt_fire_cooldown = 0.0;
+    let grunt_fire_range = 256.0;
 
     let grunt_steering_parameters = DEFAULT_STEERING_PARAMETERS;
 
@@ -456,13 +460,13 @@ pub fn build_grunt_ship(world: &mut World, owner: PlayerID, position: Vec2) -> E
 
     let grunt_ship_body = create_ship(world, owner, position, grunt_ship_parameters);
 
-    let weapon = Weapon { offset: vec2(0.0, -(grunt_ship_size / 2.0)), fire_rate: grunt_fire_rate, cooldown: 0.0 };
+    let projectile_weapon = ProjectileWeapon { offset: vec2(0.0, -(grunt_ship_size / 2.0)), fire_rate: grunt_fire_rate, deviation: grunt_fire_deviation, cooldown: grunt_fire_cooldown };
     let attacker = Attacker {
-        range: grunt_range,
+        range: grunt_fire_range,
         target: None
     };
 
-    let _ = world.insert(grunt_ship_body, (weapon, attacker));
+    let _ = world.insert(grunt_ship_body, (projectile_weapon, attacker));
     let grunt_ship_thruster_main = world.spawn(ShipThruster::new(vec2(0.0, 4.0), Vec2::Y, 0.0, grunt_thruster_power, ThrusterKind::Main, grunt_ship_body));
 
     let mut grunt_ship = world.get::<&mut Ship>(grunt_ship_body).unwrap();
