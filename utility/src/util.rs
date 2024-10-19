@@ -1,3 +1,4 @@
+use core::f32;
 use std::f32::consts::PI;
 
 use macroquad::prelude::*;
@@ -153,6 +154,66 @@ pub fn ray_line_intersection(origin: Vec2, direction: Vec2, p1: Vec2, p2: Vec2) 
 /// Returns true if the point c is on the line segment between a and b (through abuse of the triangle inequality).
 pub fn is_between(a: Vec2, b: Vec2, c: Vec2) -> bool {
     a.distance(c) + c.distance(b) == a.distance(b)
+}
+
+/// Returns the point at which the line segment a1 -> a2 intersects either of the sides of the rectangle.
+pub fn line_segment_rect_intersection(a1: Vec2, a2: Vec2, rect: Rect) -> Option<Vec2> {
+
+    let rect_top_left = vec2(rect.x, rect.y);
+    let rect_top_right = vec2(rect.x + rect.w, rect.y);
+    let rect_bottom_left = vec2(rect.x, rect.y + rect.h);
+    let rect_bottom_right = vec2(rect.x + rect.w, rect.y + rect.h);
+
+    let left_intersection = line_segment_line_segment_intersection(a1, a2, rect_bottom_left, rect_top_left);
+    let top_intersection = line_segment_line_segment_intersection(a1, a2, rect_top_left, rect_top_right);
+    let right_intersection = line_segment_line_segment_intersection(a1, a2, rect_top_right, rect_bottom_right);
+    let bottom_intersection = line_segment_line_segment_intersection(a1, a2, rect_bottom_left, rect_bottom_right);
+
+    let mut min_intersection = None;
+    let mut min_intersection_distance = f32::MAX;
+    let intersections = [left_intersection, top_intersection, right_intersection, bottom_intersection];
+    
+    for current in intersections {
+        if let Some(c) = current {
+            let d = c.distance_squared(a1);
+            if d < min_intersection_distance {
+                min_intersection_distance = d;
+                min_intersection = Some(c);
+            }
+        }
+    }
+
+    min_intersection
+
+}
+
+/// Returns the point at which the line segment a1 -> a2 intersects the line segment b1 -> b2, if there is one.
+pub fn line_segment_line_segment_intersection(a1: Vec2, a2: Vec2, b1: Vec2, b2: Vec2) -> Option<Vec2> {
+    
+    let b = a2 - a1;
+    let d = b2 - b1;
+    let b_cross_p = b.perp_dot(d);
+
+    // if b cross d == 0, it means the lines are parallel and we have infinite possible intersections
+    if b_cross_p == 0.0 {
+        return None
+    }
+
+    let c = b1 - a1;
+    let t = c.perp_dot(d) / b_cross_p;
+    if t < 0.0 || t > 1.0 {
+        return None
+    }
+
+    let u = c.perp_dot(b) / b_cross_p;
+    if u < 0.0 || u > 1.0 {
+        return None
+    }
+
+    let intersection = a1 + t * b;
+    
+    Some(intersection)
+
 }
 
 /// Returns the intersection point of the ray defined by origin_a and direction_a and the ray defined by origin_b and direction_b, if any.

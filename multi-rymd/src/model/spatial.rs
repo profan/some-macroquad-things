@@ -47,8 +47,18 @@ impl SpatialQueryManager {
         }
         ivec2(position_clamped_x, position_clamped_y)
     }
+
+    fn get_matching_bucket(&self, position: Vec2) -> Option<(IVec2, &Vec<Entity>)> {
+        let matching_bucket_position = self.get_clamped_bucket_world_position(position);
+        let matching_bucket = self.buckets.get(&matching_bucket_position);
+        if let Some(matching_bucket) = matching_bucket {
+            Some((matching_bucket_position, matching_bucket))
+        } else {
+            None
+        }
+    }
     
-    fn get_matching_bucket(&mut self, position: Vec2) -> Option<(IVec2, &mut Vec<Entity>)> {
+    fn get_matching_bucket_mut(&mut self, position: Vec2) -> Option<(IVec2, &mut Vec<Entity>)> {
         let matching_bucket_position = self.get_clamped_bucket_world_position(position);
         let matching_bucket = self.buckets.get_mut(&matching_bucket_position);
         if let Some(matching_bucket) = matching_bucket {
@@ -70,7 +80,7 @@ impl SpatialQueryManager {
     pub fn add_entity(&mut self, entity: Entity, position: Vec2) {
 
         let bucket_size = self.bucket_size;
-        if let Some((bucket_position, bucket)) = self.get_matching_bucket(position) {
+        if let Some((bucket_position, bucket)) = self.get_matching_bucket_mut(position) {
 
             // if there's an existing bucket and we're in it, just add ourselves there
             bucket.push(entity);
@@ -89,7 +99,7 @@ impl SpatialQueryManager {
     pub fn remove_entity(&mut self, entity: Entity, position: Vec2) {
 
         let bucket_size = self.bucket_size;
-        if let Some((bucket_position, bucket)) = self.get_matching_bucket(position) {
+        if let Some((bucket_position, bucket)) = self.get_matching_bucket_mut(position) {
             bucket.retain(|e| *e != entity);
         }
 
@@ -106,6 +116,43 @@ impl SpatialQueryManager {
             self.remove_entity(entity, old_position);
             self.add_entity(entity, new_position);
         }
+
+    }
+
+    pub fn entities_within_overlapping_line_segment_sorted_by<F>(&self, a: Vec2, b: Vec2, mut sort_fn: F) -> Vec<Entity>
+        where F: FnMut(Entity, Entity) -> Option<Ordering>
+    {
+
+        let mut sorted_entities = Vec::new();
+        sorted_entities.extend(self.entities_within_overlapping_line_segment(a, b));
+        sorted_entities.sort_by(|&a, &b| sort_fn(a, b).unwrap());
+
+        sorted_entities
+
+    }
+
+    pub fn entities_within_overlapping_line_segment(&self, a: Vec2, b: Vec2) -> Vec<Entity> {
+
+        let distance_chunk_size = (self.bucket_size as f32) / 4.0;
+        let number_of_chunks_to_test = a.distance(b) / distance_chunk_size;
+        let vector_to_target = b - a;
+
+        let mut last_bucket_position = IVec2::MAX;
+        let mut entities_overlapping_segment = Vec::new();
+
+        for i in 0..number_of_chunks_to_test as i32 {
+
+            let current_factor = i as f32 / number_of_chunks_to_test;
+            let current_position = a + (vector_to_target * current_factor);
+
+            if let Some((bucket_position, bucket)) = self.get_matching_bucket(current_position) && bucket_position != last_bucket_position {
+                entities_overlapping_segment.extend_from_slice(bucket.as_slice());
+                last_bucket_position = bucket_position;
+            }
+
+        }
+
+        entities_overlapping_segment
 
     }
 

@@ -1,8 +1,8 @@
 use macroquad::prelude::*;
 use hecs::{CommandBuffer, Entity, World};
-use utility::{AsPerpendicular, intersect_rect};
+use utility::{intersect_rect, line_segment_rect_intersection, ray_ray_intersection, AsPerpendicular};
 
-use super::{spatial::SpatialQueryManager, DynamicBody, DynamicBodyCallback};
+use super::{spatial::{entity_distance_sort_function, SpatialQueryManager}, DynamicBody, DynamicBodyCallback};
 
 const COLLISION_ELASTICITY: f32 = 1.0;
 
@@ -13,6 +13,7 @@ pub trait PhysicsBody {
     fn bounds(&self) -> Rect;
     fn position(&self) -> Vec2;
     fn visual_position(&self) -> Vec2;
+    fn physics_bounds(&self) -> Rect;
     fn orientation(&self) -> f32;
     fn velocity(&self) -> Vec2;
     fn angular_velocity(&self) -> f32;
@@ -47,6 +48,34 @@ impl PhysicsManager {
 
     pub fn clear(&mut self) {
         self.collision_responses.clear();
+    }
+
+    pub fn ray_cast(&self, source: Vec2, target: Vec2, world: &World, spatial_query_manager: &SpatialQueryManager, test_mask: u64) -> Option<(Entity, Vec2)> {
+        
+        let mut first_entity_hit = None;
+        let mut first_position_hit = None;
+
+        for e in spatial_query_manager.entities_within_overlapping_line_segment_sorted_by(source, target, |a, b| entity_distance_sort_function(world, source, a, b)) {
+
+            let Ok(body) = world.get::<&DynamicBody>(e) else { continue; };
+            if body.mask & test_mask != 0 {
+                continue;
+            }
+
+            if let Some(intersection) = line_segment_rect_intersection(source, target, body.physics_bounds()) {
+                first_position_hit = Some(intersection);
+                first_entity_hit = Some(e);
+                break;
+            }
+
+        }
+        
+        if let Some(entity) = first_entity_hit && let Some(position) = first_position_hit {
+            Some((entity, position))
+        } else {
+            None
+        }
+
     }
 
     pub fn integrate(&mut self, world: &mut World) {

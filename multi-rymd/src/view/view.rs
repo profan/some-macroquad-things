@@ -926,7 +926,7 @@ impl RymdGameView {
 
             let current_distance_to_mouse = mouse_world_position.distance(transform.world_position);
             let is_position_within_bounds = if let Some(body) = body {
-                let physics_bounds = body.bounds().offset(-(body.bounds().size() / 2.0));
+                let physics_bounds = body.physics_bounds();
                 is_point_inside_rect(&mouse_world_position, &physics_bounds)
             } else {
                 is_point_inside_rect(&mouse_world_position, &bounds.rect.offset(transform.world_position))
@@ -1188,7 +1188,7 @@ impl RymdGameView {
             }
 
             let intersected_with_selection = if let Some(body) = body {
-                let current_selectable_bounds = body.bounds().offset(-body.bounds.size() / 2.0);
+                let current_selectable_bounds = body.physics_bounds();
                 current_selectable_bounds.intersect(world_selection_rectangle).is_some()
             } else if let Some(bounds) = bounds {
                 let current_selectable_bounds = bounds.rect.offset(transform.world_position);
@@ -1460,6 +1460,40 @@ impl RymdGameView {
                     }
                 }
             }
+        }
+
+        // debug raycasting?
+
+        for (e, (transform, body, ship)) in model.world.query::<(&Transform, &DynamicBody, &Ship)>().iter() {
+
+            let ray_length = 256.0;
+            let source = transform.world_position;
+            let target = transform.world_position + (-transform.world_rotation.as_vector() * ray_length);
+
+            if let Some((entity, intersection)) = model.physics_manager.ray_cast(source, target, &model.world, &model.spatial_manager, body.mask) {
+
+                draw_line(
+                    source.x,
+                    source.y,
+                    intersection.x,
+                    intersection.y,
+                    2.0,
+                    RED
+                );
+
+            } else {
+
+                draw_line(
+                    source.x,
+                    source.y,
+                    target.x,
+                    target.y,
+                    2.0,
+                    GREEN
+                );
+
+            }
+
         }
 
     }

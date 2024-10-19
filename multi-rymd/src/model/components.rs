@@ -133,6 +133,10 @@ impl PhysicsBody for DynamicBody {
         self.kinematic.position - self.bounds.size() / 2.0
     }
     
+    fn physics_bounds(&self) -> Rect {
+        self.bounds().offset(-self.bounds.size() / 2.0)
+    }
+    
     fn orientation(&self) -> f32 {
         self.kinematic.orientation
     }
@@ -648,7 +652,7 @@ pub struct ProjectileWeapon {
     pub cooldown: f32,
 
     pub projectile: BulletParameters
-    
+
 }
 
 pub struct Effect {
