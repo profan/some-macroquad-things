@@ -335,30 +335,24 @@ pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) 
 
     let arrowhead_ship_body = create_ship(world, owner, position, arrowhead_ship_parameters);
 
-    // let projectile_weapon = ProjectileWeapon {
-    //     offset: vec2(0.0, -(arrowhead_ship_size / 2.0)),
-    //     fire_rate: arrowhead_fire_rate,
-    //     deviation: arrowhead_fire_deviation,
-    //     cooldown: arrowhead_fire_cooldown,
-    //     projectile: SIMPLE_BULLET_PARAMETERS
-    // };
-
-    let beam_weapon = BeamWeapon {
-
+    let projectile_weapon = ProjectileWeapon {
         offset: vec2(0.0, -(arrowhead_ship_size / 2.0)),
         fire_rate: arrowhead_fire_rate,
         deviation: arrowhead_fire_deviation,
         cooldown: arrowhead_fire_cooldown,
-        beam: SIMPLE_BEAM_PARAMETERS
-
+        projectile: SIMPLE_BULLET_PARAMETERS
     };
 
-    let attacker = Attacker {
-        range: arrowhead_range,
-        target: None
-    };
+    // let beam_weapon = BeamWeapon {
+    //     offset: vec2(0.0, -(arrowhead_ship_size / 2.0)),
+    //     fire_rate: arrowhead_fire_rate,
+    //     deviation: arrowhead_fire_deviation,
+    //     cooldown: arrowhead_fire_cooldown,
+    //     beam: SIMPLE_BEAM_PARAMETERS
+    // };
 
-    let _ = world.insert(arrowhead_ship_body, (beam_weapon, attacker));
+    let attacker = Attacker::new(arrowhead_range);
+    let _ = world.insert(arrowhead_ship_body, (projectile_weapon, attacker));
 
     // add ship thrusters
     let arrowhead_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0), -Vec2::X, -(PI / 2.0), arrowhead_turn_thruster_power, ThrusterKind::Attitude, arrowhead_ship_body));
@@ -485,10 +479,7 @@ pub fn build_grunt_ship(world: &mut World, owner: PlayerID, position: Vec2) -> E
         projectile: SIMPLE_BULLET_PARAMETERS
     };
 
-    let attacker = Attacker {
-        range: grunt_fire_range,
-        target: None
-    };
+    let attacker = Attacker::new(grunt_fire_range);
 
     let _ = world.insert(grunt_ship_body, (projectile_weapon, attacker));
     let grunt_ship_thruster_main = world.spawn(ShipThruster::new(vec2(0.0, 4.0), Vec2::Y, 0.0, grunt_thruster_power, ThrusterKind::Main, grunt_ship_body));

@@ -636,6 +636,12 @@ pub struct Attacker {
     pub range: f32
 }
 
+impl Attacker {
+    pub fn new(range: f32) -> Attacker {
+        Attacker { target: None, range }
+    }
+}
+
 pub struct Attackable;
 
 pub struct Projectile {

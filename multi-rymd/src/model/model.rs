@@ -479,7 +479,7 @@ impl RymdGameModel {
                     continue
                 }
 
-                let is_in_attack_range = transform.world_position.distance(other_transform.world_position) < attacker.range;
+                let is_in_attack_range = transform.world_position.distance(other_transform.world_position) <= attacker.range;
 
                 if is_in_attack_range {
                     let entry = attack_targets.entry(e).or_insert(vec![]);

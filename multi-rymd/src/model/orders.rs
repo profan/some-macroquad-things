@@ -188,9 +188,9 @@ pub struct MoveOrder {
 
 impl Order for MoveOrder {
     fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
-        let arbitrary_distance_threshold = 64.0;
+        let arbitrary_distance_threshold_squared = 16.0 * 16.0;
         let position = get_entity_position(&model.world, entity).expect("could not get position for move order, should never happen!");
-        position.distance(vec2(self.x, self.y)) < arbitrary_distance_threshold
+        position.distance_squared(vec2(self.x, self.y)) < arbitrary_distance_threshold_squared
     }
 
     fn get_target_position(&self, model: &RymdGameModel) -> Option<Vec2> {
@@ -219,7 +219,6 @@ impl AttackOrder {
 
 impl Order for AttackOrder {
     fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
-        let position = get_entity_position(&model.world, entity).expect("could not get target position for attack order, should never happen!");
         model.world.contains(entity) == false
     }
 
@@ -257,9 +256,9 @@ pub struct AttackMoveOrder {
 
 impl Order for AttackMoveOrder {
     fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
-        let arbitrary_distance_threshold = 64.0;
+        let arbitrary_distance_threshold_squared = 16.0 * 16.0;
         let position = get_entity_position(&model.world, entity).expect("could not get position for attack move order, should never happen!");
-        position.distance(vec2(self.x, self.y)) < arbitrary_distance_threshold
+        position.distance_squared(vec2(self.x, self.y)) < arbitrary_distance_threshold_squared
     }
 
     fn get_target_position(&self, model: &RymdGameModel) -> Option<Vec2> {
