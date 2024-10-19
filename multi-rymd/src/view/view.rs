@@ -803,7 +803,9 @@ impl RymdGameView {
 
     fn perform_retrieve_and_select_control_group(&mut self, world: &mut World) {
 
-        self.perform_unselect_all(world);
+        if is_key_down(KeyCode::LeftShift) == false {
+            self.perform_unselect_all(world);
+        }
 
         let control_group_id = Self::get_first_number_key_pressed().expect("there must be a number key pressed when calling this function, there was none!");
         let control_group_entities: Vec<Entity> = self.control_groups.get(control_group_id).iter().cloned().collect();

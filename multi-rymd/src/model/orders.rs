@@ -496,8 +496,10 @@ impl ConstructOrder {
                 && new_orderable.is_queue_empty(GameOrderType::Order)
             {
                 for order in constructor_orderable.orders(GameOrderType::Order) {
-                    if Self::is_entity_a_constructor(model, new_entity) == false && order.order_type() == GameOrderType::Construct {
-                        continue;
+                    if Self::is_entity_a_constructor(model, new_entity) == false {
+                        if let GameOrder::Construct(_) = order {
+                            continue;
+                        }
                     }
                     new_orderable.queue_order(*order);
                 }
