@@ -787,14 +787,10 @@ impl RymdGameModel {
         for (e, (resource_source, health)) in self.world.query::<(&mut ResourceSource, &mut Health)>().iter() {
 
             if resource_source.is_finite {
-
                 if resource_source.is_exhausted() {
-                    println!("killed resource source, ran out!");
                     health.kill();
                 }
-
                 continue;
-
             }
 
             resource_source.current_metal = resource_source.total_metal;
