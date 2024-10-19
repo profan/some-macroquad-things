@@ -1,8 +1,10 @@
 use core::f32;
-use std::collections::{HashMap, HashSet};
+use std::{cmp::Ordering, collections::{HashMap, HashSet}};
 
-use hecs::Entity;
+use hecs::{Entity, World};
 use macroquad::math::{ivec2, IVec2, Rect, Vec2};
+
+use super::get_entity_position;
 
 pub struct SpatialQueryManager {
     entities: HashSet<Entity>,
@@ -107,6 +109,18 @@ impl SpatialQueryManager {
 
     }
 
+    pub fn entities_within_rect_sorted_by<F>(&self, search_bounds: Rect, mut sort_fn: F) -> Vec<Entity>
+        where F: FnMut(Entity, Entity) -> Option<Ordering>
+    {
+
+        let mut sorted_entities = Vec::new();
+        sorted_entities.extend(self.entities_within_rect(search_bounds));
+        sorted_entities.sort_by(|&a, &b| sort_fn(a, b).unwrap());
+
+        sorted_entities
+
+    }
+
     pub fn entities_within_rect(&self, search_bounds: Rect) -> impl Iterator::<Item = Entity> + '_ {
 
         let bucket_size = self.bucket_size;
@@ -118,11 +132,35 @@ impl SpatialQueryManager {
 
     }
 
+    pub fn entities_within_min_max_sorted_by<F>(&self, min: Vec2, max: Vec2, mut sort_fn: F) -> Vec<Entity>
+        where F: FnMut(Entity, Entity) -> Option<Ordering>
+    {
+
+        let mut sorted_entities = Vec::new();
+        sorted_entities.extend(self.entities_within_min_max(min, max));
+        sorted_entities.sort_by(|&a, &b| sort_fn(a, b).unwrap());
+
+        sorted_entities
+
+    }
+
     pub fn entities_within_min_max(&self, min: Vec2, max: Vec2) -> impl Iterator::<Item = Entity> + '_  {
 
         let bucket_size = self.bucket_size;
         let position_bounds = Rect::new(min.x, min.y, max.x - min.x, max.y - max.y);
         self.entities_within_rect(position_bounds)
+
+    }
+
+    pub fn entities_within_radius_sorted_by<F>(&self, position: Vec2, radius: f32, mut sort_fn: F) -> Vec<Entity>
+        where F: FnMut(Entity, Entity) -> Option<Ordering>
+    {
+
+        let mut sorted_entities = Vec::new();
+        sorted_entities.extend(self.entities_within_radius(position, radius));
+        sorted_entities.sort_by(|&a, &b| sort_fn(a, b).unwrap());
+
+        sorted_entities
 
     }
 
@@ -138,4 +176,13 @@ impl SpatialQueryManager {
         self.buckets.iter()
     }
 
+}
+
+/// Returns an ordering where the entity closer to the world position should be first.
+pub fn entity_distance_sort_function(world: &World, world_position: Vec2, a: Entity, b: Entity) -> Option<Ordering> {
+    let a_world_position = get_entity_position(world, a).expect("can't sort entities by position that don't have Transform!");
+    let b_world_position = get_entity_position(world, b).expect("can't sort entities by position that don't have Transform!");
+    let a_distance = a_world_position.distance_squared(world_position);
+    let b_distance = b_world_position.distance_squared(world_position);
+    a_distance.partial_cmp(&b_distance)
 }

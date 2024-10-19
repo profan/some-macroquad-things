@@ -21,6 +21,7 @@ use super::entity_apply_raw_steering;
 use super::environment::create_asteroid;
 use super::is_within_extractor_range;
 use super::is_within_extractor_range_with_extractor;
+use super::spatial::entity_distance_sort_function;
 use super::spatial::SpatialQueryManager;
 use super::steer_entity_towards_target;
 use super::AnimatedSprite;
@@ -621,6 +622,17 @@ impl RymdGameModel {
 
     }
 
+    fn entity_has_extract_order_active(&self, e: Entity) -> bool {
+        if let Ok(orderable) = self.world.get::<&Orderable>(e) {
+            match orderable.first_order(GameOrderType::Order) {
+                Some(GameOrder::Extract(_)) => true,
+                _ => false
+            }
+        } else {
+            false
+        }
+    }
+
     fn tick_extractors(&mut self) {
 
         for (e, (controller, transform, orderable, extractor, movement_target, rotation_target)) in self.world.query::<(&Controller, &Transform, &mut Orderable, &mut Extractor, &mut MovementTarget, &mut RotationTarget)>().iter() {
@@ -635,7 +647,7 @@ impl RymdGameModel {
 
             if extractor.is_searching && extractor.current_target.is_none() {
 
-                for o in self.spatial_manager.entities_within_radius(transform.world_position, extractor.extraction_range as f32) {
+                for o in self.spatial_manager.entities_within_radius_sorted_by(transform.world_position, extractor.extraction_range as f32, |a, b| entity_distance_sort_function(&self.world, transform.world_position, a, b)) {
 
                     if e == o {
                         continue;

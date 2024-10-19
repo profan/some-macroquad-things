@@ -549,7 +549,7 @@ impl Order for CancelOrder {
 
 pub fn has_pending_orders(world: &World, entity: Entity) -> bool {
     if let Ok(orderable) = world.get::<&Orderable>(entity) {
-        orderable.orders(GameOrderType::Order).len() > 0 || orderable.orders(GameOrderType::Construct).len() > 0
+        orderable.has_pending_orders(GameOrderType::Order)|| orderable.has_pending_orders(GameOrderType::Construct)
     } else {
         false
     }
@@ -611,4 +611,45 @@ pub fn is_within_extractor_range_with_extractor(entity: Entity, world: &World, e
         (entity_position.distance(target) as i32) < extractor.extraction_range
     }
 
+}
+
+pub trait OrdersExt {
+    fn is_current_order_move_order(&self) -> bool;
+    fn is_current_order_attack_move_order(&self) -> bool;
+    fn is_current_order_construct_order(&self, queue_type: GameOrderType) -> bool;
+    fn is_current_order_extract_order(&self) -> bool;
+}
+
+impl OrdersExt for Orderable {
+    fn is_current_order_move_order(&self) -> bool {
+        if let Some(GameOrder::Move(_)) = self.first_order(GameOrderType::Order) {
+            true
+        } else {
+            false
+        }
+    }
+    
+    fn is_current_order_attack_move_order(&self) -> bool {
+        if let Some(GameOrder::AttackMove(_)) = self.first_order(GameOrderType::Order) {
+            true
+        } else {
+            false
+        }
+    }
+    
+    fn is_current_order_construct_order(&self, queue_type: GameOrderType) -> bool {
+        if let Some(GameOrder::Construct(_)) = self.first_order(queue_type) {
+            true
+        } else {
+            false
+        }
+    }
+
+    fn is_current_order_extract_order(&self) -> bool {
+        if let Some(GameOrder::Extract(_)) = self.first_order(GameOrderType::Order) {
+            true
+        } else {
+            false
+        }
+    }
 }
