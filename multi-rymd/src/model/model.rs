@@ -751,15 +751,15 @@ impl RymdGameModel {
             let mut total_energy_income = 0.0;
 
             if let Some(consumer) = consumer && state == EntityState::Constructed {
-                consume_metal(controller.id, &self.world, consumer.metal * Self::TIME_STEP, Self::TIME_STEP);
-                consume_energy(controller.id, &self.world, consumer.energy * Self::TIME_STEP, Self::TIME_STEP);
+                consume_metal(controller.id, &self.world, consumer.metal * Self::TIME_STEP, 0.0);
+                consume_energy(controller.id, &self.world, consumer.energy * Self::TIME_STEP, 0.0);
                 total_metal_income -= consumer.metal;
                 total_energy_income -= consumer.energy;
             }
 
             if let Some(producer) = producer && state == EntityState::Constructed {
-                provide_metal(controller.id, &self.world, producer.metal * Self::TIME_STEP, Self::TIME_STEP);
-                provide_energy(controller.id, &self.world, producer.energy * Self::TIME_STEP, Self::TIME_STEP);
+                provide_metal(controller.id, &self.world, producer.metal * Self::TIME_STEP, 0.0);
+                provide_energy(controller.id, &self.world, producer.energy * Self::TIME_STEP, 0.0);
                 total_metal_income += producer.metal;
                 total_energy_income += producer.energy;
             }
