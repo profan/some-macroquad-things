@@ -544,7 +544,7 @@ impl RymdGameModel {
                     let id = controller.id;
                     let creation_world_position = transform.world_position + weapon.offset.rotated_by(transform.world_rotation);
 
-                    queued_projectile_creations.push(Bullet { owner: controller.id, position: creation_world_position, direction: attack_direction_with_deviation, parameters: weapon.projectile.clone() });
+                    queued_projectile_creations.push(Bullet { owner: controller.id, position: creation_world_position, direction: attack_direction_with_deviation, parameters: weapon.projectile });
                     weapon.cooldown += weapon.fire_rate;
 
                 } else {
@@ -636,15 +636,12 @@ impl RymdGameModel {
 
     }
 
-    fn entity_has_extract_order_active(&self, e: Entity) -> bool {
-        if let Ok(orderable) = self.world.get::<&Orderable>(e) {
-            match orderable.first_order(GameOrderType::Order) {
-                Some(GameOrder::Extract(_)) => true,
-                _ => false
-            }
-        } else {
-            false
-        }
+    fn entities_within_radius_sorted_by_distance(&self, world_position: Vec2, radius: f32) -> Vec<Entity> {
+        self.spatial_manager.entities_within_radius_sorted_by(
+            world_position,
+            radius,
+            |a, b| entity_distance_sort_function(&self.world, world_position, a, b)
+        )
     }
 
     fn tick_extractors(&mut self) {
@@ -661,7 +658,7 @@ impl RymdGameModel {
 
             if extractor.is_searching && extractor.current_target.is_none() {
 
-                for o in self.spatial_manager.entities_within_radius_sorted_by(transform.world_position, extractor.extraction_range as f32, |a, b| entity_distance_sort_function(&self.world, transform.world_position, a, b)) {
+                for o in self.entities_within_radius_sorted_by_distance(transform.world_position, extractor.extraction_range as f32) {
 
                     if e == o {
                         continue;
@@ -796,7 +793,7 @@ impl RymdGameModel {
 
     }
 
-    fn tick_sources(&mut self) {
+    fn tick_resource_sources(&mut self) {
 
         for (e, (resource_source, health)) in self.world.query::<(&mut ResourceSource, &mut Health)>().iter() {
 
@@ -963,7 +960,7 @@ impl RymdGameModel {
         self.tick_orderables();
         self.tick_transforms();
         self.tick_resources();
-        self.tick_sources();
+        self.tick_resource_sources();
         self.tick_rotation_targets();
         self.tick_movement_targets();
         self.tick_separation();

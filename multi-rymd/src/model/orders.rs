@@ -9,6 +9,7 @@ use utility::RotatedBy;
 use crate::EntityID;
 use crate::model::GameMessage;
 
+
 use super::set_movement_target_to_position;
 use super::set_rotation_target_to_position;
 use super::Attacker;
@@ -20,7 +21,6 @@ use super::PhysicsBody;
 use super::get_entity_position;
 use super::get_entity_position_from_id;
 use super::get_closest_position_with_entity_bounds;
-use super::steer_entity_towards_target;
 use super::{RymdGameModel, Constructor, Controller, Health, Orderable};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -238,10 +238,15 @@ impl Order for AttackOrder {
         drop(attacker);
 
         if attacker_position.distance(target_position) > attack_range {
-            steer_entity_towards_target(&mut model.world, entity, target_position.x, target_position.y, dt);
+            set_movement_target_to_position(&model.world, entity, Some(target_position));
         }
 
     }
+
+    fn on_completed(&self, entity: Entity, model: &mut RymdGameModel) {
+        set_movement_target_to_position(&mut model.world, entity, None);
+    }
+
 }
 
 #[derive(Debug, Copy, Clone, SerJson, DeJson)]
@@ -615,6 +620,7 @@ pub fn is_within_extractor_range_with_extractor(entity: Entity, world: &World, e
 
 pub trait OrdersExt {
     fn is_current_order_move_order(&self) -> bool;
+    fn is_current_order_attack_order(&self) -> bool;
     fn is_current_order_attack_move_order(&self) -> bool;
     fn is_current_order_construct_order(&self, queue_type: GameOrderType) -> bool;
     fn is_current_order_extract_order(&self) -> bool;
@@ -623,6 +629,14 @@ pub trait OrdersExt {
 impl OrdersExt for Orderable {
     fn is_current_order_move_order(&self) -> bool {
         if let Some(GameOrder::Move(_)) = self.first_order(GameOrderType::Order) {
+            true
+        } else {
+            false
+        }
+    }
+
+    fn is_current_order_attack_order(&self) -> bool {
+        if let Some(GameOrder::Attack(_)) = self.first_order(GameOrderType::Order) {
             true
         } else {
             false
