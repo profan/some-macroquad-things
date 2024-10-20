@@ -1,5 +1,5 @@
 use hecs::{CommandBuffer, Entity, World};
-use macroquad::{math::Rect, prelude::Vec2};
+use macroquad::{color::Color, math::Rect, prelude::Vec2};
 use utility::{AsAngle, Kinematic};
 use crate::PlayerID;
 
@@ -23,7 +23,9 @@ pub struct BeamParameters {
 
     pub damage: f32,
     pub lifetime: f32,
-    pub range: f32
+    pub range: f32,
+
+    pub color: u32
 
 }
 
@@ -95,6 +97,7 @@ fn create_beam(world: &mut World, owner: PlayerID, position: Vec2, direction: Ve
     let beam_damage = parameters.damage;
     let beam_lifetime = parameters.lifetime;
     let beam_range = parameters.range;
+    let beam_color = Color::from_hex(parameters.color);
 
     let is_static = false;
     let is_enabled = true;
@@ -103,7 +106,7 @@ fn create_beam(world: &mut World, owner: PlayerID, position: Vec2, direction: Ve
     let orientation = -direction.as_angle();
     let controller = Controller { id: owner };
     let transform = Transform::new(position, orientation, None);
-    let beam = Beam { position, target: position + direction * beam_range, damage: beam_damage, fired: false };
+    let beam = Beam { position, target: position + direction * beam_range, damage: beam_damage, fired: false, color: beam_color };
     let effect = Effect::new(0.5);
 
     create_muzzle_flash_effect_in_world(world, position, -direction);

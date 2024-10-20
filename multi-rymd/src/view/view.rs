@@ -1481,7 +1481,7 @@ impl RymdGameView {
                 beam.target.x,
                 beam.target.y,
                 beam_thickness,
-                Color::from_hex(0xfed452).with_alpha(current_beam_alpha)
+                beam.color.with_alpha(current_beam_alpha)
             );  
         }
 

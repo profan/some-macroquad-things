@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 use hecs::{CommandBuffer, Entity, World};
-use macroquad::{input::KeyCode, math::{Rect, Vec2}};
+use macroquad::{color::Color, input::KeyCode, math::{Rect, Vec2}};
 use utility::{Kinematic, RotatedBy, SteeringParameters};
 use lockstep_client::step::PeerID;
 
@@ -654,7 +654,8 @@ pub struct Beam {
     pub position: Vec2,
     pub target: Vec2,
     pub damage: f32,
-    pub fired: bool
+    pub fired: bool,
+    pub color: Color
 }
 
 pub struct ProjectileWeapon {
