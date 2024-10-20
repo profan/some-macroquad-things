@@ -39,6 +39,7 @@ use super::BulletParameters;
 use super::ExtractOrder;
 use super::Extractor;
 use super::MovementTarget;
+use super::OrdersExt;
 use super::PreviousTransform;
 use super::Resource;
 use super::ResourceSource;
@@ -473,7 +474,7 @@ impl RymdGameModel {
 
                 let has_same_controller = controller.id == other_controller.id;
                 let is_current_order_queue_empty = orderable.is_queue_empty(GameOrderType::Order);
-                let is_current_order_attack_or_attack_move = if let Some(GameOrder::Attack(_) | GameOrder::AttackMove(_)) = orderable.first_order(GameOrderType::Order) { true } else { false };
+                let is_current_order_attack_or_attack_move = orderable.is_current_order_attack_order() || orderable.is_current_order_attack_move_order();
 
                 if e == o || state != EntityState::Constructed || (is_current_order_queue_empty == false && is_current_order_attack_or_attack_move == false) || has_same_controller {
                     continue
