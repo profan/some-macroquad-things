@@ -1469,28 +1469,20 @@ impl RymdGameView {
     fn draw_beam_weapons(&self, world: &World) {
 
         let beam_thickness = 1.0;
-        let beam_segments = 16;
 
         for (e, (beam, effect)) in world.query::<(&Beam, &Effect)>().iter() {
 
-            for i in 0..beam_segments / 2 {
+            // adjust period of sin so we get a nice fade in/out (halfway is fullly opaque, starts as transparent, ends as transparent)
+            let current_beam_alpha = (PI*effect.current_lifetime_fraction()).sin();
 
-                let current_beam_start = beam.position + (beam.target - beam.position) / beam_segments as f32 * (i * 2) as f32;
-                let current_beam_end = beam.position + (beam.target - beam.position) / beam_segments as f32 * ((i + 1) * 2) as f32;
-
-                // adjust period of sin so we get a nice fade in/out (halfway is fullly opaque, starts as transparent, ends as transparent)
-                let current_beam_alpha = (PI*effect.current_lifetime_fraction()).sin();
-
-                draw_line(
-                    current_beam_start.x,
-                    current_beam_start.y,
-                    current_beam_end.x,
-                    current_beam_end.y,
-                    beam_thickness,
-                    Color::from_hex(0xfed452).with_alpha(current_beam_alpha)
-                );  
-
-            }
+            draw_line(
+                beam.position.x,
+                beam.position.y,
+                beam.target.x,
+                beam.target.y,
+                beam_thickness,
+                Color::from_hex(0xfed452).with_alpha(current_beam_alpha)
+            );  
         }
 
     }
