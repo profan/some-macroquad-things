@@ -693,4 +693,8 @@ impl Effect {
             lifetime
         }
     }
+
+    pub fn current_lifetime_fraction(&self) -> f32 {
+        self.lifetime / self.total_lifetime
+    }
 }
