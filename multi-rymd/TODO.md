@@ -24,6 +24,10 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] represent attacking and attackable entities
 [x] have units automatically attack their nearest target if within target acquisition range
 
+# weapons
+[x] implement projectile based weapons
+[x] implement beam based weapons
+
 # movement
 [] data-drive parameters for stuff like turn-rate?
 
