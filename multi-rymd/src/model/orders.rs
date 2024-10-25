@@ -438,6 +438,13 @@ impl Order for ConstructOrder {
             set_rotation_target_to_position(&model.world, entity, None);
         }
 
+        let our_position = get_entity_position(&model.world, entity).unwrap();
+        if self.is_self_order == false && existing_static_body_at_position(&model.world, our_position) && has_pending_orders(&model.world, entity, GameOrderType::Order) == false {
+            let Some(constructed_entity) = self.entity() else { return; };
+            let Some(target_position) = Self::calculate_movement_position_out_of_constructor(our_position, model, constructed_entity, true) else { return; };
+            self.move_entity_to_position(entity, &mut model.world, target_position);
+        }
+
     }
     
 }
@@ -543,7 +550,7 @@ pub struct CancelOrder {
 
 impl Order for CancelOrder {
     fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
-        has_pending_orders(&model.world, entity) == false
+        has_any_pending_orders(&model.world, entity) == false
     }
 
     fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
@@ -551,7 +558,15 @@ impl Order for CancelOrder {
     }
 }
 
-pub fn has_pending_orders(world: &World, entity: Entity) -> bool {
+pub fn has_pending_orders(world: &World, entity: Entity, order_type: GameOrderType) -> bool {
+    if let Ok(orderable) = world.get::<&Orderable>(entity) {
+        orderable.has_pending_orders(order_type)
+    } else {
+        false
+    }
+}
+
+pub fn has_any_pending_orders(world: &World, entity: Entity) -> bool {
     if let Ok(orderable) = world.get::<&Orderable>(entity) {
         orderable.has_pending_orders(GameOrderType::Order)|| orderable.has_pending_orders(GameOrderType::Construct)
     } else {
@@ -615,6 +630,14 @@ pub fn is_within_extractor_range_with_extractor(entity: Entity, world: &World, e
         (entity_position.distance(target) as i32) < extractor.extraction_range
     }
 
+}
+
+pub fn number_of_pending_orders(world: &World, entity: Entity, order_type: GameOrderType) -> i32 {
+    if let Ok(orderable) = world.get::<&Orderable>(entity) {
+        orderable.number_of_pending_orders(order_type)
+    } else {
+        0
+    }
 }
 
 pub trait OrdersExt {

@@ -58,6 +58,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] allow constructing 5 units at a time by the button to build + shift
 [x] allow constructing 20 units at a time by the button to build + ctrl
 [x] allow constructing 100 units a time by the button to build + ctrl + shift
+[x] once a constructor has built a building, have it get it out of the way of the building afterwards
 
 # resources
 [x] allow entities to generate resources
@@ -97,3 +98,4 @@ rough list of things to work on in the game currently, usually ordered as items 
 [] look at implementing parallax background layers (different levels/depths of stars?)
 [] implement sort orders for sprites, initially just hardcoded numbers per sprite
 [x] implement the ability to switch what side you're currently controlling
+[] make sure the camera starts where the player's commander starts

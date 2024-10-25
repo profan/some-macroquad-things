@@ -383,6 +383,14 @@ impl Orderable {
         }
     }
 
+    /// Returns true if there's any pending orders in the given order queue.
+    pub fn number_of_pending_orders(&self, order_type: GameOrderType) -> i32 {
+        match order_type {
+            GameOrderType::Order => self.orders(order_type).len() as i32,
+            GameOrderType::Construct => self.orders(order_type).len() as i32
+        }
+    }
+
 }
 
 #[derive(Clone)]
