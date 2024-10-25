@@ -177,6 +177,10 @@ impl PhysicsBody for DynamicBody {
         &mut self.kinematic.mass
     }
 
+    fn apply_impulse(&mut self, impulse: Vec2, offset: Vec2) {
+        self.kinematic.velocity += impulse
+    }
+
 }
 
 #[derive(Clone)] 

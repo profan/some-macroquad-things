@@ -640,6 +640,10 @@ impl RymdGameModel {
             {
                 let Ok(health) = self.world.query_one_mut::<&mut Health>(e) else { continue; };
                 health.damage(damage);
+
+                if let Ok(body) = self.world.query_one_mut::<&mut DynamicBody>(e) {
+                    body.apply_impulse(hit_normal * damage / 2.0, Vec2::ZERO);
+                }
             }
 
             create_impact_effect_in_world(&mut self.world, position, hit_normal);

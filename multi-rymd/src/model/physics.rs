@@ -1,6 +1,6 @@
 use macroquad::prelude::*;
 use hecs::{CommandBuffer, Entity, World};
-use utility::{intersect_rect, line_segment_rect_intersection, ray_ray_intersection, AsPerpendicular};
+use utility::{intersect_rect, line_segment_rect_intersection, AsPerpendicular};
 
 use super::{spatial::{entity_distance_sort_function, SpatialQueryManager}, DynamicBody, DynamicBodyCallback};
 
@@ -25,6 +25,8 @@ pub trait PhysicsBody {
     fn angular_velocity_mut(&mut self) -> &mut f32;
     fn friction_mut(&mut self) -> &mut f32;
     fn mass_mut(&mut self) -> &mut f32;
+
+    fn apply_impulse(&mut self, impulse: Vec2, offset: Vec2);
 
 }
 
