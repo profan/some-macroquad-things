@@ -1,10 +1,10 @@
 use egui_macroquad::egui::{self, Align2};
 use macroquad::prelude::*;
 use lockstep::lobby::{DEFAULT_LOBBY_PORT, RelayMessage, LobbyClientID, LobbyState};
-use nanoserde::SerJson;
+use nanoserde::{DeJson, SerJson};
 use utility::{screen_dimensions, DebugText};
 
-use crate::{game::Game, relay::RelayClient, network::{NetworkClient, ConnectionState}, step::{LockstepClient, TurnState}, extensions::RelayCommandsExt};
+use crate::{command::ApplicationCommand, extensions::RelayCommandsExt, game::Game, network::{ConnectionState, NetworkClient}, relay::RelayClient, step::{LockstepClient, TurnCommand, TurnState}};
 
 #[derive(PartialEq)]
 pub enum ApplicationMode {
@@ -192,10 +192,23 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                 ewebsock::WsEvent::Message(ewebsock::WsMessage::Text(text)) => {
     
                     fn handle_lockstep_message(client_id: LobbyClientID, lockstep_client: &mut Option<LockstepClient>, message: &str) {
+
                         // handle messages we get, but do not handle messages sent to ourselves!... probably? :D
                         if let Some(lockstep) = lockstep_client && lockstep.peer_id() != client_id {
-                            lockstep.handle_message(client_id, message);
+
+                            match ApplicationCommand::deserialize_json(&message) {
+                                Ok(cmd) => match cmd {
+                                    ApplicationCommand::GenericCommand(generic_command) => lockstep.handle_generic_message(client_id, generic_command),
+                                    ApplicationCommand::TurnCommand(turn_command) => lockstep.handle_message(client_id, turn_command),
+                                },
+                                Err(err) => {
+                                    println!("[LockstepClient] got error: {} when processing message: {}", err, message);
+                                    return;
+                                },
+                            };
+                            
                         }
+
                     }
                     
                     if let Some(event) = self.relay.handle_message(text, |client_id, msg| handle_lockstep_message(client_id, &mut self.lockstep, msg)) {
@@ -279,13 +292,35 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
             }
 
         }
+
+        if let Some(lockstep) = &mut self.lockstep {
+
+            if self.mode == ApplicationMode::Singleplayer {
+                lockstep.handle_generic_messages_with(
+                    |peer_id, msg| self.game.handle_generic_message(peer_id, msg),
+                    |_, _| ()
+                );
+            } else if self.mode == ApplicationMode::Multiplayer {
+                lockstep.handle_generic_messages_with(
+                    |peer_id, msg| self.game.handle_generic_message(peer_id, msg),
+                    |peer_id, msg| self.net.send_text(RelayMessage::Message(peer_id, msg).serialize_json())
+                );
+            }
+
+        }
     
         if let Some(lockstep) = &mut self.lockstep && self.game.is_running() {
     
             if self.mode == ApplicationMode::Singleplayer {
-                lockstep.tick_with(|peer_id, msg| self.game.handle_message(peer_id, msg), |_ ,_| ());
+                lockstep.tick_with(
+                    |peer_id, msg| self.game.handle_game_message(peer_id, msg),
+                    |_ ,_| ()
+                );
             } else if self.mode == ApplicationMode::Multiplayer && self.relay.is_in_currently_running_lobby() {
-                lockstep.tick_with(|peer_id, msg| self.game.handle_message(peer_id, msg), |peer_id, msg| self.net.send_text(RelayMessage::Message(peer_id, msg).serialize_json()));
+                lockstep.tick_with(
+                    |peer_id, msg| self.game.handle_game_message(peer_id, msg),
+                    |peer_id, msg| self.net.send_text(RelayMessage::Message(peer_id, msg).serialize_json())
+                );
             }
     
             if lockstep.turn_state() == TurnState::Running {
@@ -369,7 +404,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
             ui.separator();
 
-            self.game.draw_lobby_ui(ui, &mut self.debug);
+            self.game.draw_lobby_ui(ui, &mut self.debug, self.lockstep.as_mut().expect("lockstep client instance must be valid here!"));
 
         });
 
@@ -429,7 +464,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
     fn draw_single_player_lobby_ui(&mut self, ctx: &egui::Context) {
 
         draw_centered_menu_window(ctx, "singleplayer", |ui| {
-            self.game.draw_lobby_ui(ui, &mut self.debug);
+            self.game.draw_lobby_ui(ui, &mut self.debug, self.lockstep.as_mut().expect("lockstep client instance must be valid here!"));
         });
 
     }

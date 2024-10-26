@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use nanoserde::{SerJson, DeJson};
 
 pub type PeerID = i64;
 pub type TurnID = i32;
 
-use crate::IS_DEBUGGING;
+use crate::{command::{ApplicationCommand, GenericCommand}, IS_DEBUGGING};
 
 const TURN_DELAY: i32 = 1;
 const TURN_LENGTH: i32 = 4;
@@ -142,6 +142,9 @@ pub struct LockstepClient {
     turn_length: i32, // adjust this to make turn times longer!
     turn_delay: i32, // how many turns out should the message be sent by?
 
+    generic_command_queue: VecDeque<(PeerID, GenericCommand)>,
+    generic_commands_to_send: Vec<(PeerID, GenericCommand)>
+
 }
 
 impl LockstepClient {
@@ -161,6 +164,9 @@ impl LockstepClient {
             turn_number: -1,
             turn_length: TURN_LENGTH,
             turn_delay: TURN_DELAY, // in turns
+
+            generic_command_queue: VecDeque::new(),
+            generic_commands_to_send: Vec::new()
 
         }
     }
@@ -283,7 +289,8 @@ impl LockstepClient {
         for command in &commands_queued.clone() {
 
             // send command to all our other peer friends
-            send_command_fn(self.peer_id, command.serialize_json());
+            let application_command = ApplicationCommand::TurnCommand(command.clone());
+            send_command_fn(self.peer_id, application_command.serialize_json());
 
             // always enqueue our own commands locally, as they do not get sent back to us, or should not be at least
             self.command_queue.receive(self.peer_id, command.turn_id(), command.clone());
@@ -306,15 +313,23 @@ impl LockstepClient {
         self.send_turn_command_with_delay(turn_command, self.turn_delay);
     }
 
-    pub fn handle_message(&mut self, peer_id: PeerID, command: &str) {
+    pub fn handle_generic_message(&mut self, peer_id: PeerID, generic_command: GenericCommand) {
+        self.generic_command_queue.push_back((peer_id, generic_command));
+    }
 
-        let turn_command = match TurnCommand::deserialize_json(&command) {
-            Ok(cmd) => cmd,
-            Err(err) => {
-                println!("[LockstepClient] got error: {} when processing command!", err);
-                return;
-            },
-        };
+    pub fn send_generic_message_to_all(&mut self, generic_command_message: &str) {
+        let generic_command = GenericCommand::Message(generic_command_message.to_string());
+        for peer in &self.peers {
+            self.generic_commands_to_send.push((peer.id, generic_command.clone()));
+        }
+    }
+
+    pub fn send_generic_message_to_peer(&mut self, peer_id: PeerID, generic_command_message: &str) {
+        let generic_command = GenericCommand::Message(generic_command_message.to_string());
+        self.generic_commands_to_send.push((peer_id, generic_command));
+    }
+
+    pub fn handle_message(&mut self, peer_id: PeerID, turn_command: TurnCommand) {
 
         match turn_command {
             TurnCommand::Command(turn_id, _) => self.command_queue.receive(peer_id, turn_id, turn_command),
@@ -348,6 +363,29 @@ impl LockstepClient {
 
         self.command_queue.remove_commands_for_turn(self.turn_number);
         
+    }
+    
+    pub fn handle_generic_messages_with<F1, F2>(&mut self, mut handle_generic_command_fn: F1, mut send_generic_command_fn: F2)
+        where
+            F1: FnMut(PeerID, &str),
+            F2: FnMut(PeerID, String)
+    {
+
+        while self.generic_command_queue.is_empty() == false {
+
+            if let Some((peer_id, GenericCommand::Message(message))) = self.generic_command_queue.pop_front() {
+                handle_generic_command_fn(peer_id, &message);
+            }
+
+        }
+
+        for (peer_id, generic_command) in &self.generic_commands_to_send {
+            let application_command = ApplicationCommand::GenericCommand(generic_command.clone());
+            send_generic_command_fn(*peer_id, application_command.serialize_json());
+        }
+
+        self.generic_commands_to_send.clear();
+
     }
 
     pub fn tick_with<F1, F2>(&mut self, handle_command_fn: F1, send_command_fn: F2) -> bool 

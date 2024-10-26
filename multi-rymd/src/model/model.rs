@@ -223,10 +223,6 @@ impl RymdGameModel {
         self.world.clear();
     }
 
-    fn handle_command(&mut self, command: &GameCommand) {
-        
-    }
-
     fn handle_order(&mut self, entities: &Vec<EntityID>, order: GameOrder, should_add: bool) {
 
         for &entity_id in entities {
@@ -248,7 +244,6 @@ impl RymdGameModel {
         println!("[RymdGameModel] got message: {:?}", message);
 
         match message {
-            GameMessage::Command { message } => self.handle_command(message),
             GameMessage::Order { entities, order, add } => self.handle_order(entities, *order, *add),
         }
 

@@ -11,6 +11,5 @@ pub enum GameCommand {
 
 #[derive(Debug, SerJson, DeJson)]
 pub enum GameMessage {
-    Command { message: GameCommand },
     Order { entities: Vec<EntityID>, order: GameOrder, add: bool },
 }

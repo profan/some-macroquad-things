@@ -4,6 +4,7 @@
 pub const IS_DEBUGGING: bool = false;
 
 pub mod app;
+pub mod command;
 pub mod step;
 pub mod game;
 pub mod network;

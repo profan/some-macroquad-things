@@ -1,6 +1,7 @@
 #![allow(async_fn_in_trait)]
 
 use lockstep_client::{app::ApplicationState, step::LockstepClient, step::PeerID, game::Game};
+use egui::Ui;
 use nanoserde::{SerJson, DeJson};
 use macroquad::prelude::*;
 use utility::DebugText;
@@ -67,7 +68,13 @@ impl Game for ExampleGame {
         self.is_paused = true;
     }
 
-    fn handle_message(&mut self, _peer_id: PeerID, message: &str) {
+    fn handle_generic_message(&mut self, peer_id: PeerID, message: &str) {
+        
+        // do not do anything important in here that modifies game state during a running match!
+
+    }
+
+    fn handle_game_message(&mut self, _peer_id: PeerID, message: &str) {
 
         let msg = match GameMessage::deserialize_json(message) {
             Ok(msg) => msg,
@@ -102,6 +109,10 @@ impl Game for ExampleGame {
             draw_circle(c.position.x, c.position.y, circle_radius, RED);
         }
 
+    }
+
+    fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+        
     }
 
     fn reset(&mut self) {

@@ -1,12 +1,13 @@
+use lockstep_client::command::GenericCommand;
 use lockstep_client::{game::Game, step::LockstepClient};
 use lockstep_client::step::PeerID;
-use nanoserde::DeJson;
+use nanoserde::{DeJson, SerJson};
 use puffin_egui::egui;
 use utility::{DebugText, TextPosition};
 
 use crate::PlayerID;
 use crate::measure_scope;
-use crate::model::{GameMessage, RymdGameModel};
+use crate::model::{GameCommand, GameMessage, RymdGameModel};
 use crate::view::RymdGameView;
 
 #[derive(Debug, Clone)]
@@ -27,6 +28,7 @@ impl RymdGameParameters {
 
 pub struct RymdGame {
     pub stats: RymdGameFrameStats,
+    chat: RymdGameChat,
     model: RymdGameModel,
     view: RymdGameView,
     is_started: bool,
@@ -39,6 +41,20 @@ pub struct RymdGameFrameStats {
     pub update_time_ms: f32,
     pub tick_view_time_ms: f32,
     pub draw_time_ms: f32
+}
+
+pub struct RymdGameChat {
+    pub current_messsage_buffer: String,
+    pub current_message: String,
+}
+
+impl RymdGameChat {
+    pub fn new() -> RymdGameChat {
+        RymdGameChat {
+            current_messsage_buffer: String::new(),
+            current_message: String::new()
+        }
+    }
 }
 
 impl RymdGameFrameStats {
@@ -104,20 +120,26 @@ impl Game for RymdGame {
         self.model.stop()
     }
 
-    fn handle_message(&mut self, peer_id: PeerID, message: &str) {    
+    fn handle_generic_message(&mut self, peer_id: PeerID, message: &str) {
 
-        match GameMessage::deserialize_json(message) {
-            Ok(ref message) => {
-
-                self.model.handle_message(message);
-
-                if let GameMessage::Command { message } = message {
-                    self.view.handle_message(message);
-                }
-
+        match GameCommand::deserialize_json(message) {
+            Ok(ref message) => match message {
+                GameCommand::Message { text } => self.chat.current_messsage_buffer += text,
             },
             Err(err) => {
-                println!("[RymdGame] failed to parse message: {}!", message);
+                println!("[RymdGame] failed to parse generic message: {}!", message);
+                return;      
+            }
+        }
+        
+    }
+
+    fn handle_game_message(&mut self, peer_id: PeerID, message: &str) {    
+
+        match GameMessage::deserialize_json(message) {
+            Ok(ref message) => self.model.handle_message(message),
+            Err(err) => {
+                println!("[RymdGame] failed to parse game message: {}!", message);
                 return;
             }
         };
@@ -157,8 +179,17 @@ impl Game for RymdGame {
 
     }
 
-    fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, debug: &mut DebugText) {
-        ui.label("spaaaaace");
+    fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+
+        ui.label(&self.chat.current_messsage_buffer);
+        ui.text_edit_singleline(&mut self.chat.current_message);
+
+        if ui.button("send message").clicked() {
+            let game_command = GameCommand::Message { text: self.chat.current_message.clone() };
+            lockstep.send_generic_message_to_all(&game_command.serialize_json());
+            self.chat.current_message.clear();
+        }
+        
     }
 
     fn reset(&mut self) {
@@ -175,6 +206,7 @@ impl RymdGame {
     
     pub fn new() -> RymdGame {
         RymdGame {
+            chat: RymdGameChat::new(),
             stats: RymdGameFrameStats::new(),
             model: RymdGameModel::new(),
             view: RymdGameView::new(),
