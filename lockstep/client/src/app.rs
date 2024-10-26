@@ -359,11 +359,18 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         let lobby = self.relay.get_current_lobby().expect("called draw_lobby_ui without there being a current lobby!");
 
         ui.vertical_centered_justified(|ui| {
+
+            ui.label("clients");
             for client_id in &lobby.clients {
                 let c = self.relay.client_with_id(*client_id).unwrap();
                 let client_rtt_to_us_in_ms = self.relay.get_client_ping(c.id);
                 ui.label(format!("{} (id: {}) - {} ms", c.name, client_id, client_rtt_to_us_in_ms));
             }
+
+            ui.separator();
+
+            self.game.draw_lobby_ui(ui, &mut self.debug);
+
         });
 
         ui.horizontal(|ui| {
@@ -420,7 +427,11 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
     }
 
     fn draw_single_player_lobby_ui(&mut self, ctx: &egui::Context) {
-        self.game.draw_lobby_ui(ctx, &mut self.debug);
+
+        draw_centered_menu_window(ctx, "singleplayer", |ui| {
+            self.game.draw_lobby_ui(ui, &mut self.debug);
+        });
+
     }
 
     fn draw_multiplayer_lobby_ui(&mut self, ctx: &egui::Context) {
@@ -444,7 +455,6 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
             if self.net.is_connected() {
                 if self.relay.is_in_lobby() {
                     self.draw_lobby_ui(ui);
-                    self.game.draw_lobby_ui(ctx, &mut self.debug);
                 } else {
                     self.draw_lobby_list_ui(ui);
                 }

@@ -157,6 +157,10 @@ impl Game for RymdGame {
 
     }
 
+    fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, debug: &mut DebugText) {
+        ui.label("spaaaaace");
+    }
+
     fn reset(&mut self) {
         self.stop_game();
     }

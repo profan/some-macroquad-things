@@ -27,6 +27,6 @@ pub trait Game where Self: Sized {
     fn reset(&mut self);
 
     // lobby
-    fn draw_lobby_ui(&mut self, ctx: &egui::Context, debug: &mut DebugText) {}
+    fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, debug: &mut DebugText) {}
     
 }
