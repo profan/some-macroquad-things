@@ -218,6 +218,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                                     let is_singleplayer = false;
                                     let new_lockstep_client = LockstepClient::new(client_id, is_singleplayer);
                                     self.lockstep = Some(new_lockstep_client);
+                                    self.game.on_enter_lobby();
                                 } else {
                                     panic!("client didn't have client id for some reason when receiving successfully joined lobby message, should be impossible!");
                                 }
@@ -229,9 +230,15 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                                     }
                                 }
                             },
+                            RelayMessage::JoinedLobby(client_id) => {
+                                self.game.on_client_joined_lobby(client_id);
+                            },
                             RelayMessage::LeftLobby(client_id) => {
                                 if let Some(lockstep) = &mut self.lockstep && lockstep.peer_id() == client_id {
                                     self.lockstep = None;
+                                    self.game.on_leave_lobby();
+                                } else {
+                                    self.game.on_client_left_lobby(client_id);
                                 }
                                 self.game.reset();
                             },
@@ -256,7 +263,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                                 if let Some(client_id) = self.relay.get_client_id() && to_client_id == Some(client_id) {
                                     self.net.pong(Some(client_id), from_client_id);
                                 }
-                            }
+                            },
                             _ => ()
                         }
                     }

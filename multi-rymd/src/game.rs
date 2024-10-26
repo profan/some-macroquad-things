@@ -55,6 +55,11 @@ impl RymdGameChat {
             current_message: String::new()
         }
     }
+
+    pub fn reset(&mut self) {
+        self.current_messsage_buffer.clear();
+        self.current_message.clear();
+    }
 }
 
 impl RymdGameFrameStats {
@@ -184,9 +189,10 @@ impl Game for RymdGame {
         ui.label(&self.chat.current_messsage_buffer);
         ui.text_edit_singleline(&mut self.chat.current_message);
 
-        if ui.button("send message").clicked() {
+        if ui.button("send message").clicked() && self.chat.current_message.is_empty() == false {
+            self.chat.current_message = format!("[peer {}] - {}\n", lockstep.peer_id(), self.chat.current_message);
             let game_command = GameCommand::Message { text: self.chat.current_message.clone() };
-            lockstep.send_generic_message_to_all(&game_command.serialize_json());
+            lockstep.send_generic_message(&game_command.serialize_json());
             self.chat.current_message.clear();
         }
         
@@ -198,6 +204,22 @@ impl Game for RymdGame {
 
     async fn load_resources(&mut self) {
         self.view.load_resources().await;
+    }
+
+    fn on_enter_lobby(&mut self) {
+        self.chat.reset();
+    }
+
+    fn on_leave_lobby(&mut self) {
+        self.chat.reset();
+    }
+
+    fn on_client_joined_lobby(&mut self, peer_id: PeerID) {
+        self.chat.current_messsage_buffer += &format!("[peer {}] joined!\n", peer_id);
+    }
+
+    fn on_client_left_lobby(&mut self, peer_id: PeerID) {
+        self.chat.current_messsage_buffer += &format!("[peer {}] left!\n", peer_id);
     }
 
 }

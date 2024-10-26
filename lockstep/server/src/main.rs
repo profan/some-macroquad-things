@@ -341,6 +341,8 @@ impl RelayServer {
             let cloned_lobby = lobby.clone();
             self.send_message_to_client(client_id, RelayMessage::SuccessfullyJoinedLobby(lobby_id));
             self.send_message_to_clients_lobby(client_id, RelayMessage::UpdatedLobby(cloned_lobby));
+            let joining_message = RelayMessage::JoinedLobby(client_id);
+            self.send_message_to_clients_lobby(client_id, joining_message.clone());
         } else {
             // client joined nonexistent lobby? should not happen!
         }

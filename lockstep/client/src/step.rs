@@ -317,11 +317,16 @@ impl LockstepClient {
         self.generic_command_queue.push_back((peer_id, generic_command));
     }
 
-    pub fn send_generic_message_to_all(&mut self, generic_command_message: &str) {
+    pub fn send_generic_message(&mut self, generic_command_message: &str) {
+
         let generic_command = GenericCommand::Message(generic_command_message.to_string());
-        for peer in &self.peers {
-            self.generic_commands_to_send.push((peer.id, generic_command.clone()));
-        }
+        
+        // send to self
+        self.generic_command_queue.push_back((self.peer_id, generic_command.clone()));
+
+        // multicast to everyone else who is connected
+        self.generic_commands_to_send.push((self.peer_id, generic_command.clone()));
+
     }
 
     pub fn send_generic_message_to_peer(&mut self, peer_id: PeerID, generic_command_message: &str) {
