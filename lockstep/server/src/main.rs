@@ -339,8 +339,8 @@ impl RelayServer {
         if let Some(lobby) = self.lobbies.get_mut(&lobby_id) {
             lobby.clients.push(client_id);
             let cloned_lobby = lobby.clone();
-            self.send_message_to_clients_lobby(client_id, RelayMessage::UpdatedLobby(cloned_lobby));
             self.send_message_to_client(client_id, RelayMessage::SuccessfullyJoinedLobby(lobby_id));
+            self.send_message_to_clients_lobby(client_id, RelayMessage::UpdatedLobby(cloned_lobby));
         } else {
             // client joined nonexistent lobby? should not happen!
         }
