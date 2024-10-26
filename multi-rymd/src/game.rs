@@ -1,11 +1,12 @@
 use lockstep_client::{game::Game, step::LockstepClient};
 use lockstep_client::step::PeerID;
+use nanoserde::DeJson;
 use puffin_egui::egui;
 use utility::{DebugText, TextPosition};
 
 use crate::PlayerID;
 use crate::measure_scope;
-use crate::model::RymdGameModel;
+use crate::model::{GameMessage, RymdGameModel};
 use crate::view::RymdGameView;
 
 #[derive(Debug, Clone)]
@@ -100,7 +101,15 @@ impl Game for RymdGame {
     }
 
     fn handle_message(&mut self, peer_id: PeerID, message: &str) {    
-        self.model.handle_message(message);
+
+        match GameMessage::deserialize_json(message) {
+            Ok(ref message) => self.model.handle_message(message),
+            Err(err) => {
+                println!("[RymdGame] failed to parse message: {}!", message);
+                return;
+            }
+        };
+
     }
 
     #[profiling::function]

@@ -38,6 +38,7 @@ use super::Building;
 use super::BulletParameters;
 use super::ExtractOrder;
 use super::Extractor;
+use super::GameCommand;
 use super::MovementTarget;
 use super::OrdersExt;
 use super::PreviousTransform;
@@ -222,9 +223,13 @@ impl RymdGameModel {
         self.world.clear();
     }
 
-    fn handle_order(&mut self, entities: Vec<EntityID>, order: GameOrder, should_add: bool) {
+    fn handle_command(&mut self, command: &GameCommand) {
+        
+    }
 
-        for entity_id in entities {
+    fn handle_order(&mut self, entities: &Vec<EntityID>, order: GameOrder, should_add: bool) {
+
+        for &entity_id in entities {
             let Some(entity) = Entity::from_bits(entity_id) else { continue; };
             if let Ok(orderable) = self.world.query_one_mut::<&mut Orderable>(entity) {
                 if should_add {
@@ -238,20 +243,15 @@ impl RymdGameModel {
         
     }
 
-    pub fn handle_message(&mut self, message: &str) {
-        let msg = match GameMessage::deserialize_json(message) {
-            Ok(message) => message,
-            Err(err) => {
-                println!("[RymdGameModel] failed to parse message: {}!", message);
-                return;
-            }
-        };
+    pub fn handle_message(&mut self, message: &GameMessage) {
 
-        println!("[RymdGameModel] got message: {:?}", msg);
+        println!("[RymdGameModel] got message: {:?}", message);
 
-        match msg {
-            GameMessage::Order { entities, order, add } => self.handle_order(entities, order, add),
+        match message {
+            GameMessage::Command { message } => self.handle_command(message),
+            GameMessage::Order { entities, order, add } => self.handle_order(entities, *order, *add),
         }
+
     }
 
     //#[profiling::function]
