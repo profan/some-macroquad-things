@@ -49,6 +49,10 @@ impl RymdGameFrameStats {
 
 impl Game for RymdGame {
 
+    fn should_automatically_start(&self) -> bool {
+        false
+    }
+
     fn is_running(&self) -> bool {
         self.is_running
     }
@@ -103,7 +107,15 @@ impl Game for RymdGame {
     fn handle_message(&mut self, peer_id: PeerID, message: &str) {    
 
         match GameMessage::deserialize_json(message) {
-            Ok(ref message) => self.model.handle_message(message),
+            Ok(ref message) => {
+
+                self.model.handle_message(message);
+
+                if let GameMessage::Command { message } = message {
+                    self.view.handle_message(message);
+                }
+
+            },
             Err(err) => {
                 println!("[RymdGame] failed to parse message: {}!", message);
                 return;

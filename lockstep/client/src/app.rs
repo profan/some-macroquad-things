@@ -82,9 +82,9 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
     }
 
     fn is_in_running_game(&self) -> bool {
-        let is_in_singleplayer = self.is_in_singleplayer();
+        let is_in_running_singleplayer_game = self.is_in_singleplayer() && self.game.is_running();
         let is_in_running_multiplayer_game = self.is_in_multiplayer() && self.relay.is_in_currently_running_lobby();
-        is_in_singleplayer || is_in_running_multiplayer_game
+        is_in_running_singleplayer_game || is_in_running_multiplayer_game
     }
 
     pub fn is_in_frontend(&self) -> bool {
@@ -100,11 +100,17 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
     }
 
     pub fn start_singleplayer_game(&mut self) {
+
         let local_peer_id = 0;
         let new_lockstep_client = LockstepClient::new(local_peer_id, true);
         self.mode = ApplicationMode::Singleplayer;
-        self.game.start_game(&new_lockstep_client);
+
+        if self.game.should_automatically_start() {
+            self.game.start_game(&new_lockstep_client);
+        }
+
         self.lockstep = Some(new_lockstep_client);
+
     }
 
     pub fn start_multiplayer_game(&mut self) {
@@ -113,13 +119,13 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
     pub fn stop_game(&mut self) {
         if self.mode == ApplicationMode::Singleplayer {
-            self.stop_local_game();
+            self.stop_singleplayer_game();
         } else if self.mode == ApplicationMode::Multiplayer {
             self.stop_multiplayer_game();
         }
     }
 
-    fn stop_local_game(&mut self) {
+    fn stop_singleplayer_game(&mut self) {
         self.game.reset();
         self.game.stop_game();
         self.mode = ApplicationMode::Frontend;
@@ -256,13 +262,25 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
     pub fn update(&mut self) {
 
+        self.handle_messages();
+
         if self.mode == ApplicationMode::Singleplayer || self.mode == ApplicationMode::Multiplayer {
+
             if is_key_pressed(KeyCode::Escape) && self.is_in_running_game() {
                 self.stop_game();
             }
+
+            if is_key_pressed(KeyCode::Escape) && self.is_in_singleplayer() && self.is_in_running_game() == false {
+                self.stop_singleplayer_game();
+            }
+
+            if is_key_pressed(KeyCode::Escape) && self.is_in_multiplayer() && self.is_in_running_game() == false {
+                self.stop_multiplayer_game();
+            }
+
         }
     
-        if let Some(lockstep) = &mut self.lockstep {
+        if let Some(lockstep) = &mut self.lockstep && self.game.is_running() {
     
             if self.mode == ApplicationMode::Singleplayer {
                 lockstep.tick_with(|peer_id, msg| self.game.handle_message(peer_id, msg), |_ ,_| ());
@@ -401,6 +419,10 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         }
     }
 
+    fn draw_single_player_lobby_ui(&mut self, ctx: &egui::Context) {
+        self.game.draw_lobby_ui(ctx, &mut self.debug);
+    }
+
     fn draw_multiplayer_lobby_ui(&mut self, ctx: &egui::Context) {
     
         if self.relay.is_in_currently_running_lobby() {
@@ -422,6 +444,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
             if self.net.is_connected() {
                 if self.relay.is_in_lobby() {
                     self.draw_lobby_ui(ui);
+                    self.game.draw_lobby_ui(ctx, &mut self.debug);
                 } else {
                     self.draw_lobby_list_ui(ui);
                 }
@@ -491,11 +514,11 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
             self.draw_main_menu_ui(ctx);
         }
     
-        if self.mode == ApplicationMode::Singleplayer {
-            // ... do we need anything?
+        if self.mode == ApplicationMode::Singleplayer && self.is_in_running_game() == false {
+            self.draw_single_player_lobby_ui(ctx);
         }
     
-        if self.mode == ApplicationMode::Multiplayer {
+        if self.mode == ApplicationMode::Multiplayer && self.is_in_running_game() == false {
             self.draw_multiplayer_lobby_ui(ctx);
         }
     

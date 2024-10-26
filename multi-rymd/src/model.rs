@@ -1,5 +1,6 @@
 mod buildings;
 mod constants;
+mod commands;
 mod components;
 mod environment;
 mod effects;

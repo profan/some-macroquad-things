@@ -6,6 +6,10 @@ pub trait Game where Self: Sized {
 
     async fn load_resources(&mut self);
 
+    fn should_automatically_start(&self) -> bool {
+        true
+    }
+
     fn is_running(&self) -> bool;
     fn is_paused(&self) -> bool;
 
@@ -15,10 +19,14 @@ pub trait Game where Self: Sized {
     fn resume_game(&mut self);
     fn pause_game(&mut self);
 
+    // game
     fn handle_message(&mut self, peer_id: PeerID, message: &str);
     fn update(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient);
     fn draw(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient, dt: f32);
     fn draw_ui(&mut self, ctx: &egui::Context, debug: &mut DebugText, lockstep: &mut LockstepClient) {}
     fn reset(&mut self);
+
+    // lobby
+    fn draw_lobby_ui(&mut self, ctx: &egui::Context, debug: &mut DebugText) {}
     
 }

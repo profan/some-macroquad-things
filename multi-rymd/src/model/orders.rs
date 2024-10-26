@@ -46,7 +46,7 @@ impl GameOrdersExt for LockstepClient {
     fn send_attack_order(&mut self, entity: Entity, target_entity: Entity, should_add: bool) {
         let attack_order = GameOrder::Attack(AttackOrder { entity_id: target_entity.to_bits().into() });
         let attack_unit_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: attack_order, add: should_add };
-        self.send_command(attack_unit_message.serialize_json());  
+        self.send_command(attack_unit_message.serialize_json());
     }
 
     fn send_attack_move_order(&mut self, entity: Entity, target_position: Vec2, should_add: bool) {

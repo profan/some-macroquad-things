@@ -136,7 +136,6 @@ async fn main() {
 
         let dt = get_frame_time();
 
-        app.handle_messages();
         clear_background(WHITE);
 
         app.update();

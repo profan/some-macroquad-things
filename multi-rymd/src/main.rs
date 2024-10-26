@@ -48,7 +48,6 @@ async fn main() {
         app.get_game().stats.main_time_ms = main_loop_update_time_ms;
         measure_scope!(main_loop_update_time_ms);
 
-        app.handle_messages();
         clear_background(Color::from_hex(0x181425));
 
         app.update();
