@@ -30,8 +30,8 @@ pub trait Game where Self: Sized {
     fn on_enter_lobby(&mut self) {}
     fn on_leave_lobby(&mut self) {}
 
-    fn on_client_joined_lobby(&mut self, peer_id: PeerID) {}
-    fn on_client_left_lobby(&mut self, peer_id: PeerID) {}
+    fn on_client_joined_lobby(&mut self, peer_id: PeerID, lockstep: &mut LockstepClient) {}
+    fn on_client_left_lobby(&mut self, peer_id: PeerID, lockstep: &mut LockstepClient) {}
 
     fn handle_generic_message(&mut self, peer_id: PeerID, message: &str);
     fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, debug: &mut DebugText, lockstep: &mut LockstepClient) {}

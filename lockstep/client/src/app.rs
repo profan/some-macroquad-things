@@ -231,14 +231,22 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                                 }
                             },
                             RelayMessage::JoinedLobby(client_id) => {
-                                self.game.on_client_joined_lobby(client_id);
+                                if let Some(lockstep) = &mut self.lockstep {
+                                    if lockstep.peer_id() == client_id {
+
+                                    } else {
+                                        self.game.on_client_joined_lobby(client_id, lockstep);
+                                    }
+                                }
                             },
                             RelayMessage::LeftLobby(client_id) => {
-                                if let Some(lockstep) = &mut self.lockstep && lockstep.peer_id() == client_id {
-                                    self.lockstep = None;
-                                    self.game.on_leave_lobby();
-                                } else {
-                                    self.game.on_client_left_lobby(client_id);
+                                if let Some(lockstep) = &mut self.lockstep {
+                                    if lockstep.peer_id() == client_id {
+                                        self.lockstep = None;
+                                        self.game.on_leave_lobby();
+                                    } else {
+                                        self.game.on_client_left_lobby(client_id, lockstep);
+                                    }
                                 }
                                 self.game.reset();
                             },

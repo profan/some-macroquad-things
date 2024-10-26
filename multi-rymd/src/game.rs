@@ -190,7 +190,7 @@ impl Game for RymdGame {
         ui.text_edit_singleline(&mut self.chat.current_message);
 
         if ui.button("send message").clicked() && self.chat.current_message.is_empty() == false {
-            self.chat.current_message = format!("[peer {}] - {}\n", lockstep.peer_id(), self.chat.current_message);
+            self.chat.current_message = format!("[peer {}] {}\n", lockstep.peer_id(), self.chat.current_message);
             let game_command = GameCommand::Message { text: self.chat.current_message.clone() };
             lockstep.send_generic_message(&game_command.serialize_json());
             self.chat.current_message.clear();
@@ -214,11 +214,11 @@ impl Game for RymdGame {
         self.chat.reset();
     }
 
-    fn on_client_joined_lobby(&mut self, peer_id: PeerID) {
+    fn on_client_joined_lobby(&mut self, peer_id: PeerID, lockstep: &mut LockstepClient) {
         self.chat.current_messsage_buffer += &format!("[peer {}] joined!\n", peer_id);
     }
 
-    fn on_client_left_lobby(&mut self, peer_id: PeerID) {
+    fn on_client_left_lobby(&mut self, peer_id: PeerID, lockstep: &mut LockstepClient) {
         self.chat.current_messsage_buffer += &format!("[peer {}] left!\n", peer_id);
     }
 
