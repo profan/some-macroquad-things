@@ -437,13 +437,15 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
                 let lobby_text = format!("{} ({}) - {:?}", lobby.name, lobby.id, lobby.state);
 
-                ui.horizontal_centered(|ui| {
-                    ui.label(lobby_text);
-                    if lobby.state == LobbyState::Open {
-                        if ui.button("join").clicked() {
-                            self.net.join_lobby(lobby.id);
+                ui.vertical_centered_justified(|ui| {
+                    ui.horizontal(|ui| {
+                        ui.label(lobby_text);
+                        if lobby.state == LobbyState::Open {
+                            if ui.button("join").clicked() {
+                                self.net.join_lobby(lobby.id);
+                            }
                         }
-                    }
+                    });
                 });
 
             }
