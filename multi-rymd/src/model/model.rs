@@ -38,7 +38,6 @@ use super::Building;
 use super::BulletParameters;
 use super::ExtractOrder;
 use super::Extractor;
-use super::GameCommand;
 use super::MovementTarget;
 use super::OrdersExt;
 use super::PreviousTransform;

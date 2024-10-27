@@ -1,3 +1,4 @@
+use hecs::World;
 use lockstep_client::command::GenericCommand;
 use lockstep_client::{game::Game, step::LockstepClient};
 use lockstep_client::step::PeerID;
@@ -5,9 +6,10 @@ use nanoserde::{DeJson, SerJson};
 use puffin_egui::egui;
 use utility::{DebugText, TextPosition};
 
+use crate::commands::{CommandsExt, GameCommand};
 use crate::PlayerID;
 use crate::measure_scope;
-use crate::model::{GameCommand, GameMessage, RymdGameModel};
+use crate::model::{Commander, Controller, GameMessage, Player, RymdGameModel};
 use crate::view::RymdGameView;
 
 #[derive(Debug, Clone)]
@@ -28,6 +30,7 @@ impl RymdGameParameters {
 
 pub struct RymdGame {
     pub stats: RymdGameFrameStats,
+    setup: RymdGameSetup,
     chat: RymdGameChat,
     model: RymdGameModel,
     view: RymdGameView,
@@ -43,6 +46,169 @@ pub struct RymdGameFrameStats {
     pub draw_time_ms: f32
 }
 
+pub struct RymdGameTeam {
+    pub id: i32,
+    pub players: Vec<PlayerID>
+}
+
+pub struct RymdGameModeConquest {
+    pub teams: Vec<RymdGameTeam>
+}
+
+impl RymdGameModeConquest {
+
+    pub fn new() -> RymdGameModeConquest {
+        RymdGameModeConquest {
+            teams: Vec::new()
+        }
+    }
+
+    fn get_number_of_commanders_of_player(world: &mut World, player_id: PlayerID) -> i32 {
+        let mut number_of_commanders = 0;
+        for (e, (commander, controller)) in world.query_mut::<(&Commander, &Controller)>() {         
+            if controller.id == player_id {
+                number_of_commanders += 1;
+            }
+        }
+        number_of_commanders
+    }
+
+    fn is_commander_dead_for_player(model: &mut RymdGameModel, player_id: PlayerID) -> bool {
+        for (e, player) in model.world.query_mut::<&Player>() {
+            if player.id == player_id {
+                return Self::get_number_of_commanders_of_player(&mut model.world, player_id) <= 0;
+            }
+        }
+        return false;
+    }
+
+    fn is_any_commander_still_alive_in_team(model: &mut RymdGameModel, team: &RymdGameTeam) -> bool {
+        let mut has_alive_commander = false;
+        for &player_id in &team.players {
+            if Self::is_commander_dead_for_player(model, player_id) == false {
+                has_alive_commander = true;
+            }
+        }
+        has_alive_commander
+    }
+
+}
+
+impl RymdGameMode for RymdGameModeConquest {
+
+    fn name(&self) -> &str {
+        "Conquest"
+    }
+
+    fn on_command(&mut self, game_command: &GameCommand) {
+        match game_command {
+            GameCommand::Message { text } => ()
+        }   
+    }
+
+    fn tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult {
+
+        for team in &self.teams {
+            if Self::is_any_commander_still_alive_in_team(model, team) == false {
+                // evaporate all the units of this team?
+            }
+        }
+
+        RymdGameModeResult::Continue
+        
+    }
+    
+    fn draw(&self, model: &RymdGameModel, view: &mut RymdGameView) {
+
+    }
+    
+    fn draw_ui(&self, model: &RymdGameModel, view: &RymdGameView, ctx: &egui::Context) {
+
+    }
+    
+    fn draw_lobby_ui(&self, ui: &mut egui::Ui, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+
+        ui.label(format!("game mode: {}", self.name()));
+
+    }
+
+}
+
+pub struct RymdGameModeChickens {
+    pub number_of_waves: i32,
+    pub difficulty_multiplier: f32
+}
+
+impl RymdGameModeChickens {
+    pub fn new() -> RymdGameModeChickens {
+        RymdGameModeChickens {
+            number_of_waves: 3,
+            difficulty_multiplier: 1.0
+        }
+    }
+}
+
+impl RymdGameMode for RymdGameModeChickens {
+
+    fn name(&self) -> &str {
+        "Chickens"
+    }
+
+    fn on_command(&mut self, game_command: &GameCommand) {
+
+    }
+
+    fn tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult {
+        RymdGameModeResult::Continue
+    }
+
+    fn draw(&self, model: &RymdGameModel, view: &mut RymdGameView) {
+
+    }
+
+    fn draw_ui(&self, model: &RymdGameModel, view: &RymdGameView, ctx: &egui::Context) {
+
+    }
+
+    fn draw_lobby_ui(&self, ui: &mut egui::Ui, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+        
+        ui.label(format!("game mode: {}", self.name()));
+
+    }
+
+}
+
+pub enum RymdGameModeResult {
+    Start,
+    Continue,
+    End
+}
+
+pub trait RymdGameMode {
+
+    fn name(&self) -> &str;
+
+    fn on_command(&mut self, game_command: &GameCommand);
+    fn tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult;
+
+    fn draw(&self, model: &RymdGameModel, view: &mut RymdGameView);
+    fn draw_ui(&self, model: &RymdGameModel, view: &RymdGameView, ctx: &egui::Context);
+    fn draw_lobby_ui(&self, ui: &mut egui::Ui, debug: &mut DebugText, lockstep: &mut LockstepClient);
+
+}
+
+pub struct RymdGameSetup {
+    game_mode: Option<Box<dyn RymdGameMode>>
+}
+
+impl RymdGameSetup {
+    pub fn new() -> RymdGameSetup {
+        RymdGameSetup {
+            game_mode: None
+        }
+    }
+}
+
 pub struct RymdGameChat {
     pub current_messsage_buffer: String,
     pub current_message: String,
@@ -54,6 +220,22 @@ impl RymdGameChat {
             current_messsage_buffer: String::new(),
             current_message: String::new()
         }
+    }
+
+    pub fn on_game_command(&mut self, game_command: &GameCommand) {
+        match game_command {
+            GameCommand::Message { text } => {
+                self.current_messsage_buffer += text
+            }
+        }
+    }
+
+    pub fn on_client_joined_lobby(&mut self, peer_id: PeerID) {
+        self.current_messsage_buffer += &format!("[peer {}] joined!\n", peer_id);
+    }
+
+    pub fn on_client_left_lobby(&mut self, peer_id: PeerID) {
+        self.current_messsage_buffer += &format!("[peer {}] left!\n", peer_id);
     }
 
     pub fn reset(&mut self) {
@@ -128,8 +310,11 @@ impl Game for RymdGame {
     fn handle_generic_message(&mut self, peer_id: PeerID, message: &str) {
 
         match GameCommand::deserialize_json(message) {
-            Ok(ref message) => match message {
-                GameCommand::Message { text } => self.chat.current_messsage_buffer += text,
+            Ok(ref game_command) => {
+                self.chat.on_game_command(game_command);
+                if let Some(game_mode) = &mut self.setup.game_mode {
+                    game_mode.on_command(game_command);
+                }
             },
             Err(err) => {
                 println!("[RymdGame] failed to parse generic message: {}!", message);
@@ -153,13 +338,28 @@ impl Game for RymdGame {
 
     #[profiling::function]
     fn update(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+
+        if self.is_started == false {
+            return;
+        }
+
         measure_scope!(self.stats.update_time_ms);
         self.model.tick();
+
+        if let Some(game_mode) = &mut self.setup.game_mode {
+            game_mode.tick(&mut self.model);
+        }
+        
         self.view.update(&mut self.model);
+
     }
 
     #[profiling::function]
     fn draw(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient, dt: f32) {
+
+        if self.is_started == false {
+            return;
+        }
 
         {
             measure_scope!(self.stats.tick_view_time_ms);
@@ -168,6 +368,9 @@ impl Game for RymdGame {
         {
             measure_scope!(self.stats.draw_time_ms);
             self.view.draw(&mut self.model, debug, lockstep, dt);
+            if let Some(game_mode) = &self.setup.game_mode {
+                game_mode.draw(&self.model, &mut self.view);
+            }
         }
 
         self.draw_frame_stats(debug);
@@ -175,6 +378,10 @@ impl Game for RymdGame {
     }
 
     fn draw_ui(&mut self, ctx: &egui::Context, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+
+        if self.is_started == false {
+            return;
+        }
 
         self.view.draw_ui(ctx, &mut self.model, debug, lockstep);
         
@@ -186,14 +393,24 @@ impl Game for RymdGame {
 
     fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, debug: &mut DebugText, lockstep: &mut LockstepClient) {
 
-        ui.label(&self.chat.current_messsage_buffer);
-        ui.text_edit_singleline(&mut self.chat.current_message);
+        if let Some(game_mode) = &mut self.setup.game_mode {
+            game_mode.draw_lobby_ui(ui, debug, lockstep);
+        }
 
-        if ui.button("send message").clicked() && self.chat.current_message.is_empty() == false {
-            self.chat.current_message = format!("[peer {}] {}\n", lockstep.peer_id(), self.chat.current_message);
-            let game_command = GameCommand::Message { text: self.chat.current_message.clone() };
-            lockstep.send_generic_message(&game_command.serialize_json());
-            self.chat.current_message.clear();
+        if lockstep.is_singleplayer() == false {
+
+            ui.separator();
+            ui.label("chat");
+
+            ui.label(&self.chat.current_messsage_buffer);
+            ui.text_edit_singleline(&mut self.chat.current_message);
+    
+            if ui.button("send message").clicked() && self.chat.current_message.is_empty() == false {
+                let chat_message_to_send = format!("[peer {}] {}\n", lockstep.peer_id(), self.chat.current_message);
+                lockstep.send_chat_message(chat_message_to_send.to_string());
+                self.chat.current_message.clear();
+            }
+
         }
         
     }
@@ -207,19 +424,21 @@ impl Game for RymdGame {
     }
 
     fn on_enter_lobby(&mut self) {
+        self.setup.game_mode = Some(Box::new(RymdGameModeChickens::new()));
         self.chat.reset();
     }
 
     fn on_leave_lobby(&mut self) {
+        self.setup.game_mode = None;
         self.chat.reset();
     }
 
     fn on_client_joined_lobby(&mut self, peer_id: PeerID, lockstep: &mut LockstepClient) {
-        self.chat.current_messsage_buffer += &format!("[peer {}] joined!\n", peer_id);
+        self.chat.on_client_joined_lobby(peer_id);
     }
 
     fn on_client_left_lobby(&mut self, peer_id: PeerID, lockstep: &mut LockstepClient) {
-        self.chat.current_messsage_buffer += &format!("[peer {}] left!\n", peer_id);
+        self.chat.on_client_left_lobby(peer_id);
     }
 
 }
@@ -229,6 +448,7 @@ impl RymdGame {
     pub fn new() -> RymdGame {
         RymdGame {
             chat: RymdGameChat::new(),
+            setup: RymdGameSetup::new(),
             stats: RymdGameFrameStats::new(),
             model: RymdGameModel::new(),
             view: RymdGameView::new(),

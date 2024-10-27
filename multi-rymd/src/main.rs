@@ -9,6 +9,7 @@ use macroquad::prelude::*;
 use lockstep_client::app::ApplicationState;
 use puffin_egui::puffin;
 
+mod commands;
 mod game;
 mod model;
 mod utils;

@@ -1,6 +1,5 @@
 mod buildings;
 mod constants;
-mod commands;
 mod components;
 mod environment;
 mod effects;
@@ -18,7 +17,6 @@ mod steering;
 pub use buildings::*;
 pub use constants::*;
 pub use components::*;
-
 pub use effects::*;
 pub use message::*;
 pub use model::*;

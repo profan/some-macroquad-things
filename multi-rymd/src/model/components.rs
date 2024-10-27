@@ -711,3 +711,5 @@ impl Effect {
         self.lifetime / self.total_lifetime
     }
 }
+
+pub struct Commander;

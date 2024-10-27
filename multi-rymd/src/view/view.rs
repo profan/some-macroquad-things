@@ -11,7 +11,7 @@ use hecs::*;
 
 use crate::PlayerID;
 use crate::game::RymdGameParameters;
-use crate::model::{current_energy, current_energy_income, current_metal, current_metal_income, max_energy, max_metal, Attackable, Attacker, Beam, Blueprint, BlueprintID, BlueprintIdentity, Blueprints, Building, Effect, EntityState, Extractor, GameCommand, GameOrder, GameOrderType, Impact, PhysicsBody, ResourceSource, Spawner};
+use crate::model::{current_energy, current_energy_income, current_metal, current_metal_income, max_energy, max_metal, Attackable, Attacker, Beam, Blueprint, BlueprintID, BlueprintIdentity, Blueprints, Building, Effect, EntityState, Extractor, GameOrder, GameOrderType, Impact, PhysicsBody, ResourceSource, Spawner};
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Controller, Health, get_entity_position};
 
 use super::{calculate_sprite_bounds, GameCamera2D};
@@ -1129,19 +1129,6 @@ impl RymdGameView {
             
         self.ordering.clear_points();
 
-    }
-
-    fn handle_command(&mut self, command: &GameCommand) {
-
-        match command {
-            GameCommand::Message { text } => println!("{}", text)
-        }
-
-    }
-
-    pub fn handle_message(&mut self, command: &GameCommand) {
-        println!("[RymdGameView] got command: {:?}", command);
-        self.handle_command(command);
     }
 
     fn is_anything_selected(&self, world: &World) -> bool {
