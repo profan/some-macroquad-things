@@ -18,6 +18,7 @@ pub use buildings::*;
 pub use constants::*;
 pub use components::*;
 pub use effects::*;
+pub use environment::*;
 pub use message::*;
 pub use model::*;
 pub use orders::*;

@@ -2,6 +2,8 @@ use hecs::World;
 use lockstep_client::command::GenericCommand;
 use lockstep_client::{game::Game, step::LockstepClient};
 use lockstep_client::step::PeerID;
+use macroquad::math::vec2;
+use macroquad::prelude::rand;
 use nanoserde::{DeJson, SerJson};
 use puffin_egui::egui;
 use utility::{DebugText, TextPosition};
@@ -9,7 +11,7 @@ use utility::{DebugText, TextPosition};
 use crate::commands::{CommandsExt, GameCommand};
 use crate::PlayerID;
 use crate::measure_scope;
-use crate::model::{Commander, Controller, GameMessage, Player, RymdGameModel};
+use crate::model::{build_commander_ship, create_asteroid, create_player_entity, spawn_commander_ship, Commander, Controller, GameMessage, Health, Player, RymdGameModel};
 use crate::view::RymdGameView;
 
 #[derive(Debug, Clone)]
@@ -106,7 +108,19 @@ impl RymdGameMode for RymdGameModeConquest {
         }   
     }
 
-    fn tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult {
+    fn on_start(&self, model: &mut RymdGameModel, parameters: &RymdGameParameters) {
+
+        rand::srand(42);
+
+        let number_of_asteroid_clumps = 10;
+        let number_of_asteroids = 10;
+
+        create_player_commander_ships(model, parameters);
+        create_asteroid_clumps(model, number_of_asteroid_clumps, number_of_asteroids);
+
+    }
+
+    fn on_tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult {
 
         for team in &self.teams {
             if Self::is_any_commander_still_alive_in_team(model, team) == false {
@@ -130,6 +144,41 @@ impl RymdGameMode for RymdGameModeConquest {
 
         ui.label(format!("game mode: {}", self.name()));
 
+    }
+
+}
+
+fn create_asteroid_clumps(model: &mut RymdGameModel, number_of_asteroid_clumps: i32, number_of_asteroids: i32) {
+
+    for i in 0..number_of_asteroid_clumps {
+
+        let asteroid_clump_random_x = rand::gen_range(-4000, 4000);
+        let asteroid_clump_random_y = rand::gen_range(-4000, 4000);
+
+        for i in 0..number_of_asteroids {
+
+            let random_x = rand::gen_range(asteroid_clump_random_x - 400, asteroid_clump_random_x + 400);
+            let random_y = rand::gen_range(asteroid_clump_random_y - 400, asteroid_clump_random_y + 400);
+
+            let new_asteroid = create_asteroid(&mut model.world, vec2(random_x as f32, random_y as f32), 0.0);
+
+        }
+
+    }
+
+}
+
+fn create_player_commander_ships(model: &mut RymdGameModel, parameters: &RymdGameParameters) {
+
+    for player in &parameters.players {
+
+        create_player_entity(&mut model.world, player.id);
+
+        let start_random_x = rand::gen_range(-400, 400);
+        let start_random_y = rand::gen_range(-400, 400);
+
+        let commander_ship = spawn_commander_ship(&mut model.world, player.id, vec2(start_random_x as f32, start_random_y as f32));
+    
     }
 
 }
@@ -158,7 +207,19 @@ impl RymdGameMode for RymdGameModeChickens {
 
     }
 
-    fn tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult {
+    fn on_start(&self, model: &mut RymdGameModel, parameters: &RymdGameParameters) {
+
+        rand::srand(42);
+
+        let number_of_asteroid_clumps = 10;
+        let number_of_asteroids = 10;
+
+        create_player_commander_ships(model, parameters);
+        create_asteroid_clumps(model, number_of_asteroid_clumps, number_of_asteroids);
+
+    }
+
+    fn on_tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult {
         RymdGameModeResult::Continue
     }
 
@@ -189,7 +250,9 @@ pub trait RymdGameMode {
     fn name(&self) -> &str;
 
     fn on_command(&mut self, game_command: &GameCommand);
-    fn tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult;
+
+    fn on_start(&self, model: &mut RymdGameModel, parameters: &RymdGameParameters);
+    fn on_tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult;
 
     fn draw(&self, model: &RymdGameModel, view: &mut RymdGameView);
     fn draw_ui(&self, model: &RymdGameModel, view: &RymdGameView, ctx: &egui::Context);
@@ -280,6 +343,10 @@ impl Game for RymdGame {
                 let game_players = lockstep.peers().iter().map(|client| RymdGamePlayer { id: client.id } ).collect();
                 RymdGameParameters { players: game_players }
             };
+            
+            if let Some(game_mode) = &mut self.setup.game_mode {
+                game_mode.on_start(&mut self.model, &game_parameters);
+            }
 
             self.model.start(game_parameters.clone());
             self.view.start(game_parameters.clone(), lockstep.peer_id());
@@ -347,7 +414,7 @@ impl Game for RymdGame {
         self.model.tick();
 
         if let Some(game_mode) = &mut self.setup.game_mode {
-            game_mode.tick(&mut self.model);
+            game_mode.on_tick(&mut self.model);
         }
         
         self.view.update(&mut self.model);

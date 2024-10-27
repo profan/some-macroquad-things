@@ -156,6 +156,17 @@ fn create_ship(world: &mut World, owner: PlayerID, position: Vec2, parameters: S
 
 }
 
+pub fn spawn_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
+
+    let commander_ship = build_commander_ship(world, owner, position);
+    if let Ok(mut health) = world.get::<&mut Health>(commander_ship) {
+        health.heal_to_full_health();
+    }
+
+    commander_ship
+
+}
+
 pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
 
     let commander_ship_size = 32.0;
