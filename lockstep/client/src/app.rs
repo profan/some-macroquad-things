@@ -358,7 +358,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                 self.game.update(&mut self.debug, lockstep);
                 self.current_tick += 1;
 
-            } else if lockstep.turn_state() == TurnState::Waiting {
+            } else {
 
                 self.game.pause_game();
 

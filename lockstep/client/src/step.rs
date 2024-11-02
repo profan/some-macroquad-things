@@ -441,7 +441,6 @@ impl LockstepClient {
 
                 if self.turn_number == -1 {
                     self.send_turn_command(TurnCommand::Pass(self.current_send_turn_id()));
-                    self.send_turn_command_with_delay(TurnCommand::Pass(self.current_send_turn_id()), self.turn_delay);
                     self.send_queued_commands_with_offset(send_command_fn, 0);
                 }
 

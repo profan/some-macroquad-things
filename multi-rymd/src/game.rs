@@ -526,7 +526,7 @@ impl Game for RymdGame {
     }
 
     fn on_enter_lobby(&mut self) {
-        self.setup.game_mode = Some(Box::new(RymdGameModeChickens::new()));
+        self.setup.game_mode = Some(Box::new(RymdGameModeConquest::new()));
         self.chat.reset();
     }
 
