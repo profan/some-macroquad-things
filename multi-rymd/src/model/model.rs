@@ -1,10 +1,10 @@
 use core::f32;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use hecs::{CommandBuffer, Entity, World};
-use macroquad::{*, math::vec2};
+use macroquad::*;
 use math::Vec2;
-use nanoserde::DeJson;
+use rand::RandomRange;
 use utility::random_binomial;
 use utility::separation;
 use utility::AsVector;
@@ -25,9 +25,6 @@ use super::create_extractor_ship_blueprint;
 use super::create_grunt_ship_blueprint;
 use super::create_impact_effect_in_world;
 use super::entity_apply_raw_steering;
-use super::environment::create_asteroid;
-use super::get_position_and_normal_on_targeted_entity_relative_to;
-use super::is_within_extractor_range;
 use super::is_within_extractor_range_with_extractor;
 use super::spatial::entity_distance_sort_function;
 use super::spatial::SpatialQueryManager;
@@ -41,11 +38,9 @@ use super::Extractor;
 use super::MovementTarget;
 use super::OrdersExt;
 use super::PreviousTransform;
-use super::Resource;
 use super::ResourceSource;
 use super::RotationTarget;
 use super::UnitState;
-use super::DEFAULT_STEERING_PARAMETERS;
 use super::{create_simple_bullet, Effect};
 use super::get_entity_position;
 use super::point_entity_towards_target;
@@ -74,7 +69,6 @@ use super::create_arrowhead_ship_blueprint;
 use super::create_commander_ship_blueprint;
 use super::create_energy_storage_blueprint;
 use super::create_metal_storage_blueprint;
-use super::create_player_entity;
 use super::create_shipyard_blueprint;
 use super::create_solar_collector_blueprint;
 use super::current_energy;
@@ -82,7 +76,7 @@ use super::current_metal;
 use super::provide_energy;
 use super::provide_metal;
 use super::ProjectileWeapon;
-use super::{build_commander_ship, GameOrder, Orderable, Transform, DynamicBody, Blueprint};
+use super::{GameOrder, Orderable, Transform, DynamicBody, Blueprint};
 
 pub struct RymdGameModel {
     pub physics_manager: PhysicsManager,
@@ -92,12 +86,12 @@ pub struct RymdGameModel {
 }
 
 pub struct BlueprintManager {
-    blueprints: HashMap<BlueprintID, Blueprint>
+    blueprints: BTreeMap<BlueprintID, Blueprint>
 }
 
-fn create_blue_side_blueprints() -> HashMap<i32, Blueprint> {
+fn create_blue_side_blueprints() -> BTreeMap<i32, Blueprint> {
 
-    let mut blueprints = HashMap::new();
+    let mut blueprints = BTreeMap::new();
 
     // buildings
     let metal_storage_blueprint = create_metal_storage_blueprint();
@@ -123,9 +117,9 @@ fn create_blue_side_blueprints() -> HashMap<i32, Blueprint> {
 
 }
 
-fn create_green_side_blueprints() -> HashMap<i32, Blueprint> {
+fn create_green_side_blueprints() -> BTreeMap<i32, Blueprint> {
 
-    let mut blueprints = HashMap::new();
+    let mut blueprints = BTreeMap::new();
 
     // units
     let commissar_ship_blueprint = create_commissar_ship_blueprint();
@@ -142,7 +136,7 @@ impl BlueprintManager {
 
     pub fn new() -> BlueprintManager {
 
-        let mut blueprints = HashMap::new();
+        let mut blueprints = BTreeMap::new();
         
         for (k, v) in create_blue_side_blueprints() {
             blueprints.insert(k, v);
@@ -168,6 +162,17 @@ impl RymdGameModel {
 
     pub const TIME_STEP: f32 = 1.0 / 60.0;
     pub const SPATIAL_BUCKET_SIZE: i32 = 256;
+
+    pub fn random_binomial() -> f32 {
+        0.0
+    }
+
+    pub fn gen_range<T>(low: T, high: T) -> T
+    where
+        T: RandomRange
+    {
+        T::gen_range(low, high)
+    }
 
     pub fn new() -> RymdGameModel {
         RymdGameModel {
@@ -414,7 +419,7 @@ impl RymdGameModel {
     //#[profiling::function]
     fn tick_attackers(&mut self) {
 
-        let mut attack_targets = HashMap::new();
+        let mut attack_targets = BTreeMap::new();
 
         // search for targets in range and accumulate
 
@@ -773,7 +778,7 @@ impl RymdGameModel {
     //#[profiling::function]
     fn tick_resource_storage(&mut self) {
 
-        let mut energy_pools_per_player = HashMap::new();
+        let mut energy_pools_per_player = BTreeMap::new();
 
         for (e, (controller, storage, &state)) in self.world.query_mut::<(&Controller, &Storage, &EntityState)>() {
 
@@ -802,7 +807,7 @@ impl RymdGameModel {
     //#[profiling::function]
     fn tick_resources(&mut self) {
 
-        let mut energy_incomes_per_player = HashMap::new();
+        let mut energy_incomes_per_player = BTreeMap::new();
 
         for (e, (controller, &state, consumer, producer)) in self.world.query::<(&Controller, &EntityState, Option<&Consumer>, Option<&Producer>)>().iter() {
 
@@ -1001,6 +1006,8 @@ impl RymdGameModel {
     }
 
     pub fn tick(&mut self) {
+
+        macroquad::rand::srand(42);
         
         self.tick_constructing_entities();
         self.tick_powered_entities();

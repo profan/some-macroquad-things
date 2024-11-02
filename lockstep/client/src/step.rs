@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::{BTreeMap, VecDeque};
 use nanoserde::{SerJson, DeJson};
 
 pub type PeerID = i64;
@@ -41,16 +41,16 @@ pub enum TurnState {
 
 #[derive(Debug)]
 pub struct LockstepCommandQueue {
-    commands_to_process: HashMap<TurnID, HashMap<PeerID, Vec<TurnCommand>>>,
-    commands_to_send: HashMap<TurnID, Vec<TurnCommand>>
+    commands_to_process: BTreeMap<TurnID, BTreeMap<PeerID, Vec<TurnCommand>>>,
+    commands_to_send: BTreeMap<TurnID, Vec<TurnCommand>>
 }
 
 impl LockstepCommandQueue {
     
     pub fn new() -> LockstepCommandQueue {
         LockstepCommandQueue {
-            commands_to_process: HashMap::new(),
-            commands_to_send: HashMap::new()
+            commands_to_process: BTreeMap::new(),
+            commands_to_send: BTreeMap::new()
         }
     }
 
@@ -82,7 +82,7 @@ impl LockstepCommandQueue {
         }
     }
 
-    pub fn commands_to_process_for_turn(&self, turn_id: TurnID) -> Option<&HashMap<PeerID, Vec<TurnCommand>>> {
+    pub fn commands_to_process_for_turn(&self, turn_id: TurnID) -> Option<&BTreeMap<PeerID, Vec<TurnCommand>>> {
         if let Some(commands) = self.commands_to_process.get(&turn_id) {
             Some(commands)
         } else {
@@ -106,7 +106,7 @@ impl LockstepCommandQueue {
                 commands.insert(peer_id, vec![command]);
             }
         } else {
-            let mut new_peer_map = HashMap::new();
+            let mut new_peer_map = BTreeMap::new();
             new_peer_map.insert(peer_id, vec![command]);
             self.commands_to_process.insert(turn_id, new_peer_map);
         }
