@@ -48,20 +48,32 @@ pub struct RymdGameFrameStats {
     pub draw_time_ms: f32
 }
 
+#[derive(Clone, Debug, SerJson, DeJson)]
 pub struct RymdGameTeam {
     pub id: i32,
     pub players: Vec<PlayerID>
 }
 
-pub struct RymdGameModeConquest {
+#[derive(Clone, Debug, SerJson, DeJson)]
+pub struct RymdGameModeConquestData {
     pub teams: Vec<RymdGameTeam>
+}
+
+impl RymdGameModeConquestData {
+    pub fn new() -> RymdGameModeConquestData {
+        RymdGameModeConquestData { teams: Vec::new() }
+    }
+}
+
+pub struct RymdGameModeConquest {
+    pub data: RymdGameModeConquestData
 }
 
 impl RymdGameModeConquest {
 
     pub fn new() -> RymdGameModeConquest {
         RymdGameModeConquest {
-            teams: Vec::new()
+            data: RymdGameModeConquestData::new()
         }
     }
 
@@ -103,9 +115,9 @@ impl RymdGameMode for RymdGameModeConquest {
     }
 
     fn on_command(&mut self, game_command: &GameCommand) {
-        match game_command {
-            GameCommand::Message { text } => ()
-        }   
+        
+        let GameCommand::UpdateConquestGameLobby { data } = game_command else { return; };
+
     }
 
     fn on_start(&self, model: &mut RymdGameModel, parameters: &RymdGameParameters) {
@@ -120,9 +132,9 @@ impl RymdGameMode for RymdGameModeConquest {
 
     }
 
-    fn on_tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult {
+    fn tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult {
 
-        for team in &self.teams {
+        for team in &self.data.teams {
             if Self::is_any_commander_still_alive_in_team(model, team) == false {
                 // evaporate all the units of this team?
             }
@@ -132,15 +144,7 @@ impl RymdGameMode for RymdGameModeConquest {
         
     }
     
-    fn draw(&self, model: &RymdGameModel, view: &mut RymdGameView) {
-
-    }
-    
-    fn draw_ui(&self, model: &RymdGameModel, view: &RymdGameView, ctx: &egui::Context) {
-
-    }
-    
-    fn draw_lobby_ui(&self, ui: &mut egui::Ui, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+    fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, debug: &mut DebugText, lockstep: &mut LockstepClient) {
 
         ui.label(format!("game mode: {}", self.name()));
 
@@ -183,16 +187,29 @@ fn create_player_commander_ships(model: &mut RymdGameModel, parameters: &RymdGam
 
 }
 
-pub struct RymdGameModeChickens {
+#[derive(Clone, Debug, SerJson, DeJson)]
+pub struct RymdGameModeChickensData {
     pub number_of_waves: i32,
     pub difficulty_multiplier: f32
+}
+
+impl RymdGameModeChickensData {
+    pub fn new() -> RymdGameModeChickensData {
+        RymdGameModeChickensData {
+            number_of_waves: 3,
+            difficulty_multiplier: 1.0
+        }
+    }
+}
+
+pub struct RymdGameModeChickens {
+    pub data: RymdGameModeChickensData
 }
 
 impl RymdGameModeChickens {
     pub fn new() -> RymdGameModeChickens {
         RymdGameModeChickens {
-            number_of_waves: 3,
-            difficulty_multiplier: 1.0
+            data: RymdGameModeChickensData::new()
         }
     }
 }
@@ -204,6 +221,9 @@ impl RymdGameMode for RymdGameModeChickens {
     }
 
     fn on_command(&mut self, game_command: &GameCommand) {
+
+        let GameCommand::UpdateChickenGameLobby { data } = game_command else { return; };
+        self.data = data.clone();
 
     }
 
@@ -219,21 +239,35 @@ impl RymdGameMode for RymdGameModeChickens {
 
     }
 
-    fn on_tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult {
+    fn tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult {
         RymdGameModeResult::Continue
     }
 
-    fn draw(&self, model: &RymdGameModel, view: &mut RymdGameView) {
-
-    }
-
-    fn draw_ui(&self, model: &RymdGameModel, view: &RymdGameView, ctx: &egui::Context) {
-
-    }
-
-    fn draw_lobby_ui(&self, ui: &mut egui::Ui, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+    fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, debug: &mut DebugText, lockstep: &mut LockstepClient) {
         
-        ui.label(format!("game mode: {}", self.name()));
+        let mut any_element_changed = false;
+
+        ui.vertical_centered(|ui| {
+
+            ui.label(format!("game mode: {}", self.name()));
+
+            ui.horizontal(|ui| {
+                ui.label("number of waves");
+                let e = ui.add(egui::Slider::new(&mut self.data.number_of_waves, 5..=30));
+                any_element_changed = any_element_changed || e.changed();
+            });
+    
+            ui.horizontal(|ui| {
+                ui.label("difficulty multiplier");
+                let e = ui.add(egui::Slider::new(&mut self.data.difficulty_multiplier, 0.0..=10.0));
+                any_element_changed = any_element_changed || e.changed();
+            });
+
+        });
+
+        if any_element_changed {
+            lockstep.send_chickens_lobby_data(&self.data);
+        }
 
     }
 
@@ -252,11 +286,9 @@ pub trait RymdGameMode {
     fn on_command(&mut self, game_command: &GameCommand);
 
     fn on_start(&self, model: &mut RymdGameModel, parameters: &RymdGameParameters);
-    fn on_tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult;
+    fn tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult;
 
-    fn draw(&self, model: &RymdGameModel, view: &mut RymdGameView);
-    fn draw_ui(&self, model: &RymdGameModel, view: &RymdGameView, ctx: &egui::Context);
-    fn draw_lobby_ui(&self, ui: &mut egui::Ui, debug: &mut DebugText, lockstep: &mut LockstepClient);
+    fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, debug: &mut DebugText, lockstep: &mut LockstepClient);
 
 }
 
@@ -286,11 +318,8 @@ impl RymdGameChat {
     }
 
     pub fn on_game_command(&mut self, game_command: &GameCommand) {
-        match game_command {
-            GameCommand::Message { text } => {
-                self.current_messsage_buffer += text
-            }
-        }
+        let GameCommand::Message { text } = game_command else { return; };
+        self.current_messsage_buffer += text;
     }
 
     pub fn on_client_joined_lobby(&mut self, peer_id: PeerID) {
@@ -414,7 +443,7 @@ impl Game for RymdGame {
         self.model.tick();
 
         if let Some(game_mode) = &mut self.setup.game_mode {
-            game_mode.on_tick(&mut self.model);
+            game_mode.tick(&mut self.model);
         }
         
         self.view.update(&mut self.model);
@@ -435,9 +464,9 @@ impl Game for RymdGame {
         {
             measure_scope!(self.stats.draw_time_ms);
             self.view.draw(&mut self.model, debug, lockstep, dt);
-            if let Some(game_mode) = &self.setup.game_mode {
-                game_mode.draw(&self.model, &mut self.view);
-            }
+            // if let Some(game_mode) = &self.setup.game_mode {
+            //     game_mode.draw(&self.model, &mut self.view);
+            // }
         }
 
         self.draw_frame_stats(debug);
@@ -451,6 +480,10 @@ impl Game for RymdGame {
         }
 
         self.view.draw_ui(ctx, &mut self.model, debug, lockstep);
+
+        // if let Some(game_mode) = &self.setup.game_mode {
+        //     game_mode.draw_ui(&self.model, &mut self.view);
+        // }
         
         if crate::INGAME_PROFILER_ENABLED {
             puffin_egui::profiler_window(ctx);
