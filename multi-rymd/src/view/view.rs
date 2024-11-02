@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use std::f32::consts::PI;
 
+use fnv::FnvHashMap;
 use macroquad_particles::{EmitterConfig, Emitter};
 use puffin_egui::egui::{self, Align2};
 use utility::{draw_arrow, draw_rectangle_lines_centered, draw_text_centered, draw_texture_centered, draw_texture_centered_with_rotation, draw_texture_centered_with_rotation_frame, is_point_inside_rect, normalize, AsPerpendicular, AsVector, AverageLine2D, DebugText, RotatedBy, TextPosition, WithAlpha};
@@ -271,9 +271,9 @@ struct ParticleBeam {
 
 struct Resources {
     placeholder_texture: Texture2D,
-    particle_emitters: HashMap<String, Emitter>,
-    particle_emitter_configs: HashMap<String, EmitterConfig>,
-    textures: HashMap<String, Texture2D>
+    particle_emitters: FnvHashMap<String, Emitter>,
+    particle_emitter_configs: FnvHashMap<String, EmitterConfig>,
+    textures: FnvHashMap<String, Texture2D>
 }
 
 impl Resources {
@@ -289,9 +289,9 @@ impl Resources {
     fn new() -> Resources {
         Resources {
             placeholder_texture: Self::create_placeholder_texture(),
-            particle_emitters: HashMap::new(),
-            particle_emitter_configs: HashMap::new(),
-            textures: HashMap::new()
+            particle_emitters: FnvHashMap::default(),
+            particle_emitter_configs: FnvHashMap::default(),
+            textures: FnvHashMap::default()
         }
     }
 
