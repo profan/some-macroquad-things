@@ -7,7 +7,7 @@ pub type TurnID = i32;
 use crate::{command::{ApplicationCommand, GenericCommand}, IS_DEBUGGING};
 
 const TURN_DELAY: i32 = 1;
-const TURN_LENGTH: i32 = 4;
+const TURN_LENGTH: i32 = 6;
 
 trait HasTurnId {
     fn turn_id(&self) -> TurnID;
@@ -34,8 +34,17 @@ pub enum TurnCommand {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+pub enum TickResult {
+    Waiting,
+    RunningNewTurn,
+    WaitingToRun,
+    Running,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TurnState {
     Running,
+    WaitingToRun,
     Waiting
 }
 
@@ -393,35 +402,38 @@ impl LockstepClient {
 
     }
 
-    pub fn tick_with<F1, F2>(&mut self, handle_command_fn: F1, send_command_fn: F2) -> bool 
+    pub fn tick_with<F1, F2>(&mut self, handle_command_fn: F1, send_command_fn: F2) -> TickResult 
         where
             F1: FnMut(PeerID, &str) -> (),
             F2: FnMut(PeerID, String) -> ()
     {
 
-        let mut state_changed = false;
+        let tick_result;
 
         match self.turn_state {
-            TurnState::Running => {
+            TurnState::Running | TurnState::WaitingToRun => {
 
                 // if we've reached the end of the turn, it's now time send our queued comands
-                if self.turn_part == self.turn_length - 1 {
+                if self.turn_part == (self.turn_length - 1) {
 
-                    self.check_pass_turn_with_offset(TURN_DELAY);
-                    self.send_queued_commands_with_offset(send_command_fn, TURN_DELAY);
+                    self.check_pass_turn_with_offset(self.turn_delay);
+                    self.send_queued_commands_with_offset(send_command_fn, self.turn_delay);
 
                     if self.all_turns_received(self.current_send_turn_id()) {
                         // execute all the commands! ... or at least queue them to be executed
                         self.execute_with(handle_command_fn);
                         self.turn_number += 1;
                         self.turn_part = 0;
+                        self.turn_state = TurnState::Running;
+                        tick_result = TickResult::RunningNewTurn;
                     } else {
                         self.turn_state = TurnState::Waiting;
-                        state_changed = true;
+                        tick_result = TickResult::Waiting;
                     }
 
                 } else {
                     self.turn_part += 1;
+                    tick_result = TickResult::Running;
                 }
 
             },
@@ -429,19 +441,21 @@ impl LockstepClient {
 
                 if self.turn_number == -1 {
                     self.send_turn_command(TurnCommand::Pass(self.current_send_turn_id()));
-                    self.send_turn_command_with_delay(TurnCommand::Pass(self.current_send_turn_id() + self.turn_delay), self.turn_delay);
+                    self.send_turn_command_with_delay(TurnCommand::Pass(self.current_send_turn_id()), self.turn_delay);
                     self.send_queued_commands_with_offset(send_command_fn, 0);
                 }
 
                 if self.all_turns_received(self.current_send_turn_id()) {
-                    self.turn_state = TurnState::Running;
-                    state_changed = true;
+                    self.turn_state = TurnState::WaitingToRun;
+                    tick_result = TickResult::WaitingToRun;
+                } else {
+                    tick_result = TickResult::Waiting;
                 }
 
             },
         };
 
-        state_changed
+        tick_result
 
     }
 

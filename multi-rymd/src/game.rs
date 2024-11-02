@@ -420,7 +420,9 @@ impl Game for RymdGame {
         
     }
 
-    fn handle_game_message(&mut self, peer_id: PeerID, message: &str) {    
+    fn handle_game_message(&mut self, peer_id: PeerID, message: &str) {
+
+        // println!("[RymdGame] got message: {} from: {} on tick: {}", message, peer_id, self.model.current_tick);
 
         match GameMessage::deserialize_json(message) {
             Ok(ref message) => self.model.handle_message(message),

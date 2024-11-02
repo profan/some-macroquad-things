@@ -82,7 +82,8 @@ pub struct RymdGameModel {
     pub physics_manager: PhysicsManager,
     pub spatial_manager: SpatialQueryManager,
     pub blueprint_manager: BlueprintManager,
-    pub world: World
+    pub world: World,
+    pub current_tick: u64
 }
 
 pub struct BlueprintManager {
@@ -168,12 +169,13 @@ impl RymdGameModel {
             physics_manager: PhysicsManager::new(Self::TIME_STEP),
             spatial_manager: SpatialQueryManager::new(Self::SPATIAL_BUCKET_SIZE),
             blueprint_manager: BlueprintManager::new(),
-            world: World::new()
+            world: World::new(),
+            current_tick: 0
         }
     }
 
     pub fn start(&mut self, parameters: RymdGameParameters) {
-        
+        self.current_tick = 0;
     }
 
     pub fn stop(&mut self) {
@@ -1020,6 +1022,8 @@ impl RymdGameModel {
         self.tick_spatial_engine();
         self.tick_transform_updates();
         self.tick_lifetimes();
+
+        self.current_tick += 1;
 
     }
 

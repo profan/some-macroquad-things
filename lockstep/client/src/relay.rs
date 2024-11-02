@@ -39,7 +39,8 @@ pub struct RelayClient {
     client_stats: BTreeMap<LobbyClientID, RelayPingStats>, // milliseconds latency
     server_stats: RelayPingStats,
     clients: Vec<LobbyClient>,
-    lobbies: Vec<Lobby>
+    lobbies: Vec<Lobby>,
+    is_debug: bool
 }
 
 impl RelayClient {
@@ -51,7 +52,8 @@ impl RelayClient {
             client_stats: BTreeMap::new(),
             server_stats: RelayPingStats::new(),
             clients: Vec::new(),
-            lobbies: Vec::new()
+            lobbies: Vec::new(),
+            is_debug: false
         }
     }
 
@@ -96,38 +98,72 @@ impl RelayClient {
     }
 
     pub fn client_id(&mut self, client_id: LobbyClientID) {
-        println!("[RelayClient] got assigned a client id: {}", client_id);
+
+        if self.is_debug {
+            println!("[RelayClient] got assigned a client id: {}", client_id);
+        }
+
         self.client_id = Some(client_id);
+
     }
 
     pub fn active_lobbies(&mut self, lobbies: &Vec<Lobby>) {
-        println!("[RelayClient] got active lobbies response!");
+
+        if self.is_debug {
+            println!("[RelayClient] got active lobbies response!");
+        }
+
         self.lobbies = lobbies.clone();
+
     }
 
     pub fn active_players(&mut self, players: &Vec<LobbyClient>) {
-        println!("[RelayClient] got active player response!");
+
+        if self.is_debug {
+            println!("[RelayClient] got active player response!");
+        }
+
         self.clients = players.clone();
+
     }
 
     pub fn successfully_joined_lobby(&mut self, lobby_id: LobbyID) {
-        println!("[RelayClient] successfully joined the lobby: {}", lobby_id);
+
+        if self.is_debug {
+            println!("[RelayClient] successfully joined the lobby: {}", lobby_id);
+        }
+
         self.current_lobby_id = Some(lobby_id);
+
     }
 
     pub fn failed_to_join_lobby(&mut self, lobby_id: LobbyID, reason: &String) {
-        println!("[RelayClient] failed to join the lobby: {} because: {}", lobby_id, reason);
+
+        if self.is_debug {
+            println!("[RelayClient] failed to join the lobby: {} because: {}", lobby_id, reason);
+        }
+
     }
 
     pub fn joined_lobby(&mut self, client_id: LobbyClientID) {
-        println!("[RelayClient] client with id: {} joined the lobby: {:?}", client_id, self.current_lobby_id);
+
+        if self.is_debug {
+            println!("[RelayClient] client with id: {} joined the lobby: {:?}", client_id, self.current_lobby_id);
+        }
+
         let current_lobby = self.lobbies.iter_mut().find(|lobby| lobby.id == self.current_lobby_id.unwrap()).unwrap();
         current_lobby.clients.push(client_id);
+
     }
 
     pub fn updated_lobby(&mut self, lobby: &Lobby) {
-        println!("[RelayClient] got an update for the lobby: {}", lobby.id);
+
+        if self.is_debug {
+            println!("[RelayClient] got an update for the lobby: {}", lobby.id);
+        }
+
         self.add_or_update_lobby(lobby);
+
     }
 
     pub fn left_lobby(&mut self, client_id: LobbyClientID) {
@@ -149,7 +185,10 @@ impl RelayClient {
         if let Some(current_client_id) = self.client_id && from_client_id == current_client_id {
 
             if let Some(to_client_id) = to_client_id {
-                println!("[RelayClient] sent ping message to: {}!", to_client_id);
+
+                if self.is_debug {
+                    println!("[RelayClient] sent ping message to: {}!", to_client_id);
+                }
 
                 let current_time_in_ms = (get_time() * 1000.0) as i32;
 
@@ -161,7 +200,9 @@ impl RelayClient {
                 }
 
             } else {
-                println!("[RelayClient] sent ping message to server!");
+                if self.is_debug {
+                    println!("[RelayClient] sent ping message to server!");
+                }
             }
 
         }
@@ -171,7 +212,10 @@ impl RelayClient {
     pub fn pong(&mut self, from_client_id: Option<LobbyClientID>, to_client_id: LobbyClientID) {
 
         if let Some(client_id) = from_client_id && to_client_id == self.client_id.expect("client id should never be empty here") {
-            println!("[RelayClient] got pong message from: {}, updating ping!", client_id);
+
+            if self.is_debug {
+                println!("[RelayClient] got pong message from: {}, updating ping!", client_id);
+            }
 
             let current_time_in_ms = (get_time() * 1000.0) as i32;
             if let Some(stats) = self.client_stats.get_mut(&client_id) {
@@ -180,7 +224,9 @@ impl RelayClient {
             }
 
         } else {
-            println!("[RelayClient] got pong message from server!");
+            if self.is_debug {
+                println!("[RelayClient] got pong message from server!");
+            }
         }
 
     }

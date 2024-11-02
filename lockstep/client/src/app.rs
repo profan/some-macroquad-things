@@ -4,7 +4,7 @@ use lockstep::lobby::{DEFAULT_LOBBY_PORT, RelayMessage, LobbyClientID, LobbyStat
 use nanoserde::{DeJson, SerJson};
 use utility::{screen_dimensions, DebugText};
 
-use crate::{command::ApplicationCommand, extensions::RelayCommandsExt, game::Game, network::{ConnectionState, NetworkClient}, relay::RelayClient, step::{LockstepClient, TurnCommand, TurnState}};
+use crate::{command::ApplicationCommand, extensions::RelayCommandsExt, game::Game, network::{ConnectionState, NetworkClient}, relay::RelayClient, step::{LockstepClient, TickResult, TurnCommand, TurnState}};
 
 #[derive(PartialEq)]
 pub enum ApplicationMode {
@@ -24,6 +24,7 @@ pub struct ApplicationState<GameType> where GameType: Game {
     mode: ApplicationMode,
     debug_text_colour: Color,
     current_frame: i64,
+    current_tick: i64,
     quit_requested: bool
 }
 
@@ -44,6 +45,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
             mode: ApplicationMode::Frontend,
             debug_text_colour: WHITE,
             current_frame: 0,
+            current_tick: 0,
             quit_requested: false
         }
 
@@ -110,11 +112,13 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         }
 
         self.lockstep = Some(new_lockstep_client);
+        self.current_tick = 0;
 
     }
 
     pub fn start_multiplayer_game(&mut self) {
         self.mode = ApplicationMode::Multiplayer;
+        self.current_tick = 0;
     }
 
     pub fn stop_game(&mut self) {
@@ -327,15 +331,23 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         if let Some(lockstep) = &mut self.lockstep && self.game.is_running() {
     
             if self.mode == ApplicationMode::Singleplayer {
+
                 lockstep.tick_with(
                     |peer_id, msg| self.game.handle_game_message(peer_id, msg),
                     |_ ,_| ()
                 );
+
             } else if self.mode == ApplicationMode::Multiplayer && self.relay.is_in_currently_running_lobby() {
-                lockstep.tick_with(
+
+                let tick_result = lockstep.tick_with(
                     |peer_id, msg| self.game.handle_game_message(peer_id, msg),
                     |peer_id, msg| self.net.send_text(RelayMessage::Message(peer_id, msg).serialize_json())
                 );
+
+                if tick_result == TickResult::RunningNewTurn {
+                    // println!("tick: {}, turn: {}", self.current_tick, lockstep.turn_number());
+                }
+
             }
     
             if lockstep.turn_state() == TurnState::Running {
@@ -344,6 +356,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
                 // only tick when actually running
                 self.game.update(&mut self.debug, lockstep);
+                self.current_tick += 1;
 
             } else if lockstep.turn_state() == TurnState::Waiting {
 
@@ -368,6 +381,8 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         if let Some(client_id) = self.relay.get_client_id() {
             self.debug.draw_text(format!("client id: {}", client_id), utility::TextPosition::TopLeft, self.debug_text_colour);
         }
+
+        self.debug.draw_text(format!("client tick: {}", self.current_tick), utility::TextPosition::TopLeft, self.debug_text_colour);
             
         if self.net.connection_state() != ConnectionState::Disconnected {
     
