@@ -497,8 +497,7 @@ impl RymdGameModel {
 
                     let attacker_position = get_entity_position(&self.world, attacker).unwrap();
 
-                    // let attack_direction_deviation = random_binomial() * projectile_weapon.deviation;
-                    let attack_direction_deviation = 0.0;
+                    let attack_direction_deviation = random_binomial() * projectile_weapon.deviation;
                     let attack_direction = (attacker_position - transform.world_position).normalize();
                     let attack_direction_with_deviation = attack_direction.rotated_by(attack_direction_deviation);
 
@@ -543,8 +542,7 @@ impl RymdGameModel {
 
                     let attacker_position = get_entity_position(&self.world, attacker).unwrap();
 
-                    // let attack_direction_deviation = random_binomial() * beam_weapon.deviation;
-                    let attack_direction_deviation = 0.0;
+                    let attack_direction_deviation = random_binomial() * beam_weapon.deviation;
                     let attack_direction = (attacker_position - transform.world_position).normalize();
                     let attack_direction_with_deviation = attack_direction.rotated_by(attack_direction_deviation);
 
