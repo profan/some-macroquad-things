@@ -769,7 +769,7 @@ dependencies = [
 name = "lockstep"
 version = "0.1.0"
 dependencies = [
- "deterministic-hash",
+ "fnv",
  "nanoserde",
 ]
 
@@ -888,6 +888,7 @@ dependencies = [
  "deterministic-hash",
  "egui-macroquad",
  "egui-miniquad",
+ "fnv",
  "hecs",
  "lockstep",
  "lockstep-client",

@@ -20,6 +20,7 @@ egui-macroquad = { path = "../third-party/egui-macroquad" }
 puffin_egui = "0.29.0"
 
 hecs = { version = "0.10.4", features = ["macros"] }
+fnv = "1.0.7"
 
 [profile.dev]
 opt-level = 0

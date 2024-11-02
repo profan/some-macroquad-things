@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use lockstep::lobby::Lobby;
 use lockstep::lobby::LobbyClient;
@@ -36,7 +36,7 @@ impl RelayPingStats {
 pub struct RelayClient {
     client_id: Option<LobbyClientID>,
     current_lobby_id: Option<LobbyID>,
-    client_stats: HashMap<LobbyClientID, RelayPingStats>, // milliseconds latency
+    client_stats: BTreeMap<LobbyClientID, RelayPingStats>, // milliseconds latency
     server_stats: RelayPingStats,
     clients: Vec<LobbyClient>,
     lobbies: Vec<Lobby>
@@ -48,7 +48,7 @@ impl RelayClient {
         RelayClient {
             client_id: None,
             current_lobby_id: None,
-            client_stats: HashMap::new(),
+            client_stats: BTreeMap::new(),
             server_stats: RelayPingStats::new(),
             clients: Vec::new(),
             lobbies: Vec::new()

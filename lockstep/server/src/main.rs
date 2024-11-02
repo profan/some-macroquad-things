@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 
 use std::rc::Rc;
@@ -152,9 +153,9 @@ struct RelayServer {
 
     current_lobby_id: LobbyID,
     current_client_id: LobbyClientID,
-    senders: HashMap<LobbyClientID, ws::Sender>,
-    clients: HashMap<LobbyClientID, LobbyClient>,
-    lobbies: HashMap<LobbyID, Lobby>,
+    senders: BTreeMap<LobbyClientID, ws::Sender>,
+    clients: BTreeMap<LobbyClientID, LobbyClient>,
+    lobbies: BTreeMap<LobbyID, Lobby>,
     port: u16
 
 }
@@ -165,9 +166,9 @@ impl RelayServer {
         RelayServer {
             current_lobby_id: 0,
             current_client_id: 0,
-            senders: HashMap::new(),
-            clients: HashMap::new(), 
-            lobbies: HashMap::new(),
+            senders: BTreeMap::new(),
+            clients: BTreeMap::new(), 
+            lobbies: BTreeMap::new(),
             port: DEFAULT_LOBBY_PORT
         }
     }

@@ -1,14 +1,15 @@
 use core::f32;
-use std::{cmp::Ordering, collections::{HashMap, HashSet}};
+use std::{cmp::Ordering};
 
+use fnv::{FnvHashMap, FnvHashSet};
 use hecs::{Entity, World};
 use macroquad::math::{ivec2, IVec2, Rect, Vec2};
 
 use super::get_entity_position;
 
 pub struct SpatialQueryManager {
-    entities: HashSet<Entity>,
-    buckets: HashMap<IVec2, Vec<Entity>>,
+    entities: FnvHashSet<Entity>,
+    buckets: FnvHashMap<IVec2, Vec<Entity>>,
     bucket_size: i32
 }
 
@@ -16,8 +17,8 @@ impl SpatialQueryManager {
 
     pub fn new(bucket_size: i32) -> SpatialQueryManager {
         SpatialQueryManager {
-            entities: HashSet::new(),
-            buckets: HashMap::new(),
+            entities: FnvHashSet::default(),
+            buckets: FnvHashMap::default(),
             bucket_size
         }
     }
