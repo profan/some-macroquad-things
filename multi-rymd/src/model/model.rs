@@ -163,17 +163,6 @@ impl RymdGameModel {
     pub const TIME_STEP: f32 = 1.0 / 60.0;
     pub const SPATIAL_BUCKET_SIZE: i32 = 256;
 
-    pub fn random_binomial() -> f32 {
-        0.0
-    }
-
-    pub fn gen_range<T>(low: T, high: T) -> T
-    where
-        T: RandomRange
-    {
-        T::gen_range(low, high)
-    }
-
     pub fn new() -> RymdGameModel {
         RymdGameModel {
             physics_manager: PhysicsManager::new(Self::TIME_STEP),
@@ -1013,6 +1002,9 @@ impl RymdGameModel {
         
         self.tick_constructing_entities();
         self.tick_powered_entities();
+        self.tick_resource_storage();
+        self.tick_orderables();
+        self.tick_transforms();
         self.tick_resources();
         self.tick_resource_sources();
         self.tick_rotation_targets();
