@@ -439,6 +439,10 @@ impl RymdGameModel {
 
             for o in self.spatial_manager.entities_within_radius(transform.world_position, attacker.range) {
 
+                if e == o {
+                    continue;
+                }
+
                 if self.world.contains(o) == false {
                     continue;
                 }
@@ -450,7 +454,7 @@ impl RymdGameModel {
                 let is_current_order_queue_empty = orderable.is_queue_empty(GameOrderType::Order);
                 let is_current_order_attack_move = orderable.is_current_order_attack_move_order();
 
-                if e == o || state != EntityState::Constructed || (is_current_order_queue_empty == false && is_current_order_attack_move == false) || can_attack == false {
+                if state != EntityState::Constructed || (is_current_order_queue_empty == false && is_current_order_attack_move == false) || can_attack == false {
                     continue
                 }
 
