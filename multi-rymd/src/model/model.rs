@@ -20,6 +20,8 @@ use crate::model::GameMessage;
 use crate::game::RymdGameParameters;
 use crate::PlayerID;
 
+use super::are_players_allied;
+use super::are_players_hostile;
 use super::create_commissar_ship_blueprint;
 use super::create_extractor_ship_blueprint;
 use super::create_grunt_ship_blueprint;
@@ -82,6 +84,7 @@ pub struct RymdGameModel {
     pub physics_manager: PhysicsManager,
     pub spatial_manager: SpatialQueryManager,
     pub blueprint_manager: BlueprintManager,
+    pub player_mapping: BTreeMap<PlayerID, Player>,
     pub world: World,
     pub current_tick: u64
 }
@@ -169,12 +172,24 @@ impl RymdGameModel {
             physics_manager: PhysicsManager::new(Self::TIME_STEP),
             spatial_manager: SpatialQueryManager::new(Self::SPATIAL_BUCKET_SIZE),
             blueprint_manager: BlueprintManager::new(),
+            player_mapping: BTreeMap::new(),
             world: World::new(),
             current_tick: 0
         }
     }
 
+    pub fn get_player_by_id(&self, id: PlayerID) -> &Player {
+        &self.player_mapping[&id]
+    }
+
+    fn populate_player_mapping(&mut self) {
+        for (e, player) in self.world.query_mut::<&Player>() {
+            self.player_mapping.insert(player.id, player.clone());
+        }
+    }
+
     pub fn start(&mut self, parameters: RymdGameParameters) {
+        self.populate_player_mapping();
         self.current_tick = 0;
     }
 
@@ -201,7 +216,7 @@ impl RymdGameModel {
 
     pub fn handle_message(&mut self, message: &GameMessage) {
 
-        println!("[RymdGameModel] got message: {:?}", message);
+        // println!("[RymdGameModel] got message: {:?}", message);
 
         match message {
             GameMessage::Order { entities, order, add } => self.handle_order(entities, *order, *add),
@@ -994,6 +1009,23 @@ impl RymdGameModel {
 
         calculated_transform
 
+    }
+
+    pub fn is_controller_attackable_by(&self, controller_id: PlayerID, target_controller: &Controller) -> bool {
+        are_players_hostile(self.get_player_by_id(controller_id), self.get_player_by_id(target_controller.id))
+    }
+
+    pub fn is_controller_friendly_to(&self, controller_id: PlayerID, target_controller: &Controller) -> bool {
+        are_players_allied(self.get_player_by_id(controller_id), self.get_player_by_id(target_controller.id))
+    }
+
+    pub fn is_controller_controllable_by(&self, controller_id: PlayerID, target_controller: &Controller) -> bool {
+        controller_id == target_controller.id // #TODO: alliances, teams?
+    }
+
+    pub fn is_entity_attackable_by(&self, attacking_controller_id: PlayerID, entity: Entity) -> bool {
+        let controller = self.world.get::<&Controller>(entity).expect("must have controller!");
+        self.is_controller_attackable_by(attacking_controller_id, &controller) && self.world.get::<&Attackable>(entity).is_ok()
     }
 
     pub fn tick(&mut self) {

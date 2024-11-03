@@ -180,6 +180,23 @@ impl RelayClient {
 
     }
 
+    /// Given all the connected clients, gets the highest ping reported from the rtt stats.
+    pub fn get_highest_client_ping(&self) -> i32 {
+
+        let Some(current_client_id) = self.client_id else { return 0 };
+
+        let mut max_ping = 0;
+
+        for (&peer_id, peer_stats) in &self.client_stats {
+            if peer_id != current_client_id {
+                max_ping = max_ping.max(peer_stats.ping());
+            }
+        }
+
+        max_ping
+
+    }
+
     pub fn ping(&mut self, from_client_id: LobbyClientID, to_client_id: Option<LobbyClientID>) {
 
         if let Some(current_client_id) = self.client_id && from_client_id == current_client_id {

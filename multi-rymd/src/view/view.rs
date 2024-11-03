@@ -945,21 +945,20 @@ impl RymdGameView {
         
     }
 
-    fn is_controller_attackable(&self, controller: &Controller) -> bool {
-        controller.id != self.game_player_id
+    fn is_controller_attackable(&self, model: &RymdGameModel, controller: &Controller) -> bool {
+        model.is_controller_attackable_by(self.game_player_id, controller)
     }
 
-    fn is_controller_friendly(&self, controller: &Controller) -> bool {
-        controller.id == self.game_player_id // #TODO: alliances, teams?
+    fn is_controller_friendly(&self, model: &RymdGameModel, controller: &Controller) -> bool {
+        model.is_controller_friendly_to(self.game_player_id, controller)
     }
 
-    fn is_controller_controllable(&self, controller: &Controller) -> bool {
-        controller.id == self.game_player_id // #TODO: alliances, teams?
+    fn is_controller_controllable(&self, model: &RymdGameModel, controller: &Controller) -> bool {
+        model.is_controller_controllable_by(self.game_player_id, controller)
     }
 
-    fn is_entity_attackable(&self, entity: Entity, world: &World) -> bool {
-        let controller = world.get::<&Controller>(entity).expect("must have controller!");
-        self.is_controller_attackable(&controller) && world.get::<&Attackable>(entity).is_ok()
+    fn is_entity_attackable(&self, entity: Entity, model: &RymdGameModel) -> bool {
+        model.is_entity_attackable_by(self.game_player_id, entity)
     }
 
     fn is_entity_extractable(&self, entity: Entity, world: &World) -> bool {
@@ -970,16 +969,17 @@ impl RymdGameView {
         world.satisfies::<&Extractor>(entity).unwrap_or(false)
     }
 
-    fn is_entity_friendly(&self, entity: Entity, world: &World) -> bool {
-        let controller = world.get::<&Controller>(entity).expect("must have controller!");
-        self.is_controller_friendly(&controller)
+    fn is_entity_friendly(&self, entity: Entity, model: &RymdGameModel) -> bool {
+        let controller = model.world.get::<&Controller>(entity).expect("must have controller!");
+        model.is_controller_friendly_to(self.game_player_id, &controller)
     }
 
-    fn is_entity_controllable(&self, entity: Entity, world: &World) -> bool {
-        self.is_entity_friendly(entity, world)
+    fn is_entity_controllable(&self, entity: Entity, model: &RymdGameModel) -> bool {
+        let controller = model.world.get::<&Controller>(entity).expect("must have controller!");
+        model.is_controller_controllable_by(self.game_player_id, &controller)
     }
 
-    fn handle_order(&mut self, world: &mut World, lockstep: &mut LockstepClient) {
+    fn handle_order(&mut self, model: &mut RymdGameModel, lockstep: &mut LockstepClient) {
 
         let mouse_position: Vec2 = self.camera.mouse_world_position();
         let should_cancel_current_orders: bool = is_key_released(KeyCode::S);
@@ -997,20 +997,20 @@ impl RymdGameView {
             let should_add = is_key_down(KeyCode::LeftShift);
             let should_group = is_key_down(KeyCode::LeftControl);
             let current_selection_end_point = self.ordering.points()[0];
-            let entity_under_cursor = self.get_entity_under_cursor(world);
+            let entity_under_cursor = self.get_entity_under_cursor(&model.world);
 
             if let Some(target_entity) = entity_under_cursor {
 
-                if self.is_entity_extractable(target_entity, world) {
-                    self.handle_extract_order(world, target_entity, lockstep, should_add);
-                } else if self.is_entity_friendly(target_entity, world) {
-                    self.handle_repair_order(world, target_entity, lockstep, should_add);
-                } else if self.is_entity_attackable(target_entity, world) {
-                    self.handle_attack_order(world, target_entity, lockstep, should_add);
+                if self.is_entity_extractable(target_entity, &model.world) {
+                    self.handle_extract_order(&mut model.world, target_entity, lockstep, should_add);
+                } else if self.is_entity_friendly(target_entity, model) {
+                    self.handle_repair_order(&mut model.world, target_entity, lockstep, should_add);
+                } else if self.is_entity_attackable(target_entity, model) {
+                    self.handle_attack_order(&mut model.world, target_entity, lockstep, should_add);
                 }
 
             } else {
-                self.handle_move_order(world, current_selection_end_point, mouse_position, lockstep, should_group, should_add, should_issue_attack_move_order);
+                self.handle_move_order(&mut model.world, current_selection_end_point, mouse_position, lockstep, should_group, should_add, should_issue_attack_move_order);
             }
 
         } else {
@@ -1024,16 +1024,16 @@ impl RymdGameView {
         }
 
         if should_cancel_current_orders {
-            self.cancel_current_orders(world, lockstep);
+            self.cancel_current_orders(model, lockstep);
         }
 
     }
 
-    fn cancel_current_orders(&self, world: &mut World, lockstep: &mut LockstepClient,) {
+    fn cancel_current_orders(&self, model: &mut RymdGameModel, lockstep: &mut LockstepClient,) {
 
-        for (e, (orderable, selectable)) in world.query::<(&Orderable, &Selectable)>().iter() {
+        for (e, (orderable, selectable)) in model.world.query::<(&Orderable, &Selectable)>().iter() {
 
-            if selectable.is_selected && self.is_entity_controllable(e, world) {
+            if selectable.is_selected && self.is_entity_controllable(e, model) {
                 lockstep.cancel_current_orders(e);
                 println!("[RymdGameView] cancelled orders for: {:?}", e);
             }
@@ -1439,7 +1439,7 @@ impl RymdGameView {
     pub fn tick(&mut self, model: &mut RymdGameModel, lockstep: &mut LockstepClient, dt: f32) {
 
         self.handle_selection(&mut model.world);
-        self.handle_order(&mut model.world, lockstep);
+        self.handle_order(model, lockstep);
 
     }
 
@@ -1447,7 +1447,7 @@ impl RymdGameView {
 
         for (e, (orderable, controller)) in model.world.query::<(&Orderable, &Controller)>().iter() {
 
-            if self.is_controller_friendly(controller) == false {
+            if self.is_controller_friendly(model, controller) == false {
                 continue
             }
 

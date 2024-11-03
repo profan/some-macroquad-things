@@ -11,7 +11,7 @@ use utility::{DebugText, TextPosition};
 use crate::commands::{CommandsExt, GameCommand};
 use crate::PlayerID;
 use crate::measure_scope;
-use crate::model::{build_commander_ship, create_asteroid, create_player_entity, spawn_commander_ship, Commander, Controller, GameMessage, Health, Player, RymdGameModel};
+use crate::model::{build_commander_ship, create_asteroid, create_player_entity, set_default_energy_pool_size, set_default_metal_pool_size, spawn_commander_ship, Commander, Controller, GameMessage, Health, Player, RymdGameModel};
 use crate::view::RymdGameView;
 
 #[derive(Debug, Clone)]
@@ -56,15 +56,22 @@ pub struct RymdGameTeam {
 
 #[derive(Clone, Debug, SerJson, DeJson)]
 pub struct RymdGameModeConquestData {
-    pub teams: Vec<RymdGameTeam>
+    pub teams: Vec<RymdGameTeam>,
+    pub starting_metal: i32,
+    pub starting_energy: i32
 }
 
 impl RymdGameModeConquestData {
     pub fn new() -> RymdGameModeConquestData {
-        RymdGameModeConquestData { teams: Vec::new() }
+        RymdGameModeConquestData {
+            teams: Vec::new(),
+            starting_metal: 1000,
+            starting_energy: 1000
+        }
     }
 }
 
+#[derive(Clone)]
 pub struct RymdGameModeConquest {
     pub data: RymdGameModeConquestData
 }
@@ -117,6 +124,7 @@ impl RymdGameMode for RymdGameModeConquest {
     fn on_command(&mut self, game_command: &GameCommand) {
         
         let GameCommand::UpdateConquestGameLobby { data } = game_command else { return; };
+        self.data = data.clone();
 
     }
 
@@ -129,6 +137,9 @@ impl RymdGameMode for RymdGameModeConquest {
 
         create_player_commander_ships(model, parameters);
         create_asteroid_clumps(model, number_of_asteroid_clumps, number_of_asteroids);
+
+        set_default_metal_pool_size(&mut model.world, self.data.starting_metal, self.data.starting_metal);
+        set_default_energy_pool_size(&mut model.world, self.data.starting_energy, self.data.starting_energy);
 
     }
 
@@ -146,7 +157,27 @@ impl RymdGameMode for RymdGameModeConquest {
     
     fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, debug: &mut DebugText, lockstep: &mut LockstepClient) {
 
-        ui.label(format!("game mode: {}", self.name()));
+        let mut anything_changed = false;
+
+        ui.vertical_centered(|ui| {
+
+            ui.horizontal(|ui| {
+                ui.label("starting metal");
+                let e = ui.add(egui::Slider::new(&mut self.data.starting_metal, 1000..=50000));
+                anything_changed = anything_changed || e.changed();
+            });
+
+            ui.horizontal(|ui| {
+                ui.label("starting energy");
+                let e = ui.add(egui::Slider::new(&mut self.data.starting_energy, 1000..=50000));
+                anything_changed = anything_changed || e.changed();
+            });
+
+        });
+
+        if anything_changed {
+            lockstep.send_conquest_lobby_data(&self.data);
+        }
 
     }
 
@@ -202,6 +233,7 @@ impl RymdGameModeChickensData {
     }
 }
 
+#[derive(Clone)]
 pub struct RymdGameModeChickens {
     pub data: RymdGameModeChickensData
 }
@@ -249,8 +281,6 @@ impl RymdGameMode for RymdGameModeChickens {
 
         ui.vertical_centered(|ui| {
 
-            ui.label(format!("game mode: {}", self.name()));
-
             ui.horizontal(|ui| {
                 ui.label("number of waves");
                 let e = ui.add(egui::Slider::new(&mut self.data.number_of_waves, 5..=30));
@@ -293,13 +323,41 @@ pub trait RymdGameMode {
 }
 
 pub struct RymdGameSetup {
-    game_mode: Option<Box<dyn RymdGameMode>>
+    game_modes: Vec<Box<dyn RymdGameMode>>,
+    game_mode: Option<Box<dyn RymdGameMode>>,
+    selected_game_mode: String
 }
 
 impl RymdGameSetup {
     pub fn new() -> RymdGameSetup {
         RymdGameSetup {
-            game_mode: None
+            game_modes: vec![Box::new(RymdGameModeConquest::new()), Box::new(RymdGameModeChickens::new())],
+            game_mode: None,
+            selected_game_mode: String::new()
+        }
+    }
+
+    pub fn set_game_mode(&mut self, game_mode_name: String) {
+        let mut found_game_mode_id = None;
+
+        for i in 0..self.game_modes.len() {
+            if self.game_modes[i].name() == &game_mode_name {
+                found_game_mode_id = Some(i);
+                break;
+            }
+        }
+
+        if let Some(game_mode_id) = found_game_mode_id {
+
+            let last_game_mode = std::mem::replace(&mut self.game_mode, None);
+            let new_game_mode = self.game_modes.remove(game_mode_id);
+
+            if let Some(last_game_mode) = last_game_mode {
+                self.game_modes.push(last_game_mode);
+            }
+
+            self.game_mode = Some(new_game_mode);
+
         }
     }
 }
@@ -494,6 +552,17 @@ impl Game for RymdGame {
     }
 
     fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+
+        // let gamemode_result = egui::ComboBox::from_label("Current Game Mode")
+        //     .selected_text(format!("{:?}", self.setup.game_mode.as_ref().and_then(|g| Some(g.name())).unwrap_or("None")))
+        //     .show_ui(ui, |ui| {
+        //         for game_mode in &mut self.setup.game_modes {
+        //             ui.selectable_value(&mut self.setup.selected_game_mode, game_mode.name().to_string(), game_mode.name().to_string());
+        //         }
+        //     }
+        // );
+
+        // self.setup.set_game_mode(self.setup.selected_game_mode.clone());
 
         if let Some(game_mode) = &mut self.setup.game_mode {
             game_mode.draw_lobby_ui(ui, debug, lockstep);
