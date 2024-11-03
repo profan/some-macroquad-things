@@ -431,6 +431,10 @@ impl RymdGameModel {
 
         for (e, (controller, attacker, transform, orderable, &state)) in self.world.query::<(&Controller, &mut Attacker, &Transform, &Orderable, &EntityState)>().iter() {
 
+            if orderable.is_current_order_attack_order() {
+                continue;
+            }
+
             attacker.target = None; // reset current target every time we tick the attackers
 
             for o in self.spatial_manager.entities_within_radius(transform.world_position, attacker.range) {
@@ -444,9 +448,9 @@ impl RymdGameModel {
 
                 let can_attack = self.is_controller_attackable_by(controller.id, other_controller);
                 let is_current_order_queue_empty = orderable.is_queue_empty(GameOrderType::Order);
-                let is_current_order_attack_or_attack_move = orderable.is_current_order_attack_order() || orderable.is_current_order_attack_move_order();
+                let is_current_order_attack_move = orderable.is_current_order_attack_move_order();
 
-                if e == o || state != EntityState::Constructed || (is_current_order_queue_empty == false && is_current_order_attack_or_attack_move == false) || can_attack == false {
+                if e == o || state != EntityState::Constructed || (is_current_order_queue_empty == false && is_current_order_attack_move == false) || can_attack == false {
                     continue
                 }
 
@@ -461,7 +465,7 @@ impl RymdGameModel {
 
         }
 
-        // now filter targets and pick one
+        // now filter targets and pick one unless we have a direct attack order
 
         for (e, targets) in attack_targets {
 
