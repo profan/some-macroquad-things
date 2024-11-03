@@ -232,7 +232,7 @@ impl Order for AttackOrder {
         // if we don't have no target position just yeet ourselves
         let Some(target_position) = self.get_target_position(model) else { return };
 
-        let mut attacker = model.world.get::<&mut Attacker>(entity).expect("must have attacker component to attack!");
+        let attacker = model.world.get::<&Attacker>(entity).expect("must have attacker component to attack!");
         let attacker_position = get_entity_position(&model.world, entity).expect("must have position!");
         let attack_range = attacker.range;
         drop(attacker);
