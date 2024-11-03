@@ -442,11 +442,11 @@ impl RymdGameModel {
                 let mut other_query = self.world.query_one::<(&Controller, &Attackable, &Transform, &EntityState)>(o).unwrap();
                 let Some((other_controller, other_attackable, other_transform, other_state)) = other_query.get() else { continue };
 
-                let has_same_controller = controller.id == other_controller.id;
+                let can_attack = self.is_controller_attackable_by(controller.id, other_controller);
                 let is_current_order_queue_empty = orderable.is_queue_empty(GameOrderType::Order);
                 let is_current_order_attack_or_attack_move = orderable.is_current_order_attack_order() || orderable.is_current_order_attack_move_order();
 
-                if e == o || state != EntityState::Constructed || (is_current_order_queue_empty == false && is_current_order_attack_or_attack_move == false) || has_same_controller {
+                if e == o || state != EntityState::Constructed || (is_current_order_queue_empty == false && is_current_order_attack_or_attack_move == false) || can_attack == false {
                     continue
                 }
 

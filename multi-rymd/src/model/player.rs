@@ -1,6 +1,8 @@
 use hecs::{World, Entity};
 use lockstep_client::step::PeerID;
 
+use crate::PlayerID;
+
 use super::{Metal, Energy};
 
 #[derive(Debug, Clone)]
@@ -50,4 +52,15 @@ pub fn are_players_allied(player_a: &Player, player_b: &Player) -> bool {
 
 pub fn are_players_hostile(player_a: &Player, player_b: &Player) -> bool {
     are_players_allied(player_a, player_b) == false
+}
+
+pub fn set_player_team_allegiance(world: &mut World, player_id: PlayerID, allegiance: u64) {
+
+    let (e, player) = world.query_mut::<&mut Player>()
+        .into_iter()
+        .find(|(e, p)| p.id == player_id)
+        .expect(&format!("player with id: {} didn't exist? this is fatal!", player_id));
+
+    player.team_mask = allegiance
+
 }

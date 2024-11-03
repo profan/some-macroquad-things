@@ -11,7 +11,7 @@ use utility::{DebugText, TextPosition};
 use crate::commands::{CommandsExt, GameCommand};
 use crate::PlayerID;
 use crate::measure_scope;
-use crate::model::{build_commander_ship, create_asteroid, create_player_entity, set_default_energy_pool_size, set_default_metal_pool_size, spawn_commander_ship, Commander, Controller, GameMessage, Health, Player, RymdGameModel};
+use crate::model::{build_commander_ship, create_asteroid, create_player_entity, set_default_energy_pool_size, set_default_metal_pool_size, set_player_team_allegiance, spawn_commander_ship, Commander, Controller, GameMessage, Health, Player, RymdGameModel};
 use crate::view::RymdGameView;
 
 #[derive(Debug, Clone)]
@@ -54,6 +54,12 @@ pub struct RymdGameTeam {
     pub players: Vec<PlayerID>
 }
 
+impl RymdGameTeam {
+    pub fn new(id: i32) -> RymdGameTeam {
+        RymdGameTeam { id, players: Vec::new() }
+    }
+}
+
 #[derive(Clone, Debug, SerJson, DeJson)]
 pub struct RymdGameModeConquestData {
     pub teams: Vec<RymdGameTeam>,
@@ -64,10 +70,25 @@ pub struct RymdGameModeConquestData {
 impl RymdGameModeConquestData {
     pub fn new() -> RymdGameModeConquestData {
         RymdGameModeConquestData {
-            teams: Vec::new(),
+            teams: vec![RymdGameTeam::new(0), RymdGameTeam::new(1)],
             starting_metal: 1000,
             starting_energy: 1000
         }
+    }
+
+    pub fn move_player_to_team(&mut self, player_id: PlayerID, target_team_id: i32) {
+
+        for team in &mut self.teams {
+            team.players.retain(|&p| p != player_id);
+        }
+
+        for team in &mut self.teams {
+            if team.id == target_team_id {
+                team.players.push(player_id);
+                break;
+            }
+        }
+
     }
 }
 
@@ -141,6 +162,13 @@ impl RymdGameMode for RymdGameModeConquest {
         set_default_metal_pool_size(&mut model.world, self.data.starting_metal, self.data.starting_metal);
         set_default_energy_pool_size(&mut model.world, self.data.starting_energy, self.data.starting_energy);
 
+        for team in &self.data.teams {
+            for &player_id in &team.players {
+                let current_team_mask: u64 = 1 << team.id;
+                set_player_team_allegiance(&mut model.world, player_id, current_team_mask);
+            }
+        }
+
     }
 
     fn tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult {
@@ -161,6 +189,8 @@ impl RymdGameMode for RymdGameModeConquest {
 
         ui.vertical_centered(|ui| {
 
+            ui.heading("settings");
+
             ui.horizontal(|ui| {
                 ui.label("starting metal");
                 let e = ui.add(egui::Slider::new(&mut self.data.starting_metal, 1000..=50000));
@@ -172,6 +202,23 @@ impl RymdGameMode for RymdGameModeConquest {
                 let e = ui.add(egui::Slider::new(&mut self.data.starting_energy, 1000..=50000));
                 anything_changed = anything_changed || e.changed();
             });
+
+            ui.heading("teams");
+
+            for team in &mut self.data.teams.clone() {
+
+                ui.separator();
+                ui.heading(format!("team {}", team.id));
+                for &player_id in &team.players {
+                    ui.label(format!("player {}", player_id.to_string()));
+                }
+
+                if team.players.contains(&lockstep.peer_id()) == false && ui.button("join").clicked() {
+                    self.data.move_player_to_team(lockstep.peer_id(), team.id);
+                    anything_changed = true;
+                }
+
+            }
 
         });
 
