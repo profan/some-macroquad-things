@@ -326,6 +326,7 @@ impl RelayClient {
             RelayMessage::Message(client_id, ref text) => handle_message(client_id, text),
 
             // server only messages
+            RelayMessage::PushLobbyData(_, _) => (),
             RelayMessage::QueryActiveLobbies => (),
             RelayMessage::QueryActivePlayers => (),
             RelayMessage::Register(_) => (),

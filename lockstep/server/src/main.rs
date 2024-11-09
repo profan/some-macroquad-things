@@ -108,6 +108,9 @@ impl ws::Handler for Session {
                 RelayMessage::Ping(from_client_id, to_client_id) => { self.server.borrow_mut().ping(from_client_id, to_client_id); },
                 RelayMessage::Pong(from_client_id, to_client_id) => { self.server.borrow_mut().pong(from_client_id, to_client_id); },
 
+                // lobby state update message for clients
+                RelayMessage::PushLobbyData(from_client_id, data) => { self.server.borrow_mut().send_update_data_to_clients_lobby(from_client_id, data); },
+
                 // messages for passing game data, external to the relay server (to be forwarded to all in the same lobby)
                 RelayMessage::Message(peer_id, text) => { self.server.borrow_mut().send_message_to_clients_lobby(self.id, RelayMessage::Message(peer_id, text)); },
 
@@ -425,9 +428,28 @@ impl RelayServer {
         }
     }
 
+    pub fn send_update_data_to_lobby(&mut self, lobby_id: LobbyID, state: String) {
+
+        if let Some(lobby) = &mut self.lobbies.get_mut(&lobby_id) {
+            lobby.data = state;
+            self.update_lobby_for_all(lobby_id);
+        } else {
+            // tried to update data for a non-existent lobby, probably an error?
+        }
+
+    }
+
     pub fn send_message_to_clients_lobby(&self, client_id: LobbyClientID, message: RelayMessage) {
         if let Some(lobby_id) = self.get_client_lobby(client_id) {      
             self.send_message_to_lobby(lobby_id, message);
+        } else {
+            // tried to send a message without being in a lobby, probably an error?
+        }
+    }
+
+    pub fn send_update_data_to_clients_lobby(&mut self, client_id: LobbyClientID, data: String) {
+        if let Some(lobby_id) = self.get_client_lobby(client_id) {      
+            self.send_update_data_to_lobby(lobby_id, data);
         } else {
             // tried to send a message without being in a lobby, probably an error?
         }

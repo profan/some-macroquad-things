@@ -50,6 +50,9 @@ pub enum RelayMessage {
     /// Represents a response from a client to another client's ping message, can be a server ping if no source client is specified.
     Pong(Option<LobbyClientID>, LobbyClientID),
 
+    /// Represents a request from a client to update the current lobby data, will be distributed to all other clients and also to any clients who join the lobby.
+    PushLobbyData(LobbyClientID, String),
+
     /// Represents a response telling clients in a specific lobby that the specific client has left.
     LeftLobby(LobbyClientID),
 
@@ -98,7 +101,8 @@ pub struct Lobby {
     pub id: LobbyID,
     pub name: String,
     pub clients: Vec<LobbyClientID>,
-    pub state: LobbyState
+    pub state: LobbyState,
+    pub data: String
 }
 
 impl Lobby {
@@ -107,7 +111,8 @@ impl Lobby {
             id: id,
             name: name,
             clients: Vec::new(),
-            state: LobbyState::Open
+            state: LobbyState::Open,
+            data: String::new()
         }
     }
 }
