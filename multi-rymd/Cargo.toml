@@ -19,6 +19,7 @@ egui-miniquad = { path = "../third-party/egui-miniquad" }
 egui-macroquad = { path = "../third-party/egui-macroquad" }
 puffin_egui = "0.29.0"
 
+quad-rand = { version = "0.2.3" }
 hecs = { version = "0.10.4", features = ["macros"] }
 fnv = "1.0.7"
 
