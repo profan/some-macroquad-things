@@ -213,7 +213,7 @@ impl RymdGameMode for RymdGameModeConquest {
                 ui.separator();
                 ui.heading(format!("team {}", team.id));
                 for &player_id in &team.players {
-                    ui.label(format!("player {}", player_id.to_string()));
+                    ui.label(format!("{} ({})", ctx.get_lobby_client_name(player_id), player_id.to_string()));
                 }
 
                 if team.players.contains(&ctx.lockstep().peer_id()) == false && ui.button("join").clicked() {
