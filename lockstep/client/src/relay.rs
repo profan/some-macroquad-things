@@ -85,6 +85,10 @@ impl RelayClient {
         }
     }
 
+    pub fn get_client(&self, client_id: LobbyClientID) -> Option<&LobbyClient> {
+        self.clients.iter().find(|c| c.id == client_id)
+    }
+
     pub fn get_client_id(&self) -> Option<LobbyClientID> {
         self.client_id
     }
@@ -326,7 +330,7 @@ impl RelayClient {
             RelayMessage::Message(client_id, ref text) => handle_message(client_id, text),
 
             // server only messages
-            RelayMessage::PushLobbyData(_, _) => (),
+            RelayMessage::PushLobbyData(_) => (),
             RelayMessage::QueryActiveLobbies => (),
             RelayMessage::QueryActivePlayers => (),
             RelayMessage::Register(_) => (),

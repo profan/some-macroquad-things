@@ -109,7 +109,7 @@ impl ws::Handler for Session {
                 RelayMessage::Pong(from_client_id, to_client_id) => { self.server.borrow_mut().pong(from_client_id, to_client_id); },
 
                 // lobby state update message for clients
-                RelayMessage::PushLobbyData(from_client_id, data) => { self.server.borrow_mut().send_update_data_to_clients_lobby(from_client_id, data); },
+                RelayMessage::PushLobbyData(data) => { self.server.borrow_mut().send_update_data_to_clients_lobby(self.id, data); },
 
                 // messages for passing game data, external to the relay server (to be forwarded to all in the same lobby)
                 RelayMessage::Message(peer_id, text) => { self.server.borrow_mut().send_message_to_clients_lobby(self.id, RelayMessage::Message(peer_id, text)); },

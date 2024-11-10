@@ -1,5 +1,7 @@
 use hecs::World;
+use lockstep::lobby::Lobby;
 use lockstep_client::command::GenericCommand;
+use lockstep_client::game::{GameContext, GameLobbyContext};
 use lockstep_client::{game::Game, step::LockstepClient};
 use lockstep_client::step::PeerID;
 use macroquad::math::vec2;
@@ -142,13 +144,6 @@ impl RymdGameMode for RymdGameModeConquest {
         "Conquest"
     }
 
-    fn on_command(&mut self, game_command: &GameCommand) {
-        
-        let GameCommand::UpdateConquestGameLobby { data } = game_command else { return; };
-        self.data = data.clone();
-
-    }
-
     fn on_start(&self, model: &mut RymdGameModel, parameters: &RymdGameParameters) {
 
         rand::srand(42);
@@ -171,6 +166,14 @@ impl RymdGameMode for RymdGameModeConquest {
 
     }
 
+    fn on_lobby_update(&mut self, new_lobby_data: String) {
+        
+        if let Ok(rymd_game_mode_conquest_data) = RymdGameModeConquestData::deserialize_json(&new_lobby_data) {
+            self.data = rymd_game_mode_conquest_data;
+        }
+
+    }
+
     fn tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult {
 
         for team in &self.data.teams {
@@ -183,7 +186,7 @@ impl RymdGameMode for RymdGameModeConquest {
         
     }
     
-    fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+    fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, ctx: &mut GameLobbyContext) {
 
         let mut anything_changed = false;
 
@@ -213,8 +216,8 @@ impl RymdGameMode for RymdGameModeConquest {
                     ui.label(format!("player {}", player_id.to_string()));
                 }
 
-                if team.players.contains(&lockstep.peer_id()) == false && ui.button("join").clicked() {
-                    self.data.move_player_to_team(lockstep.peer_id(), team.id);
+                if team.players.contains(&ctx.lockstep().peer_id()) == false && ui.button("join").clicked() {
+                    self.data.move_player_to_team(ctx.lockstep().peer_id(), team.id);
                     anything_changed = true;
                 }
 
@@ -223,7 +226,8 @@ impl RymdGameMode for RymdGameModeConquest {
         });
 
         if anything_changed {
-            lockstep.send_conquest_lobby_data(&self.data);
+            let conquest_lobby_data = self.data.serialize_json();
+            ctx.push_new_lobby_data(conquest_lobby_data);
         }
 
     }
@@ -299,13 +303,6 @@ impl RymdGameMode for RymdGameModeChickens {
         "Chickens"
     }
 
-    fn on_command(&mut self, game_command: &GameCommand) {
-
-        let GameCommand::UpdateChickenGameLobby { data } = game_command else { return; };
-        self.data = data.clone();
-
-    }
-
     fn on_start(&self, model: &mut RymdGameModel, parameters: &RymdGameParameters) {
 
         rand::srand(42);
@@ -322,7 +319,15 @@ impl RymdGameMode for RymdGameModeChickens {
         RymdGameModeResult::Continue
     }
 
-    fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+    fn on_lobby_update(&mut self, new_lobby_data: String) {
+
+        if let Ok(rymd_game_mode_chickens_data) = RymdGameModeChickensData::deserialize_json(&new_lobby_data) {
+            self.data = rymd_game_mode_chickens_data;
+        }
+        
+    }
+
+    fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, ctx: &mut GameLobbyContext) {
         
         let mut any_element_changed = false;
 
@@ -343,7 +348,8 @@ impl RymdGameMode for RymdGameModeChickens {
         });
 
         if any_element_changed {
-            lockstep.send_chickens_lobby_data(&self.data);
+            let chickens_lobby_data = self.data.serialize_json();
+            ctx.push_new_lobby_data(chickens_lobby_data);
         }
 
     }
@@ -360,12 +366,11 @@ pub trait RymdGameMode {
 
     fn name(&self) -> &str;
 
-    fn on_command(&mut self, game_command: &GameCommand);
-
     fn on_start(&self, model: &mut RymdGameModel, parameters: &RymdGameParameters);
     fn tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult;
 
-    fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, debug: &mut DebugText, lockstep: &mut LockstepClient);
+    fn on_lobby_update(&mut self, new_lobby_data: String);
+    fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, ctx: &mut GameLobbyContext);
 
 }
 
@@ -513,9 +518,6 @@ impl Game for RymdGame {
         match GameCommand::deserialize_json(message) {
             Ok(ref game_command) => {
                 self.chat.on_game_command(game_command);
-                if let Some(game_mode) = &mut self.setup.game_mode {
-                    game_mode.on_command(game_command);
-                }
             },
             Err(err) => {
                 println!("[RymdGame] failed to parse generic message: {}!", message);
@@ -540,7 +542,7 @@ impl Game for RymdGame {
     }
 
     #[profiling::function]
-    fn update(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+    fn update(&mut self, ctx: &mut GameContext) {
 
         if self.is_started == false {
             return;
@@ -558,7 +560,7 @@ impl Game for RymdGame {
     }
 
     #[profiling::function]
-    fn draw(&mut self, debug: &mut DebugText, lockstep: &mut LockstepClient, dt: f32) {
+    fn draw(&mut self, ctx: &mut GameContext, dt: f32) {
 
         if self.is_started == false {
             return;
@@ -566,39 +568,39 @@ impl Game for RymdGame {
 
         {
             measure_scope!(self.stats.tick_view_time_ms);
-            self.view.tick(&mut self.model, lockstep, dt);
+            self.view.tick(&mut self.model, ctx, dt);
         }
         {
             measure_scope!(self.stats.draw_time_ms);
-            self.view.draw(&mut self.model, debug, lockstep, dt);
+            self.view.draw(&mut self.model, ctx, dt);
             // if let Some(game_mode) = &self.setup.game_mode {
             //     game_mode.draw(&self.model, &mut self.view);
             // }
         }
 
-        self.draw_frame_stats(debug);
+        self.draw_frame_stats(ctx.debug_text());
 
     }
 
-    fn draw_ui(&mut self, ctx: &egui::Context, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+    fn draw_ui(&mut self, ui_ctx: &egui::Context, ctx: &mut GameContext) {
 
         if self.is_started == false {
             return;
         }
 
-        self.view.draw_ui(ctx, &mut self.model, debug, lockstep);
+        self.view.draw_ui(ui_ctx, &mut self.model, ctx);
 
         // if let Some(game_mode) = &self.setup.game_mode {
         //     game_mode.draw_ui(&self.model, &mut self.view);
         // }
         
         if crate::INGAME_PROFILER_ENABLED {
-            puffin_egui::profiler_window(ctx);
+            puffin_egui::profiler_window(ui_ctx);
         }
 
     }
 
-    fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+    fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, ctx: &mut GameLobbyContext) {
 
         // let gamemode_result = egui::ComboBox::from_label("Current Game Mode")
         //     .selected_text(format!("{:?}", self.setup.game_mode.as_ref().and_then(|g| Some(g.name())).unwrap_or("None")))
@@ -612,10 +614,10 @@ impl Game for RymdGame {
         // self.setup.set_game_mode(self.setup.selected_game_mode.clone());
 
         if let Some(game_mode) = &mut self.setup.game_mode {
-            game_mode.draw_lobby_ui(ui, debug, lockstep);
+            game_mode.draw_lobby_ui(ui, ctx);
         }
 
-        if lockstep.is_singleplayer() == false {
+        if ctx.lockstep_mut().is_singleplayer() == false {
 
             ui.separator();
             ui.label("chat");
@@ -624,8 +626,8 @@ impl Game for RymdGame {
             ui.text_edit_singleline(&mut self.chat.current_message);
     
             if ui.button("send message").clicked() && self.chat.current_message.is_empty() == false {
-                let chat_message_to_send = format!("[peer {}] {}\n", lockstep.peer_id(), self.chat.current_message);
-                lockstep.send_chat_message(chat_message_to_send.to_string());
+                let chat_message_to_send = format!("[peer {}] {}\n", ctx.lockstep_mut().peer_id(), self.chat.current_message);
+                ctx.lockstep_mut().send_chat_message(chat_message_to_send.to_string());
                 self.chat.current_message.clear();
             }
 
@@ -649,6 +651,12 @@ impl Game for RymdGame {
     fn on_leave_lobby(&mut self) {
         self.setup.game_mode = None;
         self.chat.reset();
+    }
+
+    fn handle_lobby_update(&mut self, new_lobby_data: String) {
+        if let Some(game_mode) = &mut self.setup.game_mode && self.is_started == false {
+            game_mode.on_lobby_update(new_lobby_data);
+        }
     }
 
     fn on_client_joined_lobby(&mut self, peer_id: PeerID, lockstep: &mut LockstepClient) {

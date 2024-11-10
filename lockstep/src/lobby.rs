@@ -51,7 +51,7 @@ pub enum RelayMessage {
     Pong(Option<LobbyClientID>, LobbyClientID),
 
     /// Represents a request from a client to update the current lobby data, will be distributed to all other clients and also to any clients who join the lobby.
-    PushLobbyData(LobbyClientID, String),
+    PushLobbyData(String),
 
     /// Represents a response telling clients in a specific lobby that the specific client has left.
     LeftLobby(LobbyClientID),

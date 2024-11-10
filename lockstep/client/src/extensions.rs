@@ -26,6 +26,8 @@ pub trait RelayCommandsExt {
     fn ping(&mut self, from_client_id: LobbyClientID, to_client_id: Option<LobbyClientID>);
     fn pong(&mut self, from_client_id: Option<LobbyClientID>, to_client_id: LobbyClientID);
 
+    fn send_lobby_data(&mut self, lobby_data: String);
+
 }
 
 impl RelayCommandsExt for NetworkClient {
@@ -65,6 +67,10 @@ impl RelayCommandsExt for NetworkClient {
 
     fn pong(&mut self, from_client_id: Option<LobbyClientID>, to_client_id: LobbyClientID) {
         self.send_relay_message(RelayMessage::Pong(from_client_id, to_client_id));
+    }
+
+    fn send_lobby_data(&mut self, lobby_data: String) {
+        self.send_relay_message(RelayMessage::PushLobbyData(lobby_data));
     }
 
 }

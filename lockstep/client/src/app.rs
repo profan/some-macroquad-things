@@ -1,10 +1,10 @@
 use egui_macroquad::egui::{self, Align2};
 use macroquad::prelude::*;
-use lockstep::lobby::{DEFAULT_LOBBY_PORT, RelayMessage, LobbyClientID, LobbyState};
+use lockstep::lobby::{Lobby, LobbyClientID, LobbyState, RelayMessage, DEFAULT_LOBBY_PORT};
 use nanoserde::{DeJson, SerJson};
 use utility::{screen_dimensions, DebugText};
 
-use crate::{command::ApplicationCommand, extensions::RelayCommandsExt, game::Game, network::{ConnectionState, NetworkClient}, relay::RelayClient, step::{LockstepClient, TickResult, TurnCommand, TurnState}};
+use crate::{command::ApplicationCommand, extensions::RelayCommandsExt, game::{Game, GameContext, GameLobbyContext}, network::{ConnectionState, NetworkClient}, relay::RelayClient, step::{LockstepClient, TickResult, TurnCommand, TurnState}};
 
 #[derive(PartialEq)]
 pub enum ApplicationMode {
@@ -114,6 +114,8 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         self.lockstep = Some(new_lockstep_client);
         self.current_tick = 0;
 
+        self.game.on_enter_lobby();
+
     }
 
     pub fn start_multiplayer_game(&mut self) {
@@ -130,6 +132,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
     }
 
     fn stop_singleplayer_game(&mut self) {
+        self.game.on_leave_lobby();
         self.game.reset();
         self.game.stop_game();
         self.mode = ApplicationMode::Frontend;
@@ -231,6 +234,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                                 if let Some(lockstep) = &mut self.lockstep {             
                                     if let Some(our_lobby) = self.relay.get_current_lobby() && our_lobby.id == lobby.id {
                                         lockstep.update_peers(&our_lobby.clients.as_slice());
+                                        self.game.handle_lobby_update(lobby.data.clone());
                                     }
                                 }
                             },
@@ -355,7 +359,8 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                 self.game.resume_game();
 
                 // only tick when actually running
-                self.game.update(&mut self.debug, lockstep);
+                let mut game_context = GameContext { debug_text: &mut self.debug, relay_client: &self.relay, lockstep };
+                self.game.update(&mut game_context);
                 self.current_tick += 1;
 
             } else {
@@ -434,7 +439,19 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
             ui.separator();
 
-            self.game.draw_lobby_ui(ui, &mut self.debug, self.lockstep.as_mut().expect("lockstep client instance must be valid here!"));
+            let mut lobby_context = GameLobbyContext {
+                debug_text: &mut self.debug,
+                net: &mut self.net,
+                relay_client: &self.relay,
+                lockstep: self.lockstep.as_mut().expect("lockstep client instance must be valid here!"),
+                new_lobby_data_to_push: None
+            };
+
+            self.game.draw_lobby_ui(ui, &mut lobby_context);
+
+            if let Some(new_lobby_data) = lobby_context.new_lobby_data_to_push {
+                lobby_context.net.send_lobby_data(new_lobby_data);
+            }
 
         });
 
@@ -496,7 +513,21 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
     fn draw_single_player_lobby_ui(&mut self, ctx: &egui::Context) {
 
         draw_centered_menu_window(ctx, "singleplayer", |ui| {
-            self.game.draw_lobby_ui(ui, &mut self.debug, self.lockstep.as_mut().expect("lockstep client instance must be valid here!"));
+
+            let mut lobby_context = GameLobbyContext {
+                debug_text: &mut self.debug,
+                net: &mut self.net,
+                relay_client: &self.relay,
+                lockstep: self.lockstep.as_mut().expect("lockstep client instance must be valid here!"),
+                new_lobby_data_to_push: None
+            };
+
+            self.game.draw_lobby_ui(ui, &mut lobby_context);
+
+            if let Some(new_lobby_data) = lobby_context.new_lobby_data_to_push {
+                self.game.handle_lobby_update(new_lobby_data);
+            }
+
         });
 
     }
@@ -604,14 +635,16 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
     pub fn draw(&mut self, dt: f32) {
 
         if self.game.is_running() && let Some(lockstep) = &mut self.lockstep {
-            self.game.draw(&mut self.debug, lockstep, dt);
+            let mut game_context = GameContext { debug_text: &mut self.debug, relay_client: &self.relay, lockstep };
+            self.game.draw(&mut game_context, dt);
         }
 
         self.draw_debug_text();
 
         egui_macroquad::ui(|ctx| {
             if let Some(lockstep) = &mut self.lockstep {
-                self.game.draw_ui(ctx, &mut self.debug, lockstep);
+                let mut game_context = GameContext { debug_text: &mut self.debug, relay_client: &self.relay, lockstep };
+                self.game.draw_ui(ctx, &mut game_context);
             }
             self.draw_ui(ctx);
         });

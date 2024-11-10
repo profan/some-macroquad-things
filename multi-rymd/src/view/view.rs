@@ -1,6 +1,7 @@
 use std::f32::consts::PI;
 
 use fnv::FnvHashMap;
+use lockstep_client::game::GameContext;
 use macroquad_particles::{EmitterConfig, Emitter};
 use puffin_egui::egui::{self, Align2};
 use utility::{draw_arrow, draw_rectangle_lines_centered, draw_text_centered, draw_texture_centered, draw_texture_centered_with_rotation, draw_texture_centered_with_rotation_frame, is_point_inside_rect, normalize, AsPerpendicular, AsVector, AverageLine2D, DebugText, RotatedBy, TextPosition, WithAlpha};
@@ -1436,10 +1437,10 @@ impl RymdGameView {
 
     }
 
-    pub fn tick(&mut self, model: &mut RymdGameModel, lockstep: &mut LockstepClient, dt: f32) {
+    pub fn tick(&mut self, model: &mut RymdGameModel, ctx: &mut GameContext, dt: f32) {
 
         self.handle_selection(&mut model.world);
-        self.handle_order(model, lockstep);
+        self.handle_order(model, ctx.lockstep_mut());
 
     }
 
@@ -1676,19 +1677,19 @@ impl RymdGameView {
 
     }
 
-    fn draw_debug_ui(&mut self, model: &mut RymdGameModel, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+    fn draw_debug_ui(&mut self, model: &mut RymdGameModel, ctx: &mut GameContext) {
         
         let mouse_world_position = self.camera.mouse_world_position();
-        debug.draw_text(format!("mouse (screen) position: {:?}", mouse_position()), TextPosition::TopLeft, WHITE);
-        debug.draw_text(format!("mouse (world) position: ({:.1}, {:.1})", mouse_world_position.x, mouse_world_position.y), TextPosition::TopLeft, WHITE);
-        debug.draw_text(format!("number of entities: {}", model.world.len()), TextPosition::TopLeft, WHITE);
-        debug.draw_text(format!("collision responses: {}", model.physics_manager.number_of_active_collision_responses()), TextPosition::TopLeft, WHITE);
-        debug.draw_text(format!(" - shift+c to toggle bounds debug (enabled: {})", self.debug.render_bounds), TextPosition::TopLeft, WHITE);
-        debug.draw_text(format!(" - shift+k to toggle kinematics debug (enabled: {})", self.debug.render_kinematic), TextPosition::TopLeft, WHITE);
-        debug.draw_text(format!(" - shift+s to toggle spatial debug (enabled: {})", self.debug.render_spatial), TextPosition::TopLeft, WHITE);
+        ctx.debug_text().draw_text(format!("mouse (screen) position: {:?}", mouse_position()), TextPosition::TopLeft, WHITE);
+        ctx.debug_text().draw_text(format!("mouse (world) position: ({:.1}, {:.1})", mouse_world_position.x, mouse_world_position.y), TextPosition::TopLeft, WHITE);
+        ctx.debug_text().draw_text(format!("number of entities: {}", model.world.len()), TextPosition::TopLeft, WHITE);
+        ctx.debug_text().draw_text(format!("collision responses: {}", model.physics_manager.number_of_active_collision_responses()), TextPosition::TopLeft, WHITE);
+        ctx.debug_text().draw_text(format!(" - shift+c to toggle bounds debug (enabled: {})", self.debug.render_bounds), TextPosition::TopLeft, WHITE);
+        ctx.debug_text().draw_text(format!(" - shift+k to toggle kinematics debug (enabled: {})", self.debug.render_kinematic), TextPosition::TopLeft, WHITE);
+        ctx.debug_text().draw_text(format!(" - shift+s to toggle spatial debug (enabled: {})", self.debug.render_spatial), TextPosition::TopLeft, WHITE);
 
-        if lockstep.is_singleplayer() {
-            debug.draw_text("press tab to switch the current player!", TextPosition::TopLeft, WHITE);
+        if ctx.lockstep_mut().is_singleplayer() {
+            ctx.debug_text().draw_text("press tab to switch the current player!", TextPosition::TopLeft, WHITE);
             if is_key_pressed(KeyCode::Tab) {
                 self.switch_player_id_to_next(&mut model.world);
             }
@@ -1845,7 +1846,7 @@ impl RymdGameView {
 
     }
 
-    fn draw_game_ui(&mut self, ctx: &egui::Context, model: &mut RymdGameModel, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+    fn draw_game_ui(&mut self, ui_ctx: &egui::Context, model: &mut RymdGameModel, ctx: &mut GameContext) {
 
         egui::Window::new("")
             .title_bar(false)
@@ -1853,7 +1854,7 @@ impl RymdGameView {
             .resizable(false)
             .anchor(Align2::CENTER_TOP, (0.0, 16.0))
             .frame(egui::Frame::default())
-            .show(ctx, |ui| {
+            .show(ui_ctx, |ui| {
 
                 let current_metal = current_metal(self.game_player_id, &model.world);
                 let maximum_metal = max_metal(self.game_player_id, &model.world);
@@ -1877,8 +1878,8 @@ impl RymdGameView {
         });
 
         if self.current_selection_has_constructor_unit(&model.world) {
-            self.draw_text_construction_ui(model, debug);
-            self.draw_text_construction_queue_ui(model, debug);
+            self.draw_text_construction_ui(model, ctx.debug_text());
+            self.draw_text_construction_queue_ui(model, ctx.debug_text());
         }
 
     }
@@ -2018,7 +2019,7 @@ impl RymdGameView {
 
     }
 
-    pub fn draw(&mut self, model: &mut RymdGameModel, debug: &mut DebugText, lockstep: &mut LockstepClient, dt: f32) {
+    pub fn draw(&mut self, model: &mut RymdGameModel, ctx: &mut GameContext, dt: f32) {
 
         self.camera.tick(dt);
 
@@ -2052,7 +2053,7 @@ impl RymdGameView {
 
         self.draw_build_queue(model);
 
-        self.construction.tick_and_draw(model, &self.camera, &self.resources, lockstep);
+        self.construction.tick_and_draw(model, &self.camera, &self.resources, ctx.lockstep_mut());
 
         self.draw_particles(&mut model.world);
         self.draw_beam_weapons(&model.world);
@@ -2066,10 +2067,10 @@ impl RymdGameView {
 
     }
 
-    pub fn draw_ui(&mut self, ctx: &egui::Context, model: &mut RymdGameModel, debug: &mut DebugText, lockstep: &mut LockstepClient) {
+    pub fn draw_ui(&mut self, ui_ctx: &egui::Context, model: &mut RymdGameModel, ctx: &mut GameContext) {
 
-        self.draw_game_ui(ctx, model, debug, lockstep);
-        self.draw_debug_ui(model, debug, lockstep);
+        self.draw_game_ui(ui_ctx, model, ctx);
+        self.draw_debug_ui(model, ctx);
 
     }
 
