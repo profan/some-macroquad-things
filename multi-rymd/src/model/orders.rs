@@ -535,7 +535,7 @@ impl ConstructOrder {
     fn calculate_movement_position_out_of_constructor(position: Vec2, model: &mut RymdGameModel, entity: Entity, has_orderable: bool) -> Option<Vec2> {
         let target_position = if let Ok(body) = model.world.get::<&DynamicBody>(entity) && has_orderable {
             let angle_range = PI / 4.0;
-            let random_angle = rand::gen_range(-angle_range, angle_range);
+            let random_angle = model.random.gen_range(-angle_range, angle_range);
             let dir_to_entity = (position - body.position()).normalize();
             let target_position = body.position() + dir_to_entity.rotated_by(random_angle) * body.bounds.size().max_element();
             Some(target_position)

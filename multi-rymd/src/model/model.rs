@@ -1,11 +1,12 @@
 use core::f32;
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 
 use hecs::{CommandBuffer, Entity, World};
 use macroquad::*;
 use math::Vec2;
+use rand::RandGenerator;
 use rand::RandomRange;
-use utility::random_binomial;
 use utility::separation;
 use utility::AsVector;
 use utility::RotatedBy;
@@ -85,6 +86,7 @@ pub struct RymdGameModel {
     pub spatial_manager: SpatialQueryManager,
     pub blueprint_manager: BlueprintManager,
     pub player_mapping: BTreeMap<PlayerID, Player>,
+    pub random: RandGenerator,
     pub world: World,
     pub current_tick: u64
 }
@@ -162,6 +164,16 @@ impl BlueprintManager {
 
 }
 
+trait RandomHelpersExt {
+    fn random_binomial(&mut self) -> f32;
+}
+
+impl RandomHelpersExt for RandGenerator {
+    fn random_binomial(&mut self) -> f32 {
+        self.gen_range(0.0, 1.0) - self.gen_range(0.0, 1.0)
+    }
+}
+
 impl RymdGameModel {
 
     pub const TIME_STEP: f32 = 1.0 / 60.0;
@@ -173,6 +185,7 @@ impl RymdGameModel {
             spatial_manager: SpatialQueryManager::new(Self::SPATIAL_BUCKET_SIZE),
             blueprint_manager: BlueprintManager::new(),
             player_mapping: BTreeMap::new(),
+            random: RandGenerator::new(),
             world: World::new(),
             current_tick: 0
         }
@@ -522,7 +535,7 @@ impl RymdGameModel {
 
                     let attacker_position = get_entity_position(&self.world, attacker).unwrap();
 
-                    let attack_direction_deviation = random_binomial() * projectile_weapon.deviation;
+                    let attack_direction_deviation = self.random.random_binomial() * projectile_weapon.deviation;
                     let attack_direction = (attacker_position - transform.world_position).normalize();
                     let attack_direction_with_deviation = attack_direction.rotated_by(attack_direction_deviation);
 
@@ -567,7 +580,7 @@ impl RymdGameModel {
 
                     let attacker_position = get_entity_position(&self.world, attacker).unwrap();
 
-                    let attack_direction_deviation = random_binomial() * beam_weapon.deviation;
+                    let attack_direction_deviation = self.random.random_binomial() * beam_weapon.deviation;
                     let attack_direction = (attacker_position - transform.world_position).normalize();
                     let attack_direction_with_deviation = attack_direction.rotated_by(attack_direction_deviation);
 
@@ -1037,8 +1050,6 @@ impl RymdGameModel {
     }
 
     pub fn tick(&mut self) {
-
-        macroquad::rand::srand(42);
         
         self.tick_constructing_entities();
         self.tick_powered_entities();

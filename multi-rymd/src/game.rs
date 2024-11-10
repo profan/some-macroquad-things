@@ -146,7 +146,7 @@ impl RymdGameMode for RymdGameModeConquest {
 
     fn on_start(&self, model: &mut RymdGameModel, parameters: &RymdGameParameters) {
 
-        rand::srand(42);
+        model.random.srand(42);
 
         let number_of_asteroid_clumps = 10;
         let number_of_asteroids = 10;
@@ -238,13 +238,13 @@ fn create_asteroid_clumps(model: &mut RymdGameModel, number_of_asteroid_clumps: 
 
     for i in 0..number_of_asteroid_clumps {
 
-        let asteroid_clump_random_x = rand::gen_range(-4000, 4000);
-        let asteroid_clump_random_y = rand::gen_range(-4000, 4000);
+        let asteroid_clump_random_x = model.random.gen_range(-4000, 4000);
+        let asteroid_clump_random_y = model.random.gen_range(-4000, 4000);
 
         for i in 0..number_of_asteroids {
 
-            let random_x = rand::gen_range(asteroid_clump_random_x - 400, asteroid_clump_random_x + 400);
-            let random_y = rand::gen_range(asteroid_clump_random_y - 400, asteroid_clump_random_y + 400);
+            let random_x = model.random.gen_range(asteroid_clump_random_x - 400, asteroid_clump_random_x + 400);
+            let random_y = model.random.gen_range(asteroid_clump_random_y - 400, asteroid_clump_random_y + 400);
 
             let new_asteroid = create_asteroid(&mut model.world, vec2(random_x as f32, random_y as f32), 0.0);
 
@@ -260,8 +260,8 @@ fn create_player_commander_ships(model: &mut RymdGameModel, parameters: &RymdGam
 
         create_player_entity(&mut model.world, player.id);
 
-        let start_random_x = rand::gen_range(-400, 400);
-        let start_random_y = rand::gen_range(-400, 400);
+        let start_random_x = model.random.gen_range(-400, 400);
+        let start_random_y = model.random.gen_range(-400, 400);
 
         let commander_ship = spawn_commander_ship(&mut model.world, player.id, vec2(start_random_x as f32, start_random_y as f32));
     
@@ -305,7 +305,7 @@ impl RymdGameMode for RymdGameModeChickens {
 
     fn on_start(&self, model: &mut RymdGameModel, parameters: &RymdGameParameters) {
 
-        rand::srand(42);
+        model.random.srand(42);
 
         let number_of_asteroid_clumps = 10;
         let number_of_asteroids = 10;
