@@ -12,7 +12,7 @@ use hecs::*;
 
 use crate::PlayerID;
 use crate::game::RymdGameParameters;
-use crate::model::{current_energy, current_energy_income, current_metal, current_metal_income, max_energy, max_metal, Attackable, Attacker, Beam, Blueprint, BlueprintID, BlueprintIdentity, Blueprints, Building, Effect, EntityState, Extractor, GameOrder, GameOrderType, Impact, PhysicsBody, ResourceSource, Spawner};
+use crate::model::{current_energy, current_energy_income, current_metal, current_metal_income, max_energy, max_metal, Attackable, Attacker, Beam, Blueprint, BlueprintID, BlueprintIdentity, Blueprints, Building, Commander, Effect, EntityState, Extractor, GameOrder, GameOrderType, Impact, PhysicsBody, ResourceSource, Spawner};
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Controller, Health, get_entity_position};
 
 use super::{calculate_sprite_bounds, GameCamera2D};
@@ -1366,7 +1366,27 @@ impl RymdGameView {
         
     }
 
+    pub fn move_camera_to_first_unselected_commander(&mut self, model: &mut RymdGameModel) {
+
+        for (e, (commander, transform, selectable)) in model.world.query_mut::<(&Commander, &Transform, &Selectable)>() {
+
+            if selectable.is_selected == false {
+                self.camera.move_camera_to_position(transform.world_position);
+                return;
+            }
+
+        }
+
+    }
+
     pub fn update(&mut self, model: &mut RymdGameModel) {
+
+        // this is tick 2 because at tick 0 and 1, the world isn't really initialized yet properly lol
+        
+        if model.current_tick == 2 {
+            // #HACK: move the camera to the first unselected commander when the game starts
+            self.move_camera_to_first_unselected_commander(model);
+        }
 
         let mut beam_components_to_add = Vec::new();
         let mut selectable_components_to_add = Vec::new();

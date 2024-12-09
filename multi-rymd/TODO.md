@@ -98,4 +98,4 @@ rough list of things to work on in the game currently, usually ordered as items 
 [] look at implementing parallax background layers (different levels/depths of stars?)
 [] implement sort orders for sprites, initially just hardcoded numbers per sprite
 [x] implement the ability to switch what side you're currently controlling
-[] make sure the camera starts where the player's commander starts
+[x] make sure the camera starts where the player's commander starts
