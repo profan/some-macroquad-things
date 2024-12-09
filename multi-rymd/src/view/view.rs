@@ -823,10 +823,6 @@ impl RymdGameView {
         false
     }
 
-    fn get_entities_in_control_group(&self, control_group_id: i32) -> &[Entity] {
-        self.control_groups.get(control_group_id)
-    }
-
     fn perform_retrieve_and_select_control_group(&mut self, world: &mut World) {
 
         if is_key_down(KeyCode::LeftShift) == false {
