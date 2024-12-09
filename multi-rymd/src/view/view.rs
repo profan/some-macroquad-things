@@ -1897,13 +1897,33 @@ impl RymdGameView {
         
         for (e, (transform, resource_source)) in world.query::<(&Transform, &ResourceSource)>().iter() {
             let resource_label_position = transform.world_position + vec2(0.0, -32.0);
-            draw_text_centered(
-                &format!("{:.0}/{:.0} m, {:.0}/{:.0} e", resource_source.current_metal, resource_source.total_metal, resource_source.total_energy, resource_source.current_energy),
-                resource_label_position.x,
-                resource_label_position.y,
-                24.0,
-                WHITE
-            );
+
+            if resource_source.total_energy > 0.0 && resource_source.total_metal > 0.0 {
+                draw_text_centered(
+                    &format!("{:.0}/{:.0} m, {:.0}/{:.0} e", resource_source.current_metal, resource_source.total_metal, resource_source.total_energy, resource_source.current_energy),
+                    resource_label_position.x,
+                    resource_label_position.y,
+                    24.0,
+                    WHITE
+                );
+            } else if resource_source.total_metal > 0.0 {
+                draw_text_centered(
+                    &format!("{:.0}/{:.0} m", resource_source.current_metal, resource_source.total_metal),
+                    resource_label_position.x,
+                    resource_label_position.y,
+                    24.0,
+                    WHITE
+                );
+            } else if resource_source.total_energy > 0.0 {
+                draw_text_centered(
+                    &format!("{:.0}/{:.0} e", resource_source.current_energy, resource_source.total_energy),
+                    resource_label_position.x,
+                    resource_label_position.y,
+                    24.0,
+                    WHITE
+                );
+            }
+
         }
 
     }
