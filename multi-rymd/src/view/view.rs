@@ -1,4 +1,5 @@
 use std::f32::consts::PI;
+use std::io::empty;
 
 use fnv::FnvHashMap;
 use lockstep_client::game::GameContext;
@@ -804,6 +805,28 @@ impl RymdGameView {
 
     }
 
+    fn get_entity_control_group(&self, entity: Entity) -> Option<i32> {
+        for control_group in &self.control_groups.groups {
+            if control_group.entities.contains(&entity) {
+                return Some(control_group.id);
+            }
+        }
+        None
+    }
+
+    fn is_entity_in_control_group(&self, entity: Entity, control_group_id: i32) -> bool {
+        for control_group in &self.control_groups.groups {
+            if control_group.id == control_group_id && control_group.entities.contains(&entity) {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn get_entities_in_control_group(&self, control_group_id: i32) -> &[Entity] {
+        self.control_groups.get(control_group_id)
+    }
+
     fn perform_retrieve_and_select_control_group(&mut self, world: &mut World) {
 
         if is_key_down(KeyCode::LeftShift) == false {
@@ -1382,7 +1405,7 @@ impl RymdGameView {
     pub fn update(&mut self, model: &mut RymdGameModel) {
 
         // this is tick 2 because at tick 0 and 1, the world isn't really initialized yet properly lol
-        
+
         if model.current_tick == 2 {
             // #HACK: move the camera to the first unselected commander when the game starts
             self.move_camera_to_first_unselected_commander(model);
@@ -1557,6 +1580,7 @@ impl RymdGameView {
         let bounds_colour = GREEN.with_alpha(0.5);
 
         for (e, (transform, selectable, bounds)) in world.query::<(&Transform, &Selectable, &Bounds)>().iter() {
+
             if selectable.is_selected {
                 let screen_position = self.camera.world_to_screen(transform.world_position);
                 let screen_radius = self.camera.world_to_screen_scale_v(bounds.as_radius() * 1.5);
@@ -1567,7 +1591,22 @@ impl RymdGameView {
                     bounds_thickness,
                     bounds_colour
                 );
+
+                let mut current_offset = 0;
+                for i in 0..9 {
+                    if self.is_entity_in_control_group(e, i) {
+                        let screen_text_size = 24.0;
+                        let screen_position = self.camera.world_to_screen(transform.world_position);
+                        let screen_radius = self.camera.world_to_screen_scale_v(bounds.as_radius() * 1.5);
+                        let screen_position_offset = screen_position + vec2(screen_radius, screen_radius);
+                        let screen_offset = screen_text_size * current_offset as f32;
+                        
+                        draw_text(&i.to_string(), screen_position_offset.x + screen_offset, screen_position_offset.y, screen_text_size, WHITE);
+                        current_offset += 1;
+                    }
+                }
             }
+
         }
 
     }

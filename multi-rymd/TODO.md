@@ -19,6 +19,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 
 # selection
 [x] make selection aware of exact bounds when available, so that you can more precisely select units in construction
+[x] implement showing which control groups a selected unit is a part of
 
 # attacking
 [x] represent attacking and attackable entities
@@ -92,6 +93,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 # multiplayer
 [] implement game state hashing for checking if in sync
 [] implement compensating the end-turn times given the latency to each player in the match somehow (who is authorative here though, the original host?)
+[] implement messaging to the client(s?) managing the lobby about when a client leaves the lobby, so cleanup can happen
 
 # view
 [x] implement parallax background
