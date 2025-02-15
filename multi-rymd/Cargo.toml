@@ -23,6 +23,9 @@ quad-rand = { version = "0.2.3" }
 hecs = { version = "0.10.4", features = ["macros"] }
 fnv = "1.0.7"
 
+# FYSIKS
+rapier2d = { version = "*", features = [ "enhanced-determinism" ] }
+
 [profile.dev]
 opt-level = 0
 incremental = true

@@ -951,9 +951,7 @@ impl RymdGameModel {
 
     //#[profiling::function]
     fn tick_physics_engine(&mut self) {
-        self.physics_manager.integrate(&mut self.world);
-        self.physics_manager.handle_overlaps(&mut self.world, &self.spatial_manager);
-        self.physics_manager.handle_collisions(&mut self.world);
+        self.physics_manager.tick(&mut self.world);
     }
 
     //#[profiling::function]
