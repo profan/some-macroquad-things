@@ -790,7 +790,7 @@ async fn main() {
 
     let mut debug_text = DebugText::new();
 
-    let mut should_show_tile_atlas = true;
+    let mut should_show_tile_atlas = false;
     let mut should_rasterize_tile_atlas = true;
     let mut rasterized_tile_atlas: Option<RenderTarget> = None;
 
