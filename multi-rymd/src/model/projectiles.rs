@@ -41,7 +41,7 @@ fn on_bullet_impact(world: &World, buffer: &mut CommandBuffer, a: Entity, b: Ent
 
     let entity_a_physics_position = get_entity_physics_position(world, a).unwrap();
     let (position_on_target_radius, normal_on_targeted_entity) = get_position_and_normal_on_targeted_entity_relative_to(world, b_body, entity_a_physics_position);
-    create_impact_effect_in_buffer(buffer, position_on_target_radius, -normal_on_targeted_entity);
+    create_impact_effect_in_buffer(buffer, position_on_target_radius, normal_on_targeted_entity);
 
 }
 
