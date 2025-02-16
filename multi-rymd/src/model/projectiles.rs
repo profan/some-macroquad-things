@@ -69,7 +69,7 @@ fn create_bullet(world: &mut World, owner: PlayerID, position: Vec2, direction: 
     let bounds = parameters.bounds;
     let mask = 1 << owner;
     
-    let orientation = -direction.as_angle();
+    let orientation = (-direction).as_angle();
     let kinematic = Kinematic {
         mass: 0.1,
         ..create_default_kinematic_body(position, orientation)
@@ -103,7 +103,7 @@ fn create_beam(world: &mut World, owner: PlayerID, position: Vec2, direction: Ve
     let is_enabled = true;
     let mask = 1 << owner;
     
-    let orientation = -direction.as_angle();
+    let orientation = direction.as_angle();
     let controller = Controller { id: owner };
     let transform = Transform::new(position, orientation, None);
     let beam = Beam { position, target: position + direction * beam_range, damage: beam_damage, fired: false, color: beam_color };

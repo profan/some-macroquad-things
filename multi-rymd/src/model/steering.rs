@@ -49,7 +49,7 @@ fn entity_apply_steering(kinematic: &mut Kinematic, steering_maybe: Option<Steer
         let desired_linear_velocity = steering.linear * dt;
 
         // project our desired velocity along where we're currently pointing first
-        let projected_linear_velocity = desired_linear_velocity * desired_linear_velocity.dot(-kinematic.orientation.as_vector()).max(0.0);
+        let projected_linear_velocity = desired_linear_velocity * desired_linear_velocity.dot(kinematic.orientation.as_vector()).max(0.0);
         kinematic.velocity += projected_linear_velocity;
 
         let turn_delta = steering.angular * dt;

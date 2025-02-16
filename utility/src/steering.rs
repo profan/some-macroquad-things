@@ -239,40 +239,65 @@ pub fn shortest_arc(r: f32, t: f32) -> f32 {
     2.0 * delta % (max - delta)
 }
 
+fn map_to_range_expensive(r: f32, t: f32) -> f32 {
+    (t - r).as_vector().as_angle()
+}
+
 pub fn align_ex(character: &Kinematic, target: &Kinematic, parameters: SteeringParameters, time_to_target: f32) -> Option<SteeringOutput> {
     align(character, target, parameters.align_max_rotation, parameters.align_max_angular_acceleration, parameters.align_radius, parameters.align_slow_radius, time_to_target)
 }
 
 pub fn align(character: &Kinematic, target: &Kinematic, max_rotation: f32, max_angular_acceleration: f32, target_radius: f32, slow_radius: f32, time_to_target: f32) -> Option<SteeringOutput> {
 
-    // let rotation_to_target = target.orientation
-    let rotation_to_target = map_to_range(target.orientation - character.orientation);
-    let rotation_size = rotation_to_target.abs();
+    let rotation_to_target = map_to_range_expensive(character.orientation, target.orientation);
+    // let rotation_size = rotation_to_target.abs();
 
-    if rotation_size < target_radius {
-        return None
-    }
+    // if rotation_size < target_radius {
+    //     return None
+    // }
 
-    let target_rotation = if rotation_to_target < slow_radius {
-        max_rotation * rotation_size / slow_radius
-    } else {
-        max_rotation
-    } * rotation_to_target / rotation_size;
+    // let clamped_max_angular_acceleration = (character.angular_velocity.abs() - max_angular_acceleration).min(character.angular_velocity.abs());
+    // let clamped_max_angular_acceleration_with_slow = if rotation_size < slow_radius {
+    //     clamped_max_angular_acceleration * rotation_size / slow_radius
+    // } else {
+    //     clamped_max_angular_acceleration
+    // };
 
-    let result_rotation = target_rotation - character.orientation;
-    let result_rotation_diff = result_rotation / time_to_target;
-    let result_angular_acceleration = result_rotation_diff.abs();
-
-    let scaled_angular_acceleration = if result_angular_acceleration > max_angular_acceleration {
-        (result_rotation_diff / result_angular_acceleration) * max_angular_acceleration
-    } else {
-        result_rotation_diff
-    };
+    // let max_rotation_to_target = rotation_to_target * (character.angular_velocity.abs() - max_angular_acceleration).min(character.angular_velocity.abs());
 
     Some(SteeringOutput {
-        linear: vec2(0.0, 0.0),
-        angular: scaled_angular_acceleration
+        linear: Vec2::ZERO,
+        angular: rotation_to_target * max_angular_acceleration
     })
+
+    // let rotation_to_target = target.orientation
+    // let rotation_to_target = map_to_range_expensive(character.orientation, target.orientation);
+    // let rotation_size = rotation_to_target.abs();
+
+    // if rotation_size < target_radius {
+    //     return None
+    // }
+
+    // let target_rotation = if rotation_to_target < slow_radius {
+    //     max_rotation * rotation_size / slow_radius
+    // } else {
+    //     max_rotation
+    // } * rotation_to_target / rotation_size;
+
+    // let result_rotation = target_rotation - character.orientation;
+    // let result_rotation_diff = result_rotation / time_to_target;
+    // let result_angular_acceleration = result_rotation_diff.abs();
+
+    // let scaled_angular_acceleration = if result_angular_acceleration > max_angular_acceleration {
+    //     (result_rotation_diff / result_angular_acceleration) * max_angular_acceleration
+    // } else {
+    //     result_rotation_diff
+    // };
+
+    // Some(SteeringOutput {
+    //     linear: vec2(0.0, 0.0),
+    //     angular: scaled_angular_acceleration
+    // })
 
 }
 
@@ -306,7 +331,7 @@ pub fn face(character: &Kinematic, target: &Kinematic, max_rotation: f32, max_an
     }
 
     let adjusted_target = Kinematic {
-        orientation: -vector_to_target.as_angle(),
+        orientation: vector_to_target.as_angle(),
         ..*target
     };
 
