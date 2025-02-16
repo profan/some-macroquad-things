@@ -103,6 +103,10 @@ impl PhysicsManagerRapierCoreState {
                 continue
             }
 
+            if collision_event.stopped() {
+                continue
+            }
+
             let rigid_body_handle_1 = self.collider_set.get(collision_event.collider1()).unwrap().parent();
             let rigid_body_handle_2 = self.collider_set.get(collision_event.collider2()).unwrap().parent();
             if let Some(r1) = rigid_body_handle_1 && let Some(r2) = rigid_body_handle_2 {
