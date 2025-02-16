@@ -75,6 +75,22 @@ pub struct SteeringOutput {
     pub angular: f32
 }
 
+impl SteeringOutput {
+    pub fn from_linear_velocity(linear: Vec2) -> SteeringOutput {
+        SteeringOutput {
+            linear,
+            angular: 0.0
+        }
+    }
+
+    pub fn from_angular_velocity(angular: f32) -> SteeringOutput {
+        SteeringOutput {
+            linear: Vec2::ZERO,
+            angular,
+        }
+    }
+}
+
 impl Add for SteeringOutput {
     type Output = Self;
 
