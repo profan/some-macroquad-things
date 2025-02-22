@@ -30,7 +30,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] implement beam based weapons
 
 # movement
-[] data-drive parameters for stuff like turn-rate?
+[x] data-drive parameters for stuff like turn-rate?
 
 # rts camera
 [x] implement a simple camera that you can pan around with

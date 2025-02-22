@@ -214,7 +214,21 @@ impl RelayServer {
     }
 
     pub fn create_new_unique_client_name(&mut self) -> String {
-        "rts_fan".to_string()
+
+        let initial_unique_name = "rts_fan";
+
+        let mut current_unique_name = initial_unique_name.to_owned();
+        let mut current_unique_name_id = 1;
+
+        for (_, client) in &self.clients {
+            if client.name == current_unique_name {
+                current_unique_name = format!("{}{}", initial_unique_name, current_unique_name_id);
+                current_unique_name_id += 1;
+            }
+        }
+
+        return current_unique_name;
+
     }
 
     pub fn create_client(&mut self, sender: ws::Sender) -> LobbyClientID {
