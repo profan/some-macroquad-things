@@ -5,7 +5,7 @@ use lockstep_client::game::GameContext;
 use macroquad_particles::{EmitterConfig, Emitter};
 use puffin_egui::egui::{self, Align2};
 use utility::{draw_arrow, draw_rectangle_lines_centered, draw_text_centered, draw_texture_centered, draw_texture_centered_with_rotation, draw_texture_centered_with_rotation_frame, is_point_inside_rect, AsPerpendicular, AsVector, AverageLine2D, DebugText, RotatedBy, TextPosition, WithAlpha};
-use lockstep_client::{step::LockstepClient};
+use lockstep_client::step::LockstepClient;
 use macroquad_particles::*;
 use macroquad::prelude::*;
 use hecs::*;

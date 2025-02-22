@@ -217,7 +217,7 @@ pub fn map_to_range(r: f32) -> f32 {
 }
 
 /// Maps the angle to [-PI, PI], but in an expensive way, most useful as a way to sanity-check any similar functions like this
-fn map_to_range_expensive(r: f32) -> f32 {
+pub fn map_to_range_expensive(r: f32) -> f32 {
     r.as_vector().as_angle()
 }
 

@@ -1,6 +1,6 @@
 use egui_macroquad::egui::{self, Align2};
 use macroquad::prelude::*;
-use lockstep::lobby::{Lobby, LobbyClientID, LobbyState, RelayMessage, DEFAULT_LOBBY_PORT};
+use lockstep::lobby::{LobbyClientID, LobbyState, RelayMessage, DEFAULT_LOBBY_PORT};
 use nanoserde::{DeJson, SerJson};
 use utility::{screen_dimensions, DebugText};
 

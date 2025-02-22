@@ -11,8 +11,6 @@ use macroquad::time::get_time;
 use nanoserde::DeJson;
 use nanoserde::SerJson;
 
-const IS_DEBUGGING: bool = false;
-
 struct RelayPingStats {
     send_time: i32,
     receive_time: i32,
@@ -20,18 +18,12 @@ struct RelayPingStats {
 }
 
 impl RelayPingStats {
-    fn new() -> RelayPingStats {
-        RelayPingStats { send_time: 0, receive_time: 0, last_time: 999 }
-    }
-
     fn ping(&self) -> i32 {
-
         if self.receive_time != self.send_time {
             self.receive_time - self.send_time
         } else {
             self.last_time
         }
-
     }
 }
 
@@ -40,7 +32,6 @@ pub struct RelayClient {
     current_lobby_id: Option<LobbyID>,
     client_stats: BTreeMap<LobbyClientID, RelayPingStats>, // milliseconds latency
     queued_messages: RefCell<Vec<String>>,
-    server_stats: RelayPingStats,
     clients: Vec<LobbyClient>,
     lobbies: Vec<Lobby>,
     is_debug: bool
@@ -53,7 +44,6 @@ impl RelayClient {
             client_id: None,
             current_lobby_id: None,
             client_stats: BTreeMap::new(),
-            server_stats: RelayPingStats::new(),
             queued_messages: RefCell::new(Vec::new()),
             clients: Vec::new(),
             lobbies: Vec::new(),

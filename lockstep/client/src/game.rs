@@ -4,7 +4,6 @@ use lockstep::lobby::LobbyClient;
 use lockstep::lobby::LobbyClientID;
 use utility::DebugText;
 use crate::extensions::RelayCommandsExt;
-use crate::network::NetworkClient;
 use crate::{relay::RelayClient, step::{LockstepClient, PeerID}};
 
 pub struct GameContext<'a> {

@@ -1,5 +1,4 @@
 use macroquad::prelude::*;
-use std::f32::consts::*;
 
 use crate::lerp;
 

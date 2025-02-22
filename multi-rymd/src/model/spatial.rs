@@ -1,5 +1,5 @@
 use core::f32;
-use std::{cmp::Ordering};
+use std::cmp::Ordering;
 
 use fnv::{FnvHashMap, FnvHashSet};
 use hecs::{Entity, World};
