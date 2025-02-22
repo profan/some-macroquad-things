@@ -195,7 +195,7 @@ impl SpatialQueryManager {
     pub fn entities_within_min_max(&self, min: Vec2, max: Vec2) -> impl Iterator::<Item = Entity> + '_  {
 
         let bucket_size = self.bucket_size;
-        let position_bounds = Rect::new(min.x, min.y, max.x - min.x, max.y - max.y);
+        let position_bounds = Rect::new(min.x, min.y, max.x - min.x, max.y - min.y);
         self.entities_within_rect(position_bounds)
 
     }
