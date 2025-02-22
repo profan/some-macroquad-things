@@ -23,8 +23,8 @@ pub fn create_player_entity(world: &mut World, id: PeerID) -> Entity {
     let energy = Energy { current: default_energy, income: 0.0, base_size: default_energy_pool_size, pool_size: 0.0 };
     let player = Player { id, team_mask: 0 };
 
-    let new_player = world.spawn((player, metal, energy));
-    new_player
+    
+    world.spawn((player, metal, energy))
 
 }
 
@@ -59,7 +59,7 @@ pub fn set_player_team_allegiance(world: &mut World, player_id: PlayerID, allegi
     let (e, player) = world.query_mut::<&mut Player>()
         .into_iter()
         .find(|(e, p)| p.id == player_id)
-        .expect(&format!("player with id: {} didn't exist? this is fatal!", player_id));
+        .unwrap_or_else(|| panic!("player with id: {} didn't exist? this is fatal!", player_id));
 
     player.team_mask = allegiance
 

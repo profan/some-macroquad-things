@@ -6,7 +6,7 @@ use utility::{AsAngle, RotatedBy, SteeringParameters};
 
 use crate::PlayerID;
 use crate::model::{Transform, Orderable, AnimatedSprite, Thruster, DynamicBody, Ship, ThrusterKind};
-use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Attacker, BeamWeapon, Blueprint, BlueprintIdentity, Blueprints, Commander, Constructor, Controller, Cost, EntityState, Extractor, GameOrderType, Health, MovementTarget, Producer, ProjectileWeapon, RotationTarget, Steering, ARROWHEAD_STEERING_PARAMETERS, COMMANDER_STEERING_PARAMETERS, DEFAULT_STEERING_PARAMETERS, EXTRACTOR_STEERING_PARAMETERS, SIMPLE_BEAM_PARAMETERS, SIMPLE_BULLET_PARAMETERS};
+use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Commander, Constructor, Controller, Cost, EntityState, Extractor, Health, MovementTarget, Producer, ProjectileWeapon, RotationTarget, Steering, ARROWHEAD_STEERING_PARAMETERS, COMMANDER_STEERING_PARAMETERS, DEFAULT_STEERING_PARAMETERS, EXTRACTOR_STEERING_PARAMETERS, SIMPLE_BULLET_PARAMETERS};
 
 #[derive(Bundle)]
 pub struct ShipThruster {

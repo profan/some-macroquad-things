@@ -5,23 +5,23 @@ use utility::{arrive_ex, face_ex, SteeringOutput, Kinematic, AsVector};
 use super::{DynamicBody, MovementTarget, PhysicsBody, RotationTarget, Steering, Transform, DEFAULT_STEERING_PARAMETERS};
 
 pub fn get_entity_physics_position(world: &World, entity: Entity) -> Option<Vec2> {
-    world.get::<&DynamicBody>(entity).and_then(|b| Ok(b.position())).or(Err(())).ok()
+    world.get::<&DynamicBody>(entity).map(|b| b.position()).or(Err(())).ok()
 }
 
 pub fn get_entity_position(world: &World, entity: Entity) -> Option<Vec2> {
-    world.get::<&Transform>(entity).and_then(|t| Ok(t.world_position)).or(Err(())).ok()
+    world.get::<&Transform>(entity).map(|t| t.world_position).or(Err(())).ok()
 }
 
 pub fn get_entity_position_from_id(world: &World, entity_id: u64) -> Option<Vec2> {
-    world.get::<&Transform>(Entity::from_bits(entity_id).unwrap()).and_then(|t| Ok(t.world_position)).or(Err(())).ok()
+    world.get::<&Transform>(Entity::from_bits(entity_id).unwrap()).map(|t| t.world_position).or(Err(())).ok()
 }
 
 pub fn get_entity_direction(world: &World, entity: Entity) -> Option<f32> {
-    world.get::<&Transform>(entity).and_then(|t| Ok(t.world_rotation)).or(Err(())).ok()
+    world.get::<&Transform>(entity).map(|t| t.world_rotation).or(Err(())).ok()
 }
 
 pub fn get_entity_direction_from_id(world: &World, entity_id: u64) -> Option<f32> {
-    world.get::<&Transform>(Entity::from_bits(entity_id).unwrap()).and_then(|t| Ok(t.world_rotation)).or(Err(())).ok()
+    world.get::<&Transform>(Entity::from_bits(entity_id).unwrap()).map(|t| t.world_rotation).or(Err(())).ok()
 }
 
 pub fn get_closest_position_with_entity_bounds(world: &World, entity: Entity) -> Option<(Vec2, Rect)> {

@@ -43,6 +43,6 @@ impl<F> Drop for StopWatch<F> where F: FnMut(f32) -> () {
 #[macro_export]
 macro_rules! measure_scope {
     ($e:expr) => {
-        let time = crate::utils::measure::measure_scope(|ms| $e = ms);
+        let time = $crate::utils::measure::measure_scope(|ms| $e = ms);
     };
 }

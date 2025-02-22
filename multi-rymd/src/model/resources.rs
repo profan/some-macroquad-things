@@ -62,7 +62,7 @@ pub fn provide_energy(player_id: PeerID, world: &World, amount: f32, dt: f32) ->
 /// Attempts to consume the specific amount of metal from this player's resources, returns true if successful.
 pub fn consume_metal(player_id: PeerID, world: &World, amount: f32, dt: f32) -> bool {
 
-    if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().filter(|(e, p)| p.id == player_id).nth(0) {
+    if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().find(|(e, p)| p.id == player_id) {
         if let Ok(mut metal) = world.get::<&mut Metal>(current_player_entity) && metal.current >= amount {
             if dt != 0.0 {
                 metal.income -= amount / dt;
@@ -81,7 +81,7 @@ pub fn consume_metal(player_id: PeerID, world: &World, amount: f32, dt: f32) -> 
 /// Attempts to consume the specific amount of energy from this player's resources, returns true if successful.
 pub fn consume_energy(player_id: PeerID, world: &World, amount: f32, dt: f32) -> bool {
 
-    if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().filter(|(e, p)| p.id == player_id).nth(0) {
+    if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().find(|(e, p)| p.id == player_id) {
         if let Ok(mut energy) = world.get::<&mut Energy>(current_player_entity) && energy.current >= amount {
             if dt != 0.0 {
                 energy.income -= amount / dt;
@@ -100,7 +100,7 @@ pub fn consume_energy(player_id: PeerID, world: &World, amount: f32, dt: f32) ->
 /// Returns the current amount of metal in the given player's resource pool.
 pub fn current_metal(player_id: PeerID, world: &World) -> f32 {
 
-    if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().filter(|(e, p)| p.id == player_id).nth(0) {
+    if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().find(|(e, p)| p.id == player_id) {
         if let Ok(metal) = world.get::<&Metal>(current_player_entity) {
             metal.current
         } else {
@@ -115,7 +115,7 @@ pub fn current_metal(player_id: PeerID, world: &World) -> f32 {
 /// Returns the current amount of energy in the given player's resource pool.
 pub fn current_energy(player_id: PeerID, world: &World) -> f32 {
 
-    if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().filter(|(e, p)| p.id == player_id).nth(0) {
+    if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().find(|(e, p)| p.id == player_id) {
         if let Ok(energy) = world.get::<&Energy>(current_player_entity) {
             energy.current
         } else {
@@ -130,7 +130,7 @@ pub fn current_energy(player_id: PeerID, world: &World) -> f32 {
 /// Returns the maximum amount of metal the given player's resource pool can hold.
 pub fn max_metal(player_id: PeerID, world: &World) -> f32 {
 
-    if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().filter(|(e, p)| p.id == player_id).nth(0) {
+    if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().find(|(e, p)| p.id == player_id) {
         if let Ok(metal) = world.get::<&Metal>(current_player_entity) {
             metal.base_size + metal.pool_size
         } else {
@@ -145,7 +145,7 @@ pub fn max_metal(player_id: PeerID, world: &World) -> f32 {
 /// Returns the maximum amount of energy the given player's resource pool can hold.
 pub fn max_energy(player_id: PeerID, world: &World) -> f32 {
 
-    if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().filter(|(e, p)| p.id == player_id).nth(0) {
+    if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().find(|(e, p)| p.id == player_id) {
         if let Ok(energy) = world.get::<&Energy>(current_player_entity) {
             energy.base_size + energy.pool_size
         } else {
@@ -160,7 +160,7 @@ pub fn max_energy(player_id: PeerID, world: &World) -> f32 {
 /// Returns the current amount of metal income last tick for the given player's resource pool.
 pub fn current_metal_income(player_id: PeerID, world: &World) -> f32 {
 
-    if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().filter(|(e, p)| p.id == player_id).nth(0) {
+    if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().find(|(e, p)| p.id == player_id) {
         if let Ok(metal) = world.get::<&Metal>(current_player_entity) {
             metal.income
         } else {
@@ -175,7 +175,7 @@ pub fn current_metal_income(player_id: PeerID, world: &World) -> f32 {
 /// Returns the current amount of metal income last tick for the given player's resource pool.
 pub fn current_energy_income(player_id: PeerID, world: &World) -> f32 {
 
-    if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().filter(|(e, p)| p.id == player_id).nth(0) {
+    if let Some((current_player_entity, current_player)) = world.query::<&Player>().iter().find(|(e, p)| p.id == player_id) {
         if let Ok(energy) = world.get::<&Energy>(current_player_entity) {
             energy.income
         } else {

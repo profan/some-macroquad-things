@@ -52,7 +52,7 @@ impl Transform {
             world_rotation: rotation,
             local_position: position,
             local_rotation: rotation,
-            parent: parent
+            parent
         }
     }
 
@@ -382,8 +382,8 @@ impl Orderable {
     /// Returns true if there's any pending orders in the given order queue.
     pub fn has_pending_orders(&self, order_type: GameOrderType) -> bool {
         match order_type {
-            GameOrderType::Order => self.orders(order_type).len() > 0,
-            GameOrderType::Construct => self.orders(order_type).len() > 0
+            GameOrderType::Order => self.orders(order_type).is_empty() == false,
+            GameOrderType::Construct => self.orders(order_type).is_empty() == false
         }
     }
 

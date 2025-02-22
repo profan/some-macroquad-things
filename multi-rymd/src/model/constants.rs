@@ -1,4 +1,4 @@
-use macroquad::{color::Color, math::Rect, prelude::Vec2};
+use macroquad::{math::Rect, prelude::Vec2};
 use utility::{SteeringParameters, Kinematic};
 
 use super::{BeamParameters, BulletParameters};

@@ -1,11 +1,10 @@
 use std::f32::consts::PI;
-use std::io::empty;
 
 use fnv::FnvHashMap;
 use lockstep_client::game::GameContext;
 use macroquad_particles::{EmitterConfig, Emitter};
 use puffin_egui::egui::{self, Align2};
-use utility::{draw_arrow, draw_rectangle_lines_centered, draw_text_centered, draw_texture_centered, draw_texture_centered_with_rotation, draw_texture_centered_with_rotation_frame, is_point_inside_rect, normalize, AsPerpendicular, AsVector, AverageLine2D, DebugText, RotatedBy, TextPosition, WithAlpha};
+use utility::{draw_arrow, draw_rectangle_lines_centered, draw_text_centered, draw_texture_centered, draw_texture_centered_with_rotation, draw_texture_centered_with_rotation_frame, is_point_inside_rect, AsPerpendicular, AsVector, AverageLine2D, DebugText, RotatedBy, TextPosition, WithAlpha};
 use lockstep_client::{step::LockstepClient};
 use macroquad_particles::*;
 use macroquad::prelude::*;
@@ -13,7 +12,7 @@ use hecs::*;
 
 use crate::PlayerID;
 use crate::game::RymdGameParameters;
-use crate::model::{current_energy, current_energy_income, current_metal, current_metal_income, max_energy, max_metal, Attackable, Attacker, Beam, Blueprint, BlueprintID, BlueprintIdentity, Blueprints, Building, Commander, Effect, EntityState, Extractor, GameOrder, GameOrderType, Impact, PhysicsBody, ResourceSource, Spawner};
+use crate::model::{current_energy, current_energy_income, current_metal, current_metal_income, max_energy, max_metal, Attacker, Beam, Blueprint, BlueprintID, BlueprintIdentity, Blueprints, Building, Commander, Effect, EntityState, Extractor, GameOrder, GameOrderType, Impact, PhysicsBody, ResourceSource, Spawner};
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Controller, Health, get_entity_position};
 
 use super::{calculate_sprite_bounds, GameCamera2D};
@@ -216,8 +215,8 @@ impl SelectionState {
     fn was_double_click(&self) -> bool {
         let double_click_time = 0.5;
         let current_time = get_time();
-        let was_double_click = (current_time - self.last_click_time) < double_click_time;
-        was_double_click
+        
+        (current_time - self.last_click_time) < double_click_time
     }
 
     fn as_bounds(&self) -> (Vec2, Vec2) {
@@ -562,7 +561,7 @@ impl ControlGroupState {
             return &control_group.entities;
         }
 
-        return &[];
+        &[]
         
     }
 
@@ -687,7 +686,7 @@ impl RymdGameView {
                 continue;
             }
 
-            if blueprint_identity.blueprint_id != blueprint_id as i32 {
+            if blueprint_identity.blueprint_id != blueprint_id {
                 selectable.is_selected = false;
             }
 
@@ -747,7 +746,7 @@ impl RymdGameView {
     }
 
     fn is_any_number_key_pressed() -> bool {
-        return is_key_pressed(KeyCode::Key0)
+        is_key_pressed(KeyCode::Key0)
             || is_key_pressed(KeyCode::Key1)
             || is_key_pressed(KeyCode::Key2)
             || is_key_pressed(KeyCode::Key3)
@@ -756,7 +755,7 @@ impl RymdGameView {
             || is_key_pressed(KeyCode::Key6)
             || is_key_pressed(KeyCode::Key7)
             || is_key_pressed(KeyCode::Key8)
-            || is_key_pressed(KeyCode::Key9);
+            || is_key_pressed(KeyCode::Key9)
     }
 
     fn get_first_number_key_pressed() -> Option<i32> {
@@ -801,7 +800,7 @@ impl RymdGameView {
             return Some(9);
         }
 
-        return None;
+        None
 
     }
 
@@ -830,7 +829,7 @@ impl RymdGameView {
         }
 
         let control_group_id = Self::get_first_number_key_pressed().expect("there must be a number key pressed when calling this function, there was none!");
-        let control_group_entities: Vec<Entity> = self.control_groups.get(control_group_id).iter().cloned().collect();
+        let control_group_entities: Vec<Entity> = self.control_groups.get(control_group_id).to_vec();
 
         for e in control_group_entities {
             if let Ok((controller, selectable)) = world.query_one_mut::<(&Controller, &mut Selectable)>(e) {
@@ -1033,14 +1032,10 @@ impl RymdGameView {
                 self.handle_move_order(&mut model.world, current_selection_end_point, mouse_position, lockstep, should_group, should_add, should_issue_attack_move_order);
             }
 
+        } else if about_to_issue_any_order {
+            self.ordering.add_point(mouse_position);
         } else {
-
-            if about_to_issue_any_order {
-                self.ordering.add_point(mouse_position);
-            } else {
-                self.ordering.clear_points();
-            }
-            
+            self.ordering.clear_points();
         }
 
         if should_cancel_current_orders {
@@ -1129,12 +1124,10 @@ impl RymdGameView {
                 current_mouse_world_position - offset_from_centroid
             }
             else
-            {
-                if number_of_selected_orderables > 1 {
-                    self.ordering.get_point(number_of_selected_orderables, idx)
-                } else {
-                    current_mouse_world_position
-                }
+            if number_of_selected_orderables > 1 {
+                self.ordering.get_point(number_of_selected_orderables, idx)
+            } else {
+                current_mouse_world_position
             };
 
             if should_attack {
@@ -1157,7 +1150,7 @@ impl RymdGameView {
                 return true;
             }
         }
-        return false;
+        false
     }
 
     fn can_select_unit(&self, controller: &Controller) -> bool {
@@ -1993,8 +1986,8 @@ impl RymdGameView {
 
             let health_difference = health.current_health() - health.last_health();
             let health_difference_to_max = (health.full_health() - health.current_health()).max(0.0);
-            let health_difference_per_second = (1.0 / RymdGameModel::TIME_STEP) * health_difference as f32;
-            let time_remaining_seconds = health_difference_to_max as f32 / health_difference_per_second;
+            let health_difference_per_second = (1.0 / RymdGameModel::TIME_STEP) * health_difference;
+            let time_remaining_seconds = health_difference_to_max / health_difference_per_second;
             
             let time_label_position = transform.world_position + vec2(0.0, -bounds.as_radius());
             draw_text_centered(&format!("{:.0}s", time_remaining_seconds), time_label_position.x, time_label_position.y, 24.0, WHITE);
@@ -2098,15 +2091,15 @@ impl RymdGameView {
 
         self.camera.tick(dt);
 
-        self.update_constructor_beams(&model);
-        self.update_extractor_beams(&model);
+        self.update_constructor_beams(model);
+        self.update_extractor_beams(model);
         self.update_thrusters(&model.world);
         self.update_impacts(&model.world);
 
         self.draw_background_texture(screen_width(), screen_height(), self.camera.world_position());
 
-        self.draw_pending_orders(&model);
-        self.draw_orders(&model);
+        self.draw_pending_orders(model);
+        self.draw_orders(model);
 
         self.draw_selection();
         self.draw_selectables(&mut model.world);
@@ -2121,7 +2114,7 @@ impl RymdGameView {
         }
 
         if self.debug.render_spatial {
-            self.draw_spatial_debug(&model);
+            self.draw_spatial_debug(model);
         }
 
         self.camera.push();

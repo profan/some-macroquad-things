@@ -1,7 +1,6 @@
 use lockstep_client::step::LockstepClient;
 use nanoserde::{DeJson, SerJson};
 
-use crate::game::{RymdGameModeChickensData, RymdGameModeConquestData};
 
 #[derive(Debug, SerJson, DeJson)]
 pub enum GameCommand {

@@ -1,11 +1,8 @@
 use hecs::World;
-use lockstep::lobby::Lobby;
-use lockstep_client::command::GenericCommand;
 use lockstep_client::game::{GameContext, GameLobbyContext};
 use lockstep_client::{game::Game, step::LockstepClient};
 use lockstep_client::step::PeerID;
 use macroquad::math::vec2;
-use macroquad::prelude::rand;
 use nanoserde::{DeJson, SerJson};
 use puffin_egui::egui;
 use utility::{DebugText, TextPosition};
@@ -13,7 +10,7 @@ use utility::{DebugText, TextPosition};
 use crate::commands::{CommandsExt, GameCommand};
 use crate::PlayerID;
 use crate::measure_scope;
-use crate::model::{build_commander_ship, create_asteroid, create_player_entity, set_default_energy_pool_size, set_default_metal_pool_size, set_player_team_allegiance, spawn_commander_ship, Commander, Controller, GameMessage, Health, Player, RymdGameModel};
+use crate::model::{create_asteroid, create_player_entity, set_default_energy_pool_size, set_default_metal_pool_size, set_player_team_allegiance, spawn_commander_ship, Commander, Controller, GameMessage, Player, RymdGameModel};
 use crate::view::RymdGameView;
 
 #[derive(Debug, Clone)]
@@ -184,7 +181,7 @@ impl RymdGameMode for RymdGameModeConquest {
                 ui.separator();
                 ui.heading(format!("team {}", team.id));
                 for &player_id in &team.players {
-                    ui.label(format!("{} ({})", ctx.get_lobby_client_name(player_id), player_id.to_string()));
+                    ui.label(format!("{} ({})", ctx.get_lobby_client_name(player_id), player_id));
                 }
 
                 if team.players.contains(&ctx.lockstep().peer_id()) == false && ui.button("join").clicked() {
@@ -256,7 +253,7 @@ fn is_commander_dead_for_player(world: &mut World, player_id: PlayerID) -> bool 
             return get_number_of_commanders_of_player(world, player_id) <= 0;
         }
     }
-    return false;
+    false
 }
 
 fn is_any_commander_still_alive_in_team(world: &mut World, team: &RymdGameTeam) -> bool {
@@ -401,7 +398,7 @@ impl RymdGameSetup {
 
         if let Some(game_mode_id) = found_game_mode_id {
 
-            let last_game_mode = std::mem::replace(&mut self.game_mode, None);
+            let last_game_mode = self.game_mode.take();
             let new_game_mode = self.game_modes.remove(game_mode_id);
 
             if let Some(last_game_mode) = last_game_mode {
@@ -521,7 +518,6 @@ impl Game for RymdGame {
             },
             Err(err) => {
                 println!("[RymdGame] failed to parse generic message: {}!", message);
-                return;      
             }
         }
         
@@ -535,9 +531,8 @@ impl Game for RymdGame {
             Ok(ref message) => self.model.handle_message(message),
             Err(err) => {
                 println!("[RymdGame] failed to parse game message: {}!", message);
-                return;
             }
-        };
+        }
 
     }
 

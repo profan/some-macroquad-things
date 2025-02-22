@@ -290,7 +290,7 @@ impl RymdGameModel {
         for (e, (orderable, &state)) in self.world.query::<(&Orderable, &EntityState)>().iter() {
 
             if let Some(order) = orderable.first_order(order_type) && Self::is_processing_orders(state) {
-                if order.is_order_completed(e, &self) {
+                if order.is_order_completed(e, self) {
                     completed_orders.push(e);
                 } else {
                     in_progress_orders.push(e);
@@ -407,7 +407,7 @@ impl RymdGameModel {
 
             let steering_parameters = steering.parameters;
             let nearby_entities = self.spatial_manager.entities_within_radius(dynamic_body.position(), steering_parameters.separation_threshold);
-            let nearby_entities_with_dynamic_body = nearby_entities.filter(|o| e != *o).filter_map(|e| self.world.get::<&DynamicBody>(e).and_then(|b| Ok(b.kinematic.clone())).ok());
+            let nearby_entities_with_dynamic_body = nearby_entities.filter(|o| e != *o).filter_map(|e| self.world.get::<&DynamicBody>(e).map(|b| b.kinematic.clone()).ok());
 
             let steering_output = separation(
                 &dynamic_body.kinematic,

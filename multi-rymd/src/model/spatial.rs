@@ -176,7 +176,7 @@ impl SpatialQueryManager {
         self.buckets.iter()
             .filter(move |(&bucket_position, bucket)| Self::get_bucket_bounds(bucket_position, bucket_size).overlaps(&search_bounds))
             .flat_map(|(bucket_position, bucket)| bucket)
-            .map(|e| *e)
+            .copied()
 
     }
 
