@@ -180,6 +180,8 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
             ApplicationMode::Multiplayer => self.handle_multiplayer_game(),
         }
 
+        self.relay.handle_queued_messages(|m| self.net.send_text(m.to_string()));
+
     }
 
     fn handle_frontend(&mut self) {
@@ -344,7 +346,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
             } else if self.mode == ApplicationMode::Multiplayer {
                 lockstep.handle_generic_messages_with(
                     |peer_id, msg| self.game.handle_generic_message(peer_id, msg),
-                    |peer_id, msg| self.relay.send_relay_message(RelayMessage::Message(peer_id, msg))
+                    |peer_id, msg| self.net.send_text(RelayMessage::Message(peer_id, msg).serialize_json())
                 );
             }
 
@@ -363,7 +365,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
                 let tick_result = lockstep.tick_with(
                     |peer_id, msg| self.game.handle_game_message(peer_id, msg),
-                    |peer_id, msg| self.relay.send_relay_message(RelayMessage::Message(peer_id, msg))
+                    |peer_id, msg| self.net.send_text(RelayMessage::Message(peer_id, msg).serialize_json())
                 );
 
                 if tick_result == TickResult::RunningNewTurn {
@@ -388,8 +390,6 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
             }
     
         }
-
-        self.relay.handle_queued_messages(|m| self.net.send_text(m.to_string()));
 
     }
 

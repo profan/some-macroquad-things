@@ -17,7 +17,6 @@ impl HasTurnId for TurnCommand {
     fn turn_id(&self) -> i32 {
         match self {
             TurnCommand::Command(turn_id, _) => *turn_id,
-            TurnCommand::Commands(turn_id, _) => *turn_id,
             TurnCommand::Pass(turn_id) => *turn_id
         }
     }
@@ -28,9 +27,6 @@ pub enum TurnCommand {
 
     /// Sent to the game layer, representing a specific queued command that should be deserialized and executed.
     Command(TurnID, String),
-
-    /// Sent to the game layer, representing a specific set of queued commands that should be deserialized and executed.
-    Commands(TurnID, Vec<TurnCommand>),
 
     /// Sent only when the specific peer has nothing to do on a given turn.
     Pass(TurnID),
@@ -293,32 +289,13 @@ impl LockstepClient {
         } 
     }
 
-    fn get_merged_turn_commands(turn_id: i32, commands: Vec<TurnCommand>) -> Vec<TurnCommand> {
-
-        let mut merged_turn_commands = Vec::new();
-        let mut turn_commands = Vec::new();
-
-        for cmd in commands {
-            match cmd {
-                turn_command @ TurnCommand::Command(_, _) => turn_commands.push(turn_command),
-                multi_command @ TurnCommand::Commands(_, _) => merged_turn_commands.push(multi_command),
-                pass_command @ TurnCommand::Pass(_) => merged_turn_commands.push(pass_command),
-            }
-        }
-
-        merged_turn_commands.insert(0, TurnCommand::Commands(turn_id, turn_commands));
-        merged_turn_commands
-
-    }
-
     fn send_queued_commands_with_offset<F>(&mut self, mut send_command_fn: F, offset: i32) 
         where F: FnMut(PeerID, String) -> ()
     {
-        let current_turn_id_with_offset = self.current_send_turn_id() + offset;
-        let Some(commands_queued) = self.command_queue.commands_for_turn_mut(current_turn_id_with_offset) else { return; };
+        let Some(commands_queued) = self.command_queue.commands_for_turn_mut(self.current_send_turn_id() + offset) else { return; };
 
         // #HACK: ugly clone, but it works!
-        for command in Self::get_merged_turn_commands(current_turn_id_with_offset, commands_queued.clone()) {
+        for command in &commands_queued.clone() {
 
             // send command to all our other peer friends
             let application_command = ApplicationCommand::TurnCommand(command.clone());
@@ -370,11 +347,6 @@ impl LockstepClient {
 
         match turn_command {
             TurnCommand::Command(turn_id, _) => self.command_queue.receive(peer_id, turn_id, turn_command),
-            TurnCommand::Commands(turn_id, commands) => {
-                for cmd in commands {
-                    self.command_queue.receive(peer_id, turn_id, cmd);
-                }
-            },
             TurnCommand::Pass(turn_id) => self.command_queue.receive(peer_id, turn_id, turn_command),
         };
 
@@ -395,13 +367,6 @@ impl LockstepClient {
                 for turn_command in commands {
                     if let TurnCommand::Command(_, command) = turn_command {
                         handle_command_fn(*peer_id, &command);
-                    }
-                    else if let TurnCommand::Commands(_, commands) = turn_command {
-                        for cmd in commands {
-                            if let TurnCommand::Command(_, command) = cmd {
-                                handle_command_fn(*peer_id, &command);
-                            }
-                        }
                     }
                 }
             }
