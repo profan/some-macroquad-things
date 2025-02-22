@@ -1,9 +1,6 @@
-use hecs::World;
-use lockstep::lobby::LobbyClientID;
 use lockstep_client::game::{GameContext, GameLobbyContext};
 use lockstep_client::{game::Game, step::LockstepClient};
 use lockstep_client::step::PeerID;
-use macroquad::math::vec2;
 use nanoserde::{DeJson, SerJson};
 use puffin_egui::egui;
 use utility::{DebugText, TextPosition};
@@ -14,7 +11,7 @@ use crate::gamemodes::conquest::RymdGameModeConquest;
 use crate::gamemodes::gamemode::RymdGameMode;
 use crate::PlayerID;
 use crate::measure_scope;
-use crate::model::{create_asteroid, create_player_entity, set_default_energy_pool_size, set_default_metal_pool_size, set_player_team_allegiance, spawn_commander_ship, Commander, Controller, GameMessage, Player, RymdGameModel};
+use crate::model::{GameMessage, RymdGameModel};
 use crate::view::RymdGameView;
 
 #[derive(Debug, Clone)]

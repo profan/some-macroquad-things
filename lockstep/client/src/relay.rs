@@ -341,6 +341,9 @@ impl RelayClient {
             // when the game/lobby is running, these relevant
             RelayMessage::Message(client_id, ref text) => handle_message(client_id, text),
 
+            // when someone becomes the boss/authority
+            RelayMessage::Boss(_) => (),
+
             // server only messages
             RelayMessage::PushLobbyData(_) => (),
             RelayMessage::QueryActiveLobbies => (),

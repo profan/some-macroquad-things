@@ -65,6 +65,9 @@ pub enum RelayMessage {
     /// Represents a payload that should be sent through the current active lobby to all other players in the lobby.
     Message(LobbyClientID, String),
 
+    /// Represents a message notifying that a specific client has become de boss
+    Boss(LobbyClientID),
+
     /// Represents a request to get all the active lobbies on the relay server.
     QueryActiveLobbies,
 
@@ -101,18 +104,27 @@ pub struct Lobby {
     pub id: LobbyID,
     pub name: String,
     pub clients: Vec<LobbyClientID>,
+    pub boss: LobbyClientID,
     pub state: LobbyState,
-    pub data: String
+    pub data: String,
 }
 
 impl Lobby {
-    pub fn new(id: LobbyID, name: String) -> Lobby {
+    pub fn new(id: LobbyID, owner_client_id: LobbyClientID, name: String) -> Lobby {
         Lobby {
             id: id,
             name: name,
             clients: Vec::new(),
+            boss: owner_client_id,
             state: LobbyState::Open,
             data: String::new()
         }
+    }
+
+    pub fn figure_out_lobby_boss(&mut self) -> bool {
+        let Some(min_client_id) = self.clients.iter().min() else { return false };
+        let has_the_boss_changed = *min_client_id != self.boss;
+        self.boss = *min_client_id;
+        has_the_boss_changed
     }
 }

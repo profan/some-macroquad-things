@@ -98,13 +98,6 @@ impl RymdGameMode for RymdGameModeConquest {
     }
 
     fn on_client_left_lobby(&mut self, lockstep: &LockstepClient, client_id: PlayerID) {
-
-        let min_peer = lockstep.peers().iter().filter(|p| p.id != client_id).min_by_key(|p| p.id).expect("there has to be at least one peer here!");
-
-        if min_peer.id == lockstep.peer_id() {
-            self.data.remove_player_from_teams(client_id);
-            self.data.changed = true;
-        }
         
     }
 
