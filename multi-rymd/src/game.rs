@@ -1,4 +1,5 @@
 use hecs::World;
+use lockstep::lobby::LobbyClientID;
 use lockstep_client::game::{GameContext, GameLobbyContext};
 use lockstep_client::{game::Game, step::LockstepClient};
 use lockstep_client::step::PeerID;
@@ -8,6 +9,9 @@ use puffin_egui::egui;
 use utility::{DebugText, TextPosition};
 
 use crate::commands::{CommandsExt, GameCommand};
+use crate::gamemodes::chickens::RymdGameModeChickens;
+use crate::gamemodes::conquest::RymdGameModeConquest;
+use crate::gamemodes::gamemode::RymdGameMode;
 use crate::PlayerID;
 use crate::measure_scope;
 use crate::model::{create_asteroid, create_player_entity, set_default_energy_pool_size, set_default_metal_pool_size, set_player_team_allegiance, spawn_commander_ship, Commander, Controller, GameMessage, Player, RymdGameModel};
@@ -57,318 +61,6 @@ impl RymdGameTeam {
     pub fn new(id: i32) -> RymdGameTeam {
         RymdGameTeam { id, players: Vec::new() }
     }
-}
-
-#[derive(Clone, Debug, SerJson, DeJson)]
-pub struct RymdGameModeConquestData {
-    pub teams: Vec<RymdGameTeam>,
-    pub starting_metal: i32,
-    pub starting_energy: i32
-}
-
-impl RymdGameModeConquestData {
-    pub fn new() -> RymdGameModeConquestData {
-        RymdGameModeConquestData {
-            teams: vec![RymdGameTeam::new(0), RymdGameTeam::new(1)],
-            starting_metal: 1000,
-            starting_energy: 1000
-        }
-    }
-
-    pub fn move_player_to_team(&mut self, player_id: PlayerID, target_team_id: i32) {
-
-        for team in &mut self.teams {
-            team.players.retain(|&p| p != player_id);
-        }
-
-        for team in &mut self.teams {
-            if team.id == target_team_id {
-                team.players.push(player_id);
-                break;
-            }
-        }
-
-    }
-}
-
-#[derive(Clone)]
-pub struct RymdGameModeConquest {
-    pub data: RymdGameModeConquestData
-}
-
-impl RymdGameModeConquest {
-
-    pub fn new() -> RymdGameModeConquest {
-        RymdGameModeConquest {
-            data: RymdGameModeConquestData::new()
-        }
-    }
-
-}
-
-impl RymdGameMode for RymdGameModeConquest {
-
-    fn name(&self) -> &str {
-        "Conquest"
-    }
-
-    fn on_start(&self, model: &mut RymdGameModel, parameters: &RymdGameParameters) {
-
-        model.random.srand(42);
-
-        let number_of_asteroid_clumps = 10;
-        let number_of_asteroids = 10;
-
-        create_player_commander_ships(model, parameters);
-        create_asteroid_clumps(model, number_of_asteroid_clumps, number_of_asteroids);
-
-        set_default_metal_pool_size(&mut model.world, self.data.starting_metal, self.data.starting_metal);
-        set_default_energy_pool_size(&mut model.world, self.data.starting_energy, self.data.starting_energy);
-
-        for team in &self.data.teams {
-            for &player_id in &team.players {
-                let current_team_mask: u64 = 1 << team.id;
-                set_player_team_allegiance(&mut model.world, player_id, current_team_mask);
-            }
-        }
-
-    }
-
-    fn on_lobby_update(&mut self, new_lobby_data: String) {
-        
-        if let Ok(rymd_game_mode_conquest_data) = RymdGameModeConquestData::deserialize_json(&new_lobby_data) {
-            self.data = rymd_game_mode_conquest_data;
-        }
-
-    }
-
-    fn tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult {
-
-        for team in &self.data.teams {
-            if is_any_commander_still_alive_in_team(&mut model.world, team) == false {
-                // evaporate all the units of this team?
-            }
-        }
-
-        RymdGameModeResult::Continue
-        
-    }
-    
-    fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, ctx: &mut GameLobbyContext) {
-
-        let mut anything_changed = false;
-
-        ui.vertical_centered(|ui| {
-
-            ui.heading("settings");
-
-            ui.horizontal(|ui| {
-                ui.label("starting metal");
-                let e = ui.add(egui::Slider::new(&mut self.data.starting_metal, 1000..=50000));
-                anything_changed = anything_changed || e.changed();
-            });
-
-            ui.horizontal(|ui| {
-                ui.label("starting energy");
-                let e = ui.add(egui::Slider::new(&mut self.data.starting_energy, 1000..=50000));
-                anything_changed = anything_changed || e.changed();
-            });
-
-            ui.heading("teams");
-
-            for team in &mut self.data.teams.clone() {
-
-                ui.separator();
-                ui.heading(format!("team {}", team.id));
-                for &player_id in &team.players {
-                    ui.label(format!("{} ({})", ctx.get_lobby_client_name(player_id), player_id));
-                }
-
-                if team.players.contains(&ctx.lockstep().peer_id()) == false && ui.button("join").clicked() {
-                    self.data.move_player_to_team(ctx.lockstep().peer_id(), team.id);
-                    anything_changed = true;
-                }
-
-            }
-
-        });
-
-        if anything_changed {
-            let conquest_lobby_data = self.data.serialize_json();
-            ctx.push_new_lobby_data(conquest_lobby_data);
-        }
-
-    }
-
-}
-
-fn create_asteroid_clumps(model: &mut RymdGameModel, number_of_asteroid_clumps: i32, number_of_asteroids: i32) {
-
-    for i in 0..number_of_asteroid_clumps {
-
-        let asteroid_clump_random_x = model.random.gen_range(-4000, 4000);
-        let asteroid_clump_random_y = model.random.gen_range(-4000, 4000);
-
-        for i in 0..number_of_asteroids {
-
-            let random_x = model.random.gen_range(asteroid_clump_random_x - 400, asteroid_clump_random_x + 400);
-            let random_y = model.random.gen_range(asteroid_clump_random_y - 400, asteroid_clump_random_y + 400);
-
-            let new_asteroid = create_asteroid(&mut model.world, vec2(random_x as f32, random_y as f32), 0.0);
-
-        }
-
-    }
-
-}
-
-fn create_player_commander_ships(model: &mut RymdGameModel, parameters: &RymdGameParameters) {
-
-    for player in &parameters.players {
-
-        create_player_entity(&mut model.world, player.id);
-
-        let start_random_x = model.random.gen_range(-400, 400);
-        let start_random_y = model.random.gen_range(-400, 400);
-
-        let commander_ship = spawn_commander_ship(&mut model.world, player.id, vec2(start_random_x as f32, start_random_y as f32));
-    
-    }
-
-}
-
-fn get_number_of_commanders_of_player(world: &mut World, player_id: PlayerID) -> i32 {
-    let mut number_of_commanders = 0;
-    for (e, (commander, controller)) in world.query_mut::<(&Commander, &Controller)>() {         
-        if controller.id == player_id {
-            number_of_commanders += 1;
-        }
-    }
-    number_of_commanders
-}
-
-fn is_commander_dead_for_player(world: &mut World, player_id: PlayerID) -> bool {
-    for (e, player) in world.query_mut::<&Player>() {
-        if player.id == player_id {
-            return get_number_of_commanders_of_player(world, player_id) <= 0;
-        }
-    }
-    false
-}
-
-fn is_any_commander_still_alive_in_team(world: &mut World, team: &RymdGameTeam) -> bool {
-    let mut has_alive_commander = false;
-    for &player_id in &team.players {
-        if is_commander_dead_for_player(world, player_id) == false {
-            has_alive_commander = true;
-        }
-    }
-    has_alive_commander
-}
-
-#[derive(Clone, Debug, SerJson, DeJson)]
-pub struct RymdGameModeChickensData {
-    pub number_of_waves: i32,
-    pub difficulty_multiplier: f32
-}
-
-impl RymdGameModeChickensData {
-    pub fn new() -> RymdGameModeChickensData {
-        RymdGameModeChickensData {
-            number_of_waves: 3,
-            difficulty_multiplier: 1.0
-        }
-    }
-}
-
-#[derive(Clone)]
-pub struct RymdGameModeChickens {
-    pub data: RymdGameModeChickensData
-}
-
-impl RymdGameModeChickens {
-    pub fn new() -> RymdGameModeChickens {
-        RymdGameModeChickens {
-            data: RymdGameModeChickensData::new()
-        }
-    }
-}
-
-impl RymdGameMode for RymdGameModeChickens {
-
-    fn name(&self) -> &str {
-        "Chickens"
-    }
-
-    fn on_start(&self, model: &mut RymdGameModel, parameters: &RymdGameParameters) {
-
-        model.random.srand(42);
-
-        let number_of_asteroid_clumps = 10;
-        let number_of_asteroids = 10;
-
-        create_player_commander_ships(model, parameters);
-        create_asteroid_clumps(model, number_of_asteroid_clumps, number_of_asteroids);
-
-    }
-
-    fn tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult {
-        RymdGameModeResult::Continue
-    }
-
-    fn on_lobby_update(&mut self, new_lobby_data: String) {
-
-        if let Ok(rymd_game_mode_chickens_data) = RymdGameModeChickensData::deserialize_json(&new_lobby_data) {
-            self.data = rymd_game_mode_chickens_data;
-        }
-        
-    }
-
-    fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, ctx: &mut GameLobbyContext) {
-        
-        let mut any_element_changed = false;
-
-        ui.vertical_centered(|ui| {
-
-            ui.horizontal(|ui| {
-                ui.label("number of waves");
-                let e = ui.add(egui::Slider::new(&mut self.data.number_of_waves, 5..=30));
-                any_element_changed = any_element_changed || e.changed();
-            });
-    
-            ui.horizontal(|ui| {
-                ui.label("difficulty multiplier");
-                let e = ui.add(egui::Slider::new(&mut self.data.difficulty_multiplier, 0.0..=10.0));
-                any_element_changed = any_element_changed || e.changed();
-            });
-
-        });
-
-        if any_element_changed {
-            let chickens_lobby_data = self.data.serialize_json();
-            ctx.push_new_lobby_data(chickens_lobby_data);
-        }
-
-    }
-
-}
-
-pub enum RymdGameModeResult {
-    Start,
-    Continue,
-    End
-}
-
-pub trait RymdGameMode {
-
-    fn name(&self) -> &str;
-
-    fn on_start(&self, model: &mut RymdGameModel, parameters: &RymdGameParameters);
-    fn tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult;
-
-    fn on_lobby_update(&mut self, new_lobby_data: String);
-    fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, ctx: &mut GameLobbyContext);
-
 }
 
 pub struct RymdGameSetup {
@@ -655,11 +347,23 @@ impl Game for RymdGame {
     }
 
     fn on_client_joined_lobby(&mut self, peer_id: PeerID, lockstep: &mut LockstepClient) {
+
         self.chat.on_client_joined_lobby(peer_id);
+
+        if let Some(game_mode) = &mut self.setup.game_mode {
+            game_mode.on_client_joined_lobby(lockstep, peer_id);
+        }
+
     }
 
     fn on_client_left_lobby(&mut self, peer_id: PeerID, lockstep: &mut LockstepClient) {
+
         self.chat.on_client_left_lobby(peer_id);
+
+        if let Some(game_mode) = &mut self.setup.game_mode {
+            game_mode.on_client_left_lobby(lockstep, peer_id);
+        }
+
     }
 
 }

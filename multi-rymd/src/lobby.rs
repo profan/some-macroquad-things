@@ -1,6 +1,6 @@
 use nanoserde::{DeJson, SerJson};
 
-use crate::game::{RymdGameModeChickensData, RymdGameModeConquestData};
+use crate::gamemodes::{chickens::RymdGameModeChickensData, conquest::RymdGameModeConquestData};
 
 #[derive(Debug, Clone, SerJson, DeJson)]
 pub enum LobbyGameState {

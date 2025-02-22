@@ -18,6 +18,7 @@ use puffin_egui::puffin;
 
 mod commands;
 mod game;
+mod gamemodes;
 mod lobby;
 mod model;
 mod utils;
