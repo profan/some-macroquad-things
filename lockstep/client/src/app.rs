@@ -247,7 +247,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                                     self.lockstep = Some(new_lockstep_client);
                                     self.game.on_enter_lobby();
                                 } else {
-                                    panic!("client didn't have client id for some reason when receiving successfully joined lobby message, should be impossible!");
+                                    panic!("[LockstepClient] client didn't have client id for some reason when receiving successfully joined lobby message, should be impossible!");
                                 }
                             },
                             RelayMessage::UpdatedLobby(lobby) => {       
@@ -285,7 +285,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                                 if let Some(lockstep) = &self.lockstep {
                                     self.game.start_game(lockstep);
                                 } else {
-                                    println!("could not start the game as no active lockstep client, definitely an error!");
+                                    println!("[LockstepClient] could not start the game as no active lockstep client, definitely an error!");
                                 }
                         
                             },
@@ -313,7 +313,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
             },
             None => (),
         };
-        
+
     }
     
     pub fn update(&mut self) {
