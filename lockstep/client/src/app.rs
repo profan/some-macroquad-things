@@ -4,7 +4,7 @@ use lockstep::lobby::{Lobby, LobbyClientID, LobbyState, RelayMessage, DEFAULT_LO
 use nanoserde::{DeJson, SerJson};
 use utility::{screen_dimensions, DebugText};
 
-use crate::{command::ApplicationCommand, extensions::RelayCommandsExt, game::{Game, GameContext, GameLobbyContext}, network::{ConnectionState, NetworkClient}, relay::RelayClient, step::{LockstepClient, TickResult, TurnCommand, TurnState}};
+use crate::{command::ApplicationCommand, extensions::RelayCommandsExt, game::{Game, GameContext, GameLobbyContext}, network::{ConnectionState, NetworkClient, NetworkClientSwitch, NetworkClientWebSocket}, relay::RelayClient, step::{LockstepClient, TickResult, TurnCommand, TurnState}};
 
 #[derive(PartialEq)]
 pub enum ApplicationMode {
@@ -20,7 +20,7 @@ pub struct ApplicationState<GameType> where GameType: Game {
     debug: DebugText,
     relay: RelayClient,
     lockstep: Option<LockstepClient>,
-    net: NetworkClient,
+    net: NetworkClientSwitch,
     mode: ApplicationMode,
     debug_text_colour: Color,
     current_frame: i64,
@@ -41,7 +41,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
             debug: DebugText::new(),
             relay: RelayClient::new(),
             lockstep: None,
-            net: NetworkClient::new(),
+            net: NetworkClientSwitch::new(),
             mode: ApplicationMode::Frontend,
             debug_text_colour: WHITE,
             current_frame: 0,
@@ -103,6 +103,8 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
     pub fn start_singleplayer_game(&mut self) {
 
+        self.net.start_singleplayer();
+
         let local_peer_id = 0;
         let new_lockstep_client = LockstepClient::new(local_peer_id, true);
         self.mode = ApplicationMode::Singleplayer;
@@ -119,16 +121,21 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
     }
 
     pub fn start_multiplayer_game(&mut self) {
+        self.net.start_multiplayer();
         self.mode = ApplicationMode::Multiplayer;
         self.current_tick = 0;
     }
 
     pub fn stop_game(&mut self) {
+
         if self.mode == ApplicationMode::Singleplayer {
             self.stop_singleplayer_game();
         } else if self.mode == ApplicationMode::Multiplayer {
             self.stop_multiplayer_game();
         }
+
+        self.net.stop()
+
     }
 
     fn stop_singleplayer_game(&mut self) {
@@ -141,7 +148,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
     fn stop_multiplayer_game(&mut self) {
         self.game.stop_game();
-        self.net.stop_lobby();
+        self.relay.stop_lobby();
     }
 
     pub fn connect_to_server(&mut self) -> bool {
@@ -159,18 +166,22 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         let Some(current_client_id) = self.relay.get_client_id() else { return; };
 
         for c in self.relay.get_clients().clone() {
-            self.net.ping(current_client_id, Some(c.id));
+            self.relay.ping(current_client_id, Some(c.id));
             self.relay.ping(current_client_id, Some(c.id));
         }
         
     }
 
     pub fn handle_messages(&mut self) {
+
         match self.mode {
             ApplicationMode::Frontend => self.handle_frontend(),
             ApplicationMode::Singleplayer => self.handle_singleplayer_game(),
             ApplicationMode::Multiplayer => self.handle_multiplayer_game(),
         }
+
+        self.relay.handle_queued_messages(|m| self.net.send_text(m.to_string()));
+
     }
 
     fn handle_frontend(&mut self) {
@@ -179,19 +190,28 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
     fn handle_singleplayer_game(&mut self) {
 
+        self.handle_singleplayer_or_multiplayer_game();
+
     }
     
     fn handle_multiplayer_game(&mut self) {
 
-        let query_server_interval = 100; // every 100 frames? :D
+        self.handle_singleplayer_or_multiplayer_game();
+    
+    }
+
+    fn handle_singleplayer_or_multiplayer_game(&mut self) {
+
+        let query_server_interval = 100;
+        // every 100 frames? :D
     
         // #FIXME: previously also queried if not in a game, but maybe just always update?
         if self.net.is_connected() && self.current_frame % query_server_interval == 0 {
             // query for lobby/ping/etc state
-            self.net.query_active_state();
+            self.relay.query_active_state();
             self.ping_clients();
         }
-
+    
         self.current_frame += 1;
     
         match self.net.try_recv() {
@@ -199,10 +219,10 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                 ewebsock::WsEvent::Message(ewebsock::WsMessage::Text(text)) => {
     
                     fn handle_lockstep_message(client_id: LobbyClientID, lockstep_client: &mut Option<LockstepClient>, message: &str) {
-
+    
                         // handle messages we get, but do not handle messages sent to ourselves!... probably? :D
                         if let Some(lockstep) = lockstep_client && lockstep.peer_id() != client_id {
-
+    
                             match ApplicationCommand::deserialize_json(&message) {
                                 Ok(cmd) => match cmd {
                                     ApplicationCommand::GenericCommand(generic_command) => lockstep.handle_generic_message(client_id, generic_command),
@@ -213,11 +233,11 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                                     return;
                                 },
                             };
-                            
-                        }
-
-                    }
                     
+                        }
+    
+                    }
+            
                     if let Some(event) = self.relay.handle_message(text, |client_id, msg| handle_lockstep_message(client_id, &mut self.lockstep, msg)) {
                         match event {
                             RelayMessage::SuccessfullyJoinedLobby(_) => {
@@ -241,7 +261,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                             RelayMessage::JoinedLobby(client_id) => {
                                 if let Some(lockstep) = &mut self.lockstep {
                                     if lockstep.peer_id() == client_id {
-
+    
                                     } else {
                                         self.game.on_client_joined_lobby(client_id, lockstep);
                                     }
@@ -267,7 +287,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                                 } else {
                                     println!("could not start the game as no active lockstep client, definitely an error!");
                                 }
-                                
+                        
                             },
                             RelayMessage::StoppedLobby => {
                                 if let Some(lockstep) = &mut self.lockstep {
@@ -277,7 +297,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                             },
                             RelayMessage::Ping(from_client_id, to_client_id) => {
                                 if let Some(client_id) = self.relay.get_client_id() && to_client_id == Some(client_id) {
-                                    self.net.pong(Some(client_id), from_client_id);
+                                    self.relay.pong(Some(client_id), from_client_id);
                                 }
                             },
                             _ => ()
@@ -293,9 +313,9 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
             },
             None => (),
         };
-    
+        
     }
-
+    
     pub fn update(&mut self) {
 
         self.handle_messages();
@@ -426,7 +446,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
     
     fn draw_lobby_ui(&mut self, ui: &mut egui::Ui) {
 
-        let lobby = self.relay.get_current_lobby().expect("called draw_lobby_ui without there being a current lobby!");
+        let lobby = self.relay.get_current_lobby().expect("called draw_lobby_ui without there being a current lobby!").clone();
 
         ui.vertical_centered_justified(|ui| {
 
@@ -441,28 +461,23 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
             let mut lobby_context = GameLobbyContext {
                 debug_text: &mut self.debug,
-                net: &mut self.net,
-                relay_client: &self.relay,
+                relay_client: &mut self.relay,
                 lockstep: self.lockstep.as_mut().expect("lockstep client instance must be valid here!"),
                 new_lobby_data_to_push: None
             };
 
             self.game.draw_lobby_ui(ui, &mut lobby_context);
 
-            if let Some(new_lobby_data) = lobby_context.new_lobby_data_to_push {
-                lobby_context.net.send_lobby_data(new_lobby_data);
-            }
-
         });
 
         ui.horizontal(|ui| {
 
             if ui.button("start").clicked() {
-                self.net.start_lobby();
+                self.relay.start_lobby();
             }
 
             if ui.button("leave").clicked() {
-                self.net.leave_lobby();
+                self.relay.leave_lobby();
             }
 
         });
@@ -482,7 +497,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                         ui.label(lobby_text);
                         if lobby.state == LobbyState::Open {
                             if ui.button("join").clicked() {
-                                self.net.join_lobby(lobby.id);
+                                self.relay.join_lobby(lobby.id);
                             }
                         }
                     });
@@ -495,15 +510,15 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         }
 
         if ui.button("create new lobby").clicked() {
-            self.net.query_active_state();
-            self.net.create_new_lobby();
+            self.relay.query_active_state();
+            self.relay.create_new_lobby();
         }
 
     }
 
     fn leave_lobby_or_disconnect_from_server(&mut self) {
         if self.relay.is_in_lobby() {
-            self.net.leave_lobby();
+            self.relay.leave_lobby();
         } else {
             self.disconnect_from_server();
             self.mode = ApplicationMode::Frontend;
@@ -516,8 +531,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
             let mut lobby_context = GameLobbyContext {
                 debug_text: &mut self.debug,
-                net: &mut self.net,
-                relay_client: &self.relay,
+                relay_client: &mut self.relay,
                 lockstep: self.lockstep.as_mut().expect("lockstep client instance must be valid here!"),
                 new_lobby_data_to_push: None
             };

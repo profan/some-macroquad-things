@@ -1,13 +1,13 @@
 use lockstep::lobby::{LobbyID, LobbyClientID, RelayMessage};
 use nanoserde::SerJson;
 
-use crate::network::NetworkClient;
+use crate::{network::NetworkClient, relay::RelayClient};
 
 pub trait RelayMessageExt {
     fn send_relay_message(&mut self, message: RelayMessage);
 }
 
-impl RelayMessageExt for NetworkClient {
+impl RelayMessageExt for dyn NetworkClient {
     fn send_relay_message(&mut self, message: RelayMessage) {
         self.send(ewebsock::WsMessage::Text(message.serialize_json()));
     }
@@ -15,61 +15,61 @@ impl RelayMessageExt for NetworkClient {
 
 pub trait RelayCommandsExt {
 
-    fn start_lobby(&mut self);
-    fn stop_lobby(&mut self);
-    fn leave_lobby(&mut self);
+    fn start_lobby(&self);
+    fn stop_lobby(&self);
+    fn leave_lobby(&self);
 
-    fn create_new_lobby(&mut self);
-    fn join_lobby(&mut self, lobby_id: LobbyID);
-    fn query_active_state(&mut self);
+    fn create_new_lobby(&self);
+    fn join_lobby(&self, lobby_id: LobbyID);
+    fn query_active_state(&self);
 
-    fn ping(&mut self, from_client_id: LobbyClientID, to_client_id: Option<LobbyClientID>);
-    fn pong(&mut self, from_client_id: Option<LobbyClientID>, to_client_id: LobbyClientID);
+    fn ping(&self, from_client_id: LobbyClientID, to_client_id: Option<LobbyClientID>);
+    fn pong(&self, from_client_id: Option<LobbyClientID>, to_client_id: LobbyClientID);
 
-    fn send_lobby_data(&mut self, lobby_data: String);
+    fn send_lobby_data(&self, lobby_data: String);
 
 }
 
-impl RelayCommandsExt for NetworkClient {
+impl RelayCommandsExt for RelayClient {
 
-    fn create_new_lobby(&mut self) {
+    fn create_new_lobby(&self) {
         self.send_relay_message(RelayMessage::CreateLobby("hello_world".to_string()));
         self.query_active_state();
     }
 
-    fn start_lobby(&mut self) {
+    fn start_lobby(&self) {
         self.send_relay_message(RelayMessage::StartLobby);
     }
 
-    fn stop_lobby(&mut self) {
+    fn stop_lobby(&self) {
         self.send_relay_message(RelayMessage::StopLobby);
         self.query_active_state();
     }
 
-    fn leave_lobby(&mut self) {
+    fn leave_lobby(&self) {
         self.send_relay_message(RelayMessage::LeaveLobby);
         self.query_active_state();
     }
 
-    fn join_lobby(&mut self, lobby_id: LobbyID) {
+    fn join_lobby(&self, lobby_id: LobbyID) {
         self.send_relay_message(RelayMessage::JoinLobby(lobby_id));
         self.query_active_state();
     }
 
-    fn query_active_state(&mut self) {
+    fn query_active_state(&self) {
         self.send_relay_message(RelayMessage::QueryActivePlayers);
         self.send_relay_message(RelayMessage::QueryActiveLobbies);
     }
 
-    fn ping(&mut self, from_client_id: LobbyClientID, to_client_id: Option<LobbyClientID>) {
+    fn ping(&self, from_client_id: LobbyClientID, to_client_id: Option<LobbyClientID>) {
         self.send_relay_message(RelayMessage::Ping(from_client_id, to_client_id));
     }
 
-    fn pong(&mut self, from_client_id: Option<LobbyClientID>, to_client_id: LobbyClientID) {
+    fn pong(&self, from_client_id: Option<LobbyClientID>, to_client_id: LobbyClientID) {
         self.send_relay_message(RelayMessage::Pong(from_client_id, to_client_id));
     }
 
-    fn send_lobby_data(&mut self, lobby_data: String) {
+    fn send_lobby_data(&self, lobby_data: String) {
         self.send_relay_message(RelayMessage::PushLobbyData(lobby_data));
     }
 

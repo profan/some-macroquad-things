@@ -43,8 +43,7 @@ impl<'a> GameContext<'a> {
 
 pub struct GameLobbyContext<'a> {
     pub(crate) debug_text: &'a mut DebugText,
-    pub(crate) net: &'a mut NetworkClient,
-    pub(crate) relay_client: &'a RelayClient,
+    pub(crate) relay_client: &'a mut RelayClient,
     pub(crate) lockstep: &'a mut LockstepClient,
     pub(crate) new_lobby_data_to_push: Option<String>
 }
@@ -68,7 +67,7 @@ impl<'a> GameLobbyContext<'a> {
     }
 
     pub fn push_new_lobby_data(&mut self, new_lobby_data: String) {
-        self.net.send_lobby_data(new_lobby_data);
+        self.relay_client.send_lobby_data(new_lobby_data);
     }
 
     pub fn get_new_lobby_data(&self) -> Option<&String> {
