@@ -211,17 +211,15 @@ impl RymdGameModel {
         self.world.clear();
     }
 
-    fn handle_order(&mut self, entities: &Vec<EntityID>, order: GameOrder, should_add: bool) {
+    fn handle_order(&mut self, entity_id: EntityID, order: GameOrder, should_add: bool) {
 
-        for &entity_id in entities {
-            let Some(entity) = Entity::from_bits(entity_id) else { continue; };
-            if let Ok(orderable) = self.world.query_one_mut::<&mut Orderable>(entity) {
-                if should_add {
-                    orderable.queue_order(order);
-                } else {
-                    orderable.cancel_orders(order.order_type());
-                    orderable.queue_order(order);
-                }
+        let Some(entity) = Entity::from_bits(entity_id) else { return };
+        if let Ok(orderable) = self.world.query_one_mut::<&mut Orderable>(entity) {
+            if should_add {
+                orderable.queue_order(order);
+            } else {
+                orderable.cancel_orders(order.order_type());
+                orderable.queue_order(order);
             }
         }
         
@@ -232,7 +230,7 @@ impl RymdGameModel {
         // println!("[RymdGameModel] got message: {:?}", message);
 
         match message {
-            GameMessage::Order { entities, order, add } => self.handle_order(entities, *order, *add),
+            GameMessage::Order { entity, order, add } => self.handle_order(*entity, *order, *add),
         }
 
     }

@@ -46,43 +46,43 @@ impl GameOrdersExt for LockstepClient {
 
     fn send_attack_order(&mut self, entity: Entity, target_entity: Entity, should_add: bool) {
         let attack_order = GameOrder::Attack(AttackOrder { entity_id: target_entity.to_bits().into() });
-        let attack_unit_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: attack_order, add: should_add };
+        let attack_unit_message = GameMessage::Order { entity: entity.to_bits().into(), order: attack_order, add: should_add };
         self.send_command(attack_unit_message.serialize_json());
     }
 
     fn send_attack_move_order(&mut self, entity: Entity, target_position: Vec2, should_add: bool) {
         let attack_move_order = GameOrder::AttackMove(AttackMoveOrder { x: target_position.x, y: target_position.y });
-        let attack_move_order_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: attack_move_order, add: should_add };
+        let attack_move_order_message = GameMessage::Order { entity: entity.to_bits().into(), order: attack_move_order, add: should_add };
         self.send_command(attack_move_order_message.serialize_json());  
     }
 
     fn send_move_order(&mut self, entity: Entity, target_position: Vec2, should_add: bool) {
         let move_order = GameOrder::Move(MoveOrder { x: target_position.x, y: target_position.y });
-        let move_unit_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: move_order, add: should_add };
+        let move_unit_message = GameMessage::Order { entity: entity.to_bits().into(), order: move_order, add: should_add };
         self.send_command(move_unit_message.serialize_json());
     }
 
     fn send_build_order(&mut self, entity: Entity, target_position: Vec2, blueprint_id: BlueprintID, should_add: bool, is_self: bool) {
         let build_order = GameOrder::Construct(ConstructOrder { entity_id: None, blueprint_id: Some(blueprint_id), is_self_order: is_self, x: target_position.x, y: target_position.y });
-        let build_unit_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: build_order, add: should_add || is_self };
+        let build_unit_message = GameMessage::Order { entity: entity.to_bits().into(), order: build_order, add: should_add || is_self };
         self.send_command(build_unit_message.serialize_json());
     }
 
     fn send_repair_order(&mut self, entity: Entity, target_position: Vec2, target: Entity, should_add: bool) {
         let build_order = GameOrder::Construct(ConstructOrder { entity_id: Some(target.to_bits().get()), blueprint_id: None, is_self_order: false, x: target_position.x, y: target_position.y });
-        let build_unit_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: build_order, add: should_add };
+        let build_unit_message = GameMessage::Order { entity: entity.to_bits().into(), order: build_order, add: should_add };
         self.send_command(build_unit_message.serialize_json());
     }
 
     fn cancel_current_orders(&mut self, entity: Entity) {
         let cancel_order = GameOrder::Cancel(CancelOrder {});
-        let cancel_order_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: cancel_order, add: false };
+        let cancel_order_message = GameMessage::Order { entity: entity.to_bits().into(), order: cancel_order, add: false };
         self.send_command(cancel_order_message.serialize_json());
     }
     
     fn send_extract_order(&mut self, entity: Entity, target: Entity, should_add: bool) {
         let extract_order = GameOrder::Extract(ExtractOrder { entity_id: target.to_bits().get() });
-        let extract_order_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: extract_order, add: should_add };
+        let extract_order_message = GameMessage::Order { entity: entity.to_bits().into(), order: extract_order, add: should_add };
         self.send_command(extract_order_message.serialize_json());
     }
 

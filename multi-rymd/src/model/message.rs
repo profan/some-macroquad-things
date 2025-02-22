@@ -5,5 +5,5 @@ use crate::model::GameOrder;
 
 #[derive(Debug, SerJson, DeJson)]
 pub enum GameMessage {
-    Order { entities: Vec<EntityID>, order: GameOrder, add: bool },
+    Order { entity: EntityID, order: GameOrder, add: bool },
 }
