@@ -148,7 +148,7 @@ impl NetworkClient for NetworkClientLocal {
     }
 
     fn try_recv(&mut self) -> Option<ewebsock::WsEvent> {
-        
+        None
     }
 
     fn send_text(&mut self, message: String) {
