@@ -121,7 +121,6 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
     }
 
     pub fn start_multiplayer_game(&mut self) {
-        self.net.start_multiplayer();
         self.mode = ApplicationMode::Multiplayer;
         self.current_tick = 0;
     }
@@ -134,8 +133,6 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
             self.stop_multiplayer_game();
         }
 
-        self.net.stop()
-
     }
 
     fn stop_singleplayer_game(&mut self) {
@@ -144,6 +141,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         self.game.stop_game();
         self.mode = ApplicationMode::Frontend;
         self.lockstep = None;
+        self.net.stop();
     }
 
     fn stop_multiplayer_game(&mut self) {
@@ -152,6 +150,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
     }
 
     pub fn connect_to_server(&mut self) -> bool {
+        self.net.start_multiplayer();
         self.net.connect(&self.host_address)
     }
 
@@ -159,6 +158,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         self.lockstep = None;
         self.net.disconnect();
         self.relay.reset();
+        self.net.stop()
     }
 
     pub fn ping_clients(&mut self) {
