@@ -1,12 +1,10 @@
 use core::f32;
-use std::cell::RefCell;
 use std::collections::BTreeMap;
 
 use hecs::{CommandBuffer, Entity, World};
 use macroquad::*;
 use math::Vec2;
 use rand::RandGenerator;
-use rand::RandomRange;
 use utility::separation;
 use utility::AsVector;
 use utility::RotatedBy;
@@ -43,7 +41,6 @@ use super::OrdersExt;
 use super::PreviousTransform;
 use super::ResourceSource;
 use super::RotationTarget;
-use super::UnitState;
 use super::{create_simple_bullet, Effect};
 use super::get_entity_position;
 use super::point_entity_towards_target;

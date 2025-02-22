@@ -1,6 +1,9 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 #![allow(async_fn_in_trait)]
+#![allow(clippy::bool_comparison)]
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::for_kv_map)]
 #![feature(let_chains)]
 
 use game::RymdGame;

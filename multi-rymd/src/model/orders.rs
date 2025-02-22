@@ -9,8 +9,6 @@ use utility::RotatedBy;
 use crate::EntityID;
 use crate::model::GameMessage;
 
-
-use super::are_players_allied;
 use super::set_movement_target_to_position;
 use super::set_rotation_target_to_position;
 use super::Attacker;
