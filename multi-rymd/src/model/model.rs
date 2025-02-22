@@ -576,7 +576,7 @@ impl RymdGameModel {
 
                 if beam_weapon.cooldown == 0.0 {
 
-                    let attacker_position = get_entity_position(&self.world, attacker).unwrap();
+                    let Some(attacker_position) = get_entity_position(&self.world, attacker) else { continue };
 
                     let attack_direction_deviation = self.random.random_binomial() * beam_weapon.deviation;
                     let attack_direction = transform.world_rotation.as_vector();
