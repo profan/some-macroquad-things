@@ -90,51 +90,7 @@ impl ws::Handler for Session {
 
         let Ok(text) = msg.as_text() else { return Ok(()); };
 
-        match RelayMessage::deserialize_json(text) {
-            Ok(msg) => match msg {
-
-                // client management on the relay server
-                RelayMessage::Register(name) => { self.server.borrow_mut().register_client_nickname(self.id, name); },
-
-                // messaages for lobby management for the clients
-                RelayMessage::CreateLobby(name) => { self.server.borrow_mut().create_lobby(self.id, name); },
-                RelayMessage::StartLobby => { self.server.borrow_mut().start_lobby_with_client_id(self.id); },
-                RelayMessage::StopLobby => { self.server.borrow_mut().stop_lobby_with_client_id(self.id); },
-                RelayMessage::CloseLobby => { self.server.borrow_mut().close_lobby_with_client_id(self.id); },
-                RelayMessage::LeaveLobby => { self.server.borrow_mut().leave_lobby(self.id); },
-                RelayMessage::JoinLobby(lobby_id) => { self.server.borrow_mut().join_lobby(lobby_id, self.id); },
-
-                // ping/pong messages between clients
-                RelayMessage::Ping(from_client_id, to_client_id) => { self.server.borrow_mut().ping(from_client_id, to_client_id); },
-                RelayMessage::Pong(from_client_id, to_client_id) => { self.server.borrow_mut().pong(from_client_id, to_client_id); },
-
-                // lobby state update message for clients
-                RelayMessage::PushLobbyData(data) => { self.server.borrow_mut().send_update_data_to_clients_lobby(self.id, data); },
-
-                // messages for passing game data, external to the relay server (to be forwarded to all in the same lobby)
-                RelayMessage::Message(peer_id, text) => { self.server.borrow_mut().send_message_to_clients_lobby(self.id, RelayMessage::Message(peer_id, text)); },
-
-                // messages for querying relay server/lobby state
-                RelayMessage::QueryActiveLobbies => { self.server.borrow().query_active_lobbies(self.id); },
-                RelayMessage::QueryActivePlayers => { self.server.borrow().query_active_players(self.id); },
-
-                // messages the server may send, so we don't care here :>
-                RelayMessage::ClientID(_) => (),
-                RelayMessage::LeftLobby(_) => (),
-                RelayMessage::JoinedLobby(_) => (),
-                RelayMessage::UpdatedLobby(_) => (),
-                RelayMessage::StartedLobby => (),
-                RelayMessage::StoppedLobby => (),
-                RelayMessage::SuccessfullyJoinedLobby(_) => (),
-                RelayMessage::FailedToJoinLobby(_, _) => (),
-                RelayMessage::ActiveLobbies(_) => (),
-                RelayMessage::ActivePlayers(_) => (),
-
-            },
-            Err(err) => {
-                println!("[id: {}]: sent invalid message, with error: {}", self.id, err);
-            }
-        };
+        self.server.borrow_mut().handle_relay_message(self.id, text);
         
         Ok(())
 
@@ -173,6 +129,56 @@ impl RelayServer {
             lobbies: BTreeMap::new(),
             port: DEFAULT_LOBBY_PORT
         }
+    }
+
+    fn handle_relay_message(&mut self, sender_id: LobbyClientID, message_text: &str) {
+
+        match RelayMessage::deserialize_json(message_text) {
+            Ok(msg) => match msg {
+
+                // client management on the relay server
+                RelayMessage::Register(name) => { self.register_client_nickname(sender_id, name); },
+
+                // messaages for lobby management for the clients
+                RelayMessage::CreateLobby(name) => { self.create_lobby(sender_id, name); },
+                RelayMessage::StartLobby => { self.start_lobby_with_client_id(sender_id); },
+                RelayMessage::StopLobby => { self.stop_lobby_with_client_id(sender_id); },
+                RelayMessage::CloseLobby => { self.close_lobby_with_client_id(sender_id); },
+                RelayMessage::LeaveLobby => { self.leave_lobby(sender_id); },
+                RelayMessage::JoinLobby(lobby_id) => { self.join_lobby(lobby_id, sender_id); },
+
+                // ping/pong messages between clients
+                RelayMessage::Ping(from_client_id, to_client_id) => { self.ping(from_client_id, to_client_id); },
+                RelayMessage::Pong(from_client_id, to_client_id) => { self.pong(from_client_id, to_client_id); },
+
+                // lobby state update message for clients
+                RelayMessage::PushLobbyData(data) => { self.send_update_data_to_clients_lobby(sender_id, data); },
+
+                // messages for passing game data, external to the relay server (to be forwarded to all in the same lobby)
+                RelayMessage::Message(peer_id, text) => { self.send_message_to_clients_lobby(sender_id, RelayMessage::Message(peer_id, text)); },
+
+                // messages for querying relay server/lobby state
+                RelayMessage::QueryActiveLobbies => { self.query_active_lobbies(sender_id); },
+                RelayMessage::QueryActivePlayers => { self.query_active_players(sender_id); },
+
+                // messages the server may send, so we don't care here :>
+                RelayMessage::ClientID(_) => (),
+                RelayMessage::LeftLobby(_) => (),
+                RelayMessage::JoinedLobby(_) => (),
+                RelayMessage::UpdatedLobby(_) => (),
+                RelayMessage::StartedLobby => (),
+                RelayMessage::StoppedLobby => (),
+                RelayMessage::SuccessfullyJoinedLobby(_) => (),
+                RelayMessage::FailedToJoinLobby(_, _) => (),
+                RelayMessage::ActiveLobbies(_) => (),
+                RelayMessage::ActivePlayers(_) => (),
+
+            },
+            Err(err) => {
+                println!("[id: {}]: sent invalid message, with error: {}", sender_id, err);
+            }
+        };
+
     }
 
     pub fn start() {
