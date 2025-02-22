@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use fnv::FnvHashMap;
 use macroquad::prelude::*;
 use hecs::{CommandBuffer, Entity, Without, World};
 use rapier2d::{crossbeam, prelude::*};
@@ -54,8 +55,10 @@ impl PhysicsManagerRapierCoreState {
 
     pub fn new(timestep: f32) -> PhysicsManagerRapierCoreState {
 
-        let mut default_integration_parameters = IntegrationParameters::default();
-        default_integration_parameters.dt = timestep;
+        let default_integration_parameters = IntegrationParameters {
+            dt: timestep,
+            ..Default::default()
+        };
 
         PhysicsManagerRapierCoreState {
             integration_parameters: default_integration_parameters,
@@ -83,7 +86,7 @@ impl PhysicsManagerRapierCoreState {
         
         self.physics_pipeline.step(
             &vector![0.0, 0.0],
-            &mut self.integration_parameters,
+            &self.integration_parameters,
             &mut self.island_manager,
             &mut self.broad_phase,
             &mut self.narrow_phase,
@@ -125,7 +128,7 @@ impl PhysicsManagerRapierCoreState {
 
 pub struct PhysicsManager {
     core_state: PhysicsManagerRapierCoreState,
-    rigid_body_handle_to_entity: HashMap<RigidBodyHandle, Entity>
+    rigid_body_handle_to_entity: FnvHashMap<RigidBodyHandle, Entity>
 }
 
 impl PhysicsManager {
@@ -133,7 +136,7 @@ impl PhysicsManager {
     pub fn new(timestep: f32) -> PhysicsManager {
         PhysicsManager {
             core_state: PhysicsManagerRapierCoreState::new(timestep),
-            rigid_body_handle_to_entity: HashMap::new()
+            rigid_body_handle_to_entity: HashMap::default()
         }
     }
 

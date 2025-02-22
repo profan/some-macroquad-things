@@ -271,10 +271,6 @@ impl LockstepClient {
 
     }
 
-    fn check_pass_turn(&mut self) {
-        self.check_pass_turn_with_offset(0);
-    }
-
     fn check_pass_turn_with_offset(&mut self, offset: i32) {
         let current_send_turn_id = self.current_send_turn_id() + offset;
         if self.command_queue.commands_to_process.contains_key(&current_send_turn_id) == false {

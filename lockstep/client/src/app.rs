@@ -427,7 +427,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         if let Some(lobby) = self.relay.get_current_lobby() {
             self.debug.skip_line(utility::TextPosition::TopLeft);
             self.debug.draw_text(format!("lobby: {} ({})", lobby.name, lobby.id), utility::TextPosition::TopLeft, self.debug_text_colour);
-            let clients_string = lobby.clients.iter().fold(String::new(), |acc, c| acc + " " + &self.relay.client_with_id(*c).unwrap().name);
+            let clients_string = lobby.clients.iter().fold(String::new(), |acc, c| acc + " " + &self.relay.client_with_id(*c).map_or("INVALID_USER", |c| &c.name));
             self.debug.draw_text(format!("- clients: {}", clients_string.trim()), utility::TextPosition::TopLeft, self.debug_text_colour);
         }
     

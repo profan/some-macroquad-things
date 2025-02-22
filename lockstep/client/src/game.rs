@@ -58,12 +58,16 @@ impl<'a> GameLobbyContext<'a> {
         self.relay_client.get_current_lobby()
     }
 
-    pub fn get_lobby_client(&self, client_id: LobbyClientID) -> &LobbyClient {
-        &self.relay_client.get_client(client_id).unwrap()
+    pub fn get_lobby_client(&self, client_id: LobbyClientID) -> Option<&LobbyClient> {
+        self.relay_client.get_client(client_id)
     }
 
     pub fn get_lobby_client_name(&self, client_id: LobbyClientID) -> &str {
-        &self.relay_client.get_client(client_id).unwrap().name
+        if let Some(client) = self.relay_client.get_client(client_id) {
+            &client.name
+        } else {
+            "INVALID_CLIENT"
+        }
     }
 
     pub fn push_new_lobby_data(&mut self, new_lobby_data: String) {

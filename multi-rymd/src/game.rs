@@ -390,7 +390,7 @@ impl RymdGameSetup {
         let mut found_game_mode_id = None;
 
         for i in 0..self.game_modes.len() {
-            if self.game_modes[i].name() == &game_mode_name {
+            if self.game_modes[i].name() == game_mode_name {
                 found_game_mode_id = Some(i);
                 break;
             }
@@ -425,7 +425,7 @@ impl RymdGameChat {
     }
 
     pub fn on_game_command(&mut self, game_command: &GameCommand) {
-        let GameCommand::Message { text } = game_command else { return; };
+        let GameCommand::Message { text } = game_command;
         self.current_messsage_buffer += text;
     }
 

@@ -245,7 +245,7 @@ impl Order for AttackOrder {
     }
 
     fn on_completed(&self, entity: Entity, model: &mut RymdGameModel) {
-        set_movement_target_to_position(&mut model.world, entity, None);
+        set_movement_target_to_position(&model.world, entity, None);
     }
 
 }

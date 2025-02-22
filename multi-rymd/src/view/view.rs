@@ -1122,9 +1122,7 @@ impl RymdGameView {
             let current_order_point = if should_group {
                 let offset_from_centroid = centroid_of_selected_orderables - transform.world_position;
                 current_mouse_world_position - offset_from_centroid
-            }
-            else
-            if number_of_selected_orderables > 1 {
+            } else if number_of_selected_orderables > 1 {
                 self.ordering.get_point(number_of_selected_orderables, idx)
             } else {
                 current_mouse_world_position

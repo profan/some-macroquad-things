@@ -1,8 +1,12 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 #![allow(async_fn_in_trait)]
+#![allow(clippy::manual_map)]
 #![allow(clippy::bool_comparison)]
+#![allow(clippy::match_like_matches_macro)]
 #![allow(clippy::too_many_arguments)]
+#![allow(clippy::let_and_return)]
+#![allow(clippy::unused_unit)]
 #![allow(clippy::for_kv_map)]
 #![feature(let_chains)]
 
