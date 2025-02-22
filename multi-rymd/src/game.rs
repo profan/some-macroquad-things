@@ -107,35 +107,6 @@ impl RymdGameModeConquest {
         }
     }
 
-    fn get_number_of_commanders_of_player(world: &mut World, player_id: PlayerID) -> i32 {
-        let mut number_of_commanders = 0;
-        for (e, (commander, controller)) in world.query_mut::<(&Commander, &Controller)>() {         
-            if controller.id == player_id {
-                number_of_commanders += 1;
-            }
-        }
-        number_of_commanders
-    }
-
-    fn is_commander_dead_for_player(model: &mut RymdGameModel, player_id: PlayerID) -> bool {
-        for (e, player) in model.world.query_mut::<&Player>() {
-            if player.id == player_id {
-                return Self::get_number_of_commanders_of_player(&mut model.world, player_id) <= 0;
-            }
-        }
-        return false;
-    }
-
-    fn is_any_commander_still_alive_in_team(model: &mut RymdGameModel, team: &RymdGameTeam) -> bool {
-        let mut has_alive_commander = false;
-        for &player_id in &team.players {
-            if Self::is_commander_dead_for_player(model, player_id) == false {
-                has_alive_commander = true;
-            }
-        }
-        has_alive_commander
-    }
-
 }
 
 impl RymdGameMode for RymdGameModeConquest {
@@ -177,7 +148,7 @@ impl RymdGameMode for RymdGameModeConquest {
     fn tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult {
 
         for team in &self.data.teams {
-            if Self::is_any_commander_still_alive_in_team(model, team) == false {
+            if is_any_commander_still_alive_in_team(&mut model.world, team) == false {
                 // evaporate all the units of this team?
             }
         }
@@ -267,6 +238,35 @@ fn create_player_commander_ships(model: &mut RymdGameModel, parameters: &RymdGam
     
     }
 
+}
+
+fn get_number_of_commanders_of_player(world: &mut World, player_id: PlayerID) -> i32 {
+    let mut number_of_commanders = 0;
+    for (e, (commander, controller)) in world.query_mut::<(&Commander, &Controller)>() {         
+        if controller.id == player_id {
+            number_of_commanders += 1;
+        }
+    }
+    number_of_commanders
+}
+
+fn is_commander_dead_for_player(world: &mut World, player_id: PlayerID) -> bool {
+    for (e, player) in world.query_mut::<&Player>() {
+        if player.id == player_id {
+            return get_number_of_commanders_of_player(world, player_id) <= 0;
+        }
+    }
+    return false;
+}
+
+fn is_any_commander_still_alive_in_team(world: &mut World, team: &RymdGameTeam) -> bool {
+    let mut has_alive_commander = false;
+    for &player_id in &team.players {
+        if is_commander_dead_for_player(world, player_id) == false {
+            has_alive_commander = true;
+        }
+    }
+    has_alive_commander
 }
 
 #[derive(Clone, Debug, SerJson, DeJson)]
