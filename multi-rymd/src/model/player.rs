@@ -54,6 +54,17 @@ pub fn are_players_hostile(player_a: &Player, player_b: &Player) -> bool {
     are_players_allied(player_a, player_b) == false
 }
 
+pub fn get_player_team_allegiance(world: &mut World, player_id: PlayerID) -> u64 {
+
+    let (e, player) = world.query_mut::<&mut Player>()
+        .into_iter()
+        .find(|(e, p)| p.id == player_id)
+        .unwrap_or_else(|| panic!("player with id: {} didn't exist? this is fatal!", player_id));
+
+    player.team_mask
+
+}
+
 pub fn set_player_team_allegiance(world: &mut World, player_id: PlayerID, allegiance: u64) {
 
     let (e, player) = world.query_mut::<&mut Player>()

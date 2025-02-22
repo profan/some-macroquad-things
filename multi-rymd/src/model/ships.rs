@@ -6,7 +6,7 @@ use utility::{AsAngle, RotatedBy, SteeringParameters};
 
 use crate::PlayerID;
 use crate::model::{Transform, Orderable, AnimatedSprite, Thruster, DynamicBody, Ship, ThrusterKind};
-use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Commander, Constructor, Controller, Cost, EntityState, Extractor, Health, MovementTarget, Producer, ProjectileWeapon, RotationTarget, Steering, ARROWHEAD_STEERING_PARAMETERS, COMMANDER_STEERING_PARAMETERS, DEFAULT_STEERING_PARAMETERS, EXTRACTOR_STEERING_PARAMETERS, SIMPLE_BULLET_PARAMETERS};
+use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, get_player_team_allegiance, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Commander, Constructor, Controller, Cost, EntityState, Extractor, Health, MovementTarget, Producer, ProjectileWeapon, RotationTarget, Steering, ARROWHEAD_STEERING_PARAMETERS, COMMANDER_STEERING_PARAMETERS, DEFAULT_STEERING_PARAMETERS, EXTRACTOR_STEERING_PARAMETERS, SIMPLE_BULLET_PARAMETERS};
 
 #[derive(Bundle)]
 pub struct ShipThruster {
@@ -141,7 +141,7 @@ fn create_ship(world: &mut World, owner: PlayerID, position: Vec2, parameters: S
 
     let is_body_enabled: bool = true;
     let is_body_static: bool = true;
-    let body_mask = 1 << owner;
+    let body_mask = 1 << get_player_team_allegiance(world, owner);
 
     let steering_parameters = parameters.steering_parameters;
     let kinematic_body = create_default_kinematic_body(position, 0.0);

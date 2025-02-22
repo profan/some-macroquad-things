@@ -2,7 +2,7 @@ use hecs::{CommandBuffer, Entity, World};
 use macroquad::{math::{Vec2, Rect, vec2}, miniquad::KeyCode};
 
 use crate::PlayerID;
-use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Blueprint, BlueprintIdentity, Blueprints, Building, Constructor, Controller, Cost, DynamicBody, EntityState, Health, MovementTarget, Orderable, Producer, Spawner, Sprite, Storage, Transform};
+use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, get_player_team_allegiance, Attackable, Blueprint, BlueprintIdentity, Blueprints, Building, Constructor, Controller, Cost, DynamicBody, EntityState, Health, MovementTarget, Orderable, Producer, Spawner, Sprite, Storage, Transform};
 
 pub fn create_solar_collector_blueprint() -> Blueprint {
     Blueprint {
@@ -93,7 +93,7 @@ fn create_building(world: &mut World, owner: PlayerID, position: Vec2, parameter
 
     let is_body_enabled = true;
     let is_body_static = true;
-    let body_mask = 1 << owner;
+    let body_mask = 1 << get_player_team_allegiance(world, owner);
 
     let kinematic = create_default_kinematic_body(position, 0.0);
 

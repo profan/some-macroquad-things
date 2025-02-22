@@ -3,7 +3,7 @@ use macroquad::{color::Color, math::Rect, prelude::Vec2};
 use utility::{AsAngle, Kinematic};
 use crate::PlayerID;
 
-use super::{create_default_kinematic_body, create_impact_effect_in_buffer, create_muzzle_flash_effect_in_world, get_entity_physics_position, Beam, Controller, DynamicBody, DynamicBodyCallback, Effect, Health, PhysicsBody, Projectile, Sprite, Transform, SIMPLE_BEAM_PARAMETERS, SIMPLE_BULLET_PARAMETERS};
+use super::{create_default_kinematic_body, create_impact_effect_in_buffer, create_muzzle_flash_effect_in_world, get_entity_physics_position, get_player_team_allegiance, Beam, Controller, DynamicBody, DynamicBodyCallback, Effect, Health, PhysicsBody, Projectile, Sprite, Transform, SIMPLE_BEAM_PARAMETERS, SIMPLE_BULLET_PARAMETERS};
 
 #[derive(Clone, Copy, Debug)]
 pub struct BulletParameters {
@@ -67,7 +67,7 @@ fn create_bullet(world: &mut World, owner: PlayerID, position: Vec2, direction: 
     let is_static = false;
     let is_enabled = true;
     let bounds = parameters.bounds;
-    let mask = 1 << owner;
+    let mask = 1 << get_player_team_allegiance(world, owner);
     
     let orientation = (-direction).as_angle();
     let kinematic = Kinematic {
@@ -101,7 +101,7 @@ fn create_beam(world: &mut World, owner: PlayerID, position: Vec2, direction: Ve
 
     let is_static = false;
     let is_enabled = true;
-    let mask = 1 << owner;
+    let mask = 1 << get_player_team_allegiance(world, owner);
     
     let orientation = direction.as_angle();
     let controller = Controller { id: owner };
