@@ -121,6 +121,10 @@ impl PhysicsBody for DynamicBody {
         self.is_enabled
     }
 
+    fn local_bounds(&self) -> Rect {
+        self.bounds
+    }
+
     fn bounds(&self) -> Rect {
         self.bounds.offset(self.kinematic.position)
     }

@@ -17,6 +17,7 @@ pub trait PhysicsBody {
 
     fn enabled(&self) -> bool;
 
+    fn local_bounds(&self) -> Rect;
     fn bounds(&self) -> Rect;
     fn position(&self) -> Vec2;
     fn visual_position(&self) -> Vec2;
@@ -263,14 +264,15 @@ impl PhysicsManager {
 
     fn create_collider_for_entity(physics_body: &DynamicBody) -> Collider {
 
-        let body_bounds = physics_body.bounds();
+        let body_local_bounds = physics_body.local_bounds();
 
         // #FIXME: this is a tad bit horrible, but it's cool that it's this simple to set up the collision masks, guess we just gotta worry if we have > 32 teams?
         let body_interaction_groups = InteractionGroups::new((physics_body.mask as u32).into(), Group::all().difference((physics_body.mask as u32).into()));
 
-        ColliderBuilder::cuboid(body_bounds.w / 2.0, body_bounds.h / 2.0)
+        ColliderBuilder::cuboid(body_local_bounds.w / 2.0, body_local_bounds.h / 2.0)
             .active_events(ActiveEvents::COLLISION_EVENTS)
             .collision_groups(body_interaction_groups)
+            .translation(vector![body_local_bounds.x, body_local_bounds.y])
             .build()
     }
 
