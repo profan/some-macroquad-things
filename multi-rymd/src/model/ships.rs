@@ -341,6 +341,7 @@ pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let arrowhead_fire_rate = 0.25;
     let arrowhead_fire_deviation = 0.1;
     let arrowhead_fire_cooldown = 0.0;
+    let arrowhead_fire_arc = PI / 8.0; // 22.5 degrees
     let arrowhead_range = 256.0;
 
     let arrowhead_steering_parameters = ARROWHEAD_STEERING_PARAMETERS;
@@ -364,6 +365,7 @@ pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let projectile_weapon = ProjectileWeapon {
         offset: vec2(0.0, -(arrowhead_ship_size / 2.0)).rotated_by(PI / 2.0),
         fire_rate: arrowhead_fire_rate,
+        fire_arc: arrowhead_fire_arc,
         deviation: arrowhead_fire_deviation,
         cooldown: arrowhead_fire_cooldown,
         projectile: SIMPLE_BULLET_PARAMETERS
@@ -478,6 +480,7 @@ pub fn build_grunt_ship(world: &mut World, owner: PlayerID, position: Vec2) -> E
     let grunt_fire_deviation = 0.1;
     let grunt_fire_cooldown = 0.0;
     let grunt_fire_range = 256.0;
+    let grunt_fire_arc = PI / 8.0;
 
     let grunt_steering_parameters = DEFAULT_STEERING_PARAMETERS;
 
@@ -500,6 +503,7 @@ pub fn build_grunt_ship(world: &mut World, owner: PlayerID, position: Vec2) -> E
     let projectile_weapon = ProjectileWeapon {
         offset: vec2(0.0, -(grunt_ship_size / 2.0)).rotated_by(PI / 2.0),
         fire_rate: grunt_fire_rate,
+        fire_arc: grunt_fire_arc,
         deviation: grunt_fire_deviation,
         cooldown: grunt_fire_cooldown,
         projectile: SIMPLE_BULLET_PARAMETERS

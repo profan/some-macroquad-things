@@ -475,7 +475,7 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
 
             ui.label("clients");
             for &client_id in &lobby.clients {
-                let c = self.relay.client_with_id(client_id).unwrap();
+                let Some(c) = self.relay.client_with_id(client_id) else { continue };
                 let client_rtt_to_us_in_ms = self.relay.get_client_ping(c.id);
                 let is_client_boss = client_id == lobby.boss;
                 ui.label(format!("{} (id: {}) - {} ms (boss: {})", c.name, client_id, client_rtt_to_us_in_ms, is_client_boss));

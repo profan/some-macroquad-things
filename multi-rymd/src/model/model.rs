@@ -524,15 +524,20 @@ impl RymdGameModel {
 
         for (e, (controller, transform, attacker, projectile_weapon)) in self.world.query::<(&Controller, &Transform, &Attacker, &mut ProjectileWeapon)>().iter() {
 
-            if let Some(attacker) = attacker.target {
+            if let Some(target_entiy) = attacker.target {
 
                 if projectile_weapon.cooldown == 0.0 {
 
-                    let Some(attacker_position) = get_entity_position(&self.world, attacker) else { continue };
+                    let Some(target_position) = get_entity_position(&self.world, target_entiy) else { continue };
 
                     let attack_direction_deviation = self.random.random_binomial() * projectile_weapon.deviation;
-                    let attack_direction = transform.world_rotation.as_vector();
+                    let attack_direction = (target_position - transform.world_position).normalize();
                     let attack_direction_with_deviation = attack_direction.rotated_by(attack_direction_deviation);
+                    let is_in_attack_cone = transform.world_rotation.as_vector().dot(attack_direction).acos().abs() < projectile_weapon.fire_arc;
+
+                    if is_in_attack_cone == false {
+                        continue;
+                    }
 
                     let id = controller.id;
                     let creation_world_position = transform.world_position + projectile_weapon.offset.rotated_by(transform.world_rotation);
@@ -569,15 +574,20 @@ impl RymdGameModel {
 
         for (e, (controller, transform, attacker, beam_weapon)) in self.world.query::<(&Controller, &Transform, &Attacker, &mut BeamWeapon)>().iter() {
 
-            if let Some(attacker) = attacker.target {
+            if let Some(target_entity) = attacker.target {
 
                 if beam_weapon.cooldown == 0.0 {
 
-                    let Some(attacker_position) = get_entity_position(&self.world, attacker) else { continue };
+                    let Some(target_position) = get_entity_position(&self.world, target_entity) else { continue };
 
                     let attack_direction_deviation = self.random.random_binomial() * beam_weapon.deviation;
-                    let attack_direction = transform.world_rotation.as_vector();
+                    let attack_direction = (target_position - transform.world_position).normalize();
                     let attack_direction_with_deviation = attack_direction.rotated_by(attack_direction_deviation);
+                    let is_in_attack_cone = transform.world_rotation.as_vector().dot(attack_direction).acos().abs() < beam_weapon.fire_arc;
+
+                    if is_in_attack_cone == false {
+                        continue;
+                    }
 
                     let id = controller.id;
                     let creation_world_position = transform.world_position + beam_weapon.offset.rotated_by(transform.world_rotation);

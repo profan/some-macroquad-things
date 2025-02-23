@@ -677,6 +677,9 @@ pub struct ProjectileWeapon {
     pub deviation: f32,
     pub cooldown: f32,
 
+    /// Angle from the forward of this weapon the describes the arc within which it can fire!
+    pub fire_arc: f32,
+
     pub projectile: BulletParameters
 
 }
@@ -687,6 +690,9 @@ pub struct BeamWeapon {
     pub fire_rate: f32,
     pub deviation: f32,
     pub cooldown: f32,
+
+    /// Angle from the forward of this weapon the describes the arc within which it can fire!
+    pub fire_arc: f32,
 
     pub beam: BeamParameters
 
