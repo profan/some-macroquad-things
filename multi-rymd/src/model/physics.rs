@@ -146,7 +146,7 @@ impl PhysicsManager {
     }
 
     pub fn number_of_active_collision_responses(&self) -> usize {
-        0
+        self.core_state.narrow_phase.contact_pairs().count()
     }
 
     pub fn clear(&mut self) {
