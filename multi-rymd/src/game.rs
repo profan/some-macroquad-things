@@ -114,7 +114,7 @@ impl RymdGameChat {
     }
 
     pub fn on_game_command(&mut self, game_command: &GameCommand) {
-        let GameCommand::Message { text } = game_command;
+        let GameCommand::Message { text } = game_command else { return };
         self.current_messsage_buffer += text;
     }
 
@@ -203,13 +203,27 @@ impl Game for RymdGame {
 
         match GameCommand::deserialize_json(message) {
             Ok(ref game_command) => {
+
                 self.chat.on_game_command(game_command);
+
+                if let Some(game_mode) = &mut self.setup.game_mode {
+                    game_mode.on_lobby_command(peer_id, game_command);
+                }
+
             },
             Err(err) => {
                 println!("[RymdGame] failed to parse generic message: {}!", message);
             }
         }
         
+    }
+
+    fn handle_lobby_tick(&mut self, ctx: &mut GameLobbyContext) {
+
+        if let Some(game_mode) = &mut self.setup.game_mode {
+            game_mode.handle_lobby_tick(ctx);
+        }
+
     }
 
     fn handle_game_message(&mut self, peer_id: PeerID, message: &str) {
@@ -343,22 +357,22 @@ impl Game for RymdGame {
         }
     }
 
-    fn on_client_joined_lobby(&mut self, peer_id: PeerID, lockstep: &mut LockstepClient) {
+    fn on_client_joined_lobby(&mut self, peer_id: PeerID, ctx: &mut GameLobbyContext) {
 
         self.chat.on_client_joined_lobby(peer_id);
 
         if let Some(game_mode) = &mut self.setup.game_mode {
-            game_mode.on_client_joined_lobby(lockstep, peer_id);
+            game_mode.on_client_joined_lobby(peer_id, ctx);
         }
 
     }
 
-    fn on_client_left_lobby(&mut self, peer_id: PeerID, lockstep: &mut LockstepClient) {
+    fn on_client_left_lobby(&mut self, peer_id: PeerID, ctx: &mut GameLobbyContext) {
 
         self.chat.on_client_left_lobby(peer_id);
 
         if let Some(game_mode) = &mut self.setup.game_mode {
-            game_mode.on_client_left_lobby(lockstep, peer_id);
+            game_mode.on_client_left_lobby(peer_id, ctx);
         }
 
     }

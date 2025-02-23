@@ -85,6 +85,22 @@ impl<'a> GameLobbyContext<'a> {
         self.lockstep
     }
 
+    pub fn is_player_boss(&self) -> bool {
+        if let Some(lobby) = self.current_lobby() {
+            lobby.boss == self.lockstep.peer_id()
+        } else {
+            false
+        }
+    }
+
+    pub fn get_lobby_boss_id(&self) -> Option<LobbyClientID> {
+        if let Some(lobby) = self.current_lobby() {
+            Some(lobby.boss)
+        } else {
+            None
+        }
+    }
+
 }
 
 pub trait Game where Self: Sized {
@@ -108,18 +124,20 @@ pub trait Game where Self: Sized {
     fn handle_game_message(&mut self, peer_id: PeerID, message: &str);
     fn update(&mut self, ctx: &mut GameContext);
     fn draw(&mut self, ctx: &mut GameContext, dt: f32);
-    fn draw_ui(&mut self, ui_ctx: &egui::Context, ctx: &mut GameContext) {}
+    fn draw_ui(&mut self, _ui_ctx: &egui::Context, _ctx: &mut GameContext) {}
     fn reset(&mut self);
 
     // lobby
     fn on_enter_lobby(&mut self) {}
     fn on_leave_lobby(&mut self) {}
 
-    fn on_client_joined_lobby(&mut self, peer_id: PeerID, lockstep: &mut LockstepClient) {}
-    fn on_client_left_lobby(&mut self, peer_id: PeerID, lockstep: &mut LockstepClient) {}
+    fn on_client_joined_lobby(&mut self, _peer_id: PeerID, _ctx: &mut GameLobbyContext) {}
+    fn on_client_left_lobby(&mut self, _peer_id: PeerID, _ctx: &mut GameLobbyContext) {}
 
-    fn handle_lobby_update(&mut self, new_lobby_data: String) {}
+    fn handle_lobby_update(&mut self, _new_lobby_data: String) {}
     fn handle_generic_message(&mut self, peer_id: PeerID, message: &str);
-    fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, ctx: &mut GameLobbyContext) {}
+
+    fn handle_lobby_tick(&mut self, _ctx: &mut GameLobbyContext) {}
+    fn draw_lobby_ui(&mut self, _ui: &mut egui::Ui, _ctx: &mut GameLobbyContext) {}
     
 } 

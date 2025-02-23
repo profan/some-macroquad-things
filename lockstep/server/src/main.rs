@@ -248,13 +248,16 @@ impl RelayServer {
         created_client_id
     }
 
+    /// Returns true if the lobby was closed since it was empty.
     pub fn close_lobby_if_empty(&mut self, lobby_id: LobbyID) -> bool {
         if let Some(lobby) = self.lobbies.get(&lobby_id) {
             let lobby_player_count = lobby.clients.len();
             if lobby_player_count == 0 {
                 self.close_lobby(lobby_id);
+                true
+            } else  {
+                false
             }
-            true
         } else {
             false
         }
@@ -390,12 +393,19 @@ impl RelayServer {
         let new_lobby_boss = lobby.boss;
         if boss_changed {
             println!("the boss of lobby: {} changed to client: {}", lobby_id, lobby.boss);
-            self.send_message_to_clients_lobby(client_id, RelayMessage::Boss(new_lobby_boss));
         }
+
+        let cloned_lobby = lobby.clone();
+        self.send_message_to_lobby(lobby_id, RelayMessage::UpdatedLobby(cloned_lobby));
 
         let leaving_message = RelayMessage::LeftLobby(client_id);
         self.send_message_to_lobby(lobby_id, leaving_message.clone());
-        self.close_lobby_if_empty(lobby_id);
+
+        if self.close_lobby_if_empty(lobby_id) == false {
+            if boss_changed {
+                self.send_message_to_clients_lobby(client_id, RelayMessage::Boss(new_lobby_boss));
+            }
+        }
 
     }
 

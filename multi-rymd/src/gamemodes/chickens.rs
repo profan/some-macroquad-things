@@ -2,7 +2,7 @@ use lockstep_client::{game::GameLobbyContext, step::LockstepClient};
 use nanoserde::{DeJson, SerJson};
 use puffin_egui::egui;
 
-use crate::{game::RymdGameParameters, model::RymdGameModel, utils::helpers::{create_asteroid_clumps, create_player_commander_ships}, PlayerID};
+use crate::{commands::GameCommand, game::RymdGameParameters, model::RymdGameModel, utils::helpers::{create_asteroid_clumps, create_player_commander_ships}, PlayerID};
 
 use super::gamemode::{RymdGameMode, RymdGameModeResult};
 
@@ -56,11 +56,11 @@ impl RymdGameMode for RymdGameModeChickens {
         RymdGameModeResult::Continue
     }
 
-    fn on_client_joined_lobby(&mut self, lockstep: &LockstepClient, client_id: PlayerID) {
+    fn on_client_joined_lobby(&mut self, client_id: PlayerID, ctx: &mut GameLobbyContext) {
         
     }
 
-    fn on_client_left_lobby(&mut self, lockstep: &LockstepClient, client_id: PlayerID) {
+    fn on_client_left_lobby(&mut self, client_id: PlayerID, ctx: &mut GameLobbyContext) {
         
     }
 
@@ -97,6 +97,14 @@ impl RymdGameMode for RymdGameModeChickens {
             ctx.push_new_lobby_data(chickens_lobby_data);
         }
 
+    }
+    
+    fn on_lobby_command(&mut self, client_id: PlayerID, game_command: &GameCommand) {
+        
+    }
+    
+    fn handle_lobby_tick(&mut self, ctx: &mut GameLobbyContext) {
+        todo!()
     }
 
 }

@@ -260,21 +260,35 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                             },
                             RelayMessage::JoinedLobby(client_id) => {
                                 if let Some(lockstep) = &mut self.lockstep {
-                                    if lockstep.peer_id() == client_id {
-    
-                                    } else {
-                                        self.game.on_client_joined_lobby(client_id, lockstep);
-                                    }
+
+                                    let mut lobby_context = GameLobbyContext {
+                                        debug_text: &mut self.debug,
+                                        relay_client: &mut self.relay,
+                                        lockstep: lockstep,
+                                        new_lobby_data_to_push: None
+                                    };                            
+
+                                    self.game.on_client_joined_lobby(client_id, &mut lobby_context);
+
                                 }
                             },
                             RelayMessage::LeftLobby(client_id) => {
                                 if let Some(lockstep) = &mut self.lockstep {
+
+                                    let mut lobby_context = GameLobbyContext {
+                                        debug_text: &mut self.debug,
+                                        relay_client: &mut self.relay,
+                                        lockstep: lockstep,
+                                        new_lobby_data_to_push: None
+                                    };
+
+                                    self.game.on_client_left_lobby(client_id, &mut lobby_context);
+
                                     if lockstep.peer_id() == client_id {
                                         self.lockstep = None;
                                         self.game.on_leave_lobby();
-                                    } else {
-                                        self.game.on_client_left_lobby(client_id, lockstep);
                                     }
+
                                 }
                                 self.game.reset();
                             },
@@ -349,6 +363,15 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
                     |peer_id, msg| self.net.send_text(RelayMessage::Message(peer_id, msg).serialize_json())
                 );
             }
+
+            let mut lobby_context = GameLobbyContext {
+                debug_text: &mut self.debug,
+                relay_client: &mut self.relay,
+                lockstep: lockstep,
+                new_lobby_data_to_push: None
+            };
+
+            self.game.handle_lobby_tick(&mut lobby_context);
 
         }
     
@@ -451,10 +474,11 @@ impl<GameType> ApplicationState<GameType> where GameType: Game {
         ui.vertical_centered_justified(|ui| {
 
             ui.label("clients");
-            for client_id in &lobby.clients {
-                let c = self.relay.client_with_id(*client_id).unwrap();
+            for &client_id in &lobby.clients {
+                let c = self.relay.client_with_id(client_id).unwrap();
                 let client_rtt_to_us_in_ms = self.relay.get_client_ping(c.id);
-                ui.label(format!("{} (id: {}) - {} ms", c.name, client_id, client_rtt_to_us_in_ms));
+                let is_client_boss = client_id == lobby.boss;
+                ui.label(format!("{} (id: {}) - {} ms (boss: {})", c.name, client_id, client_rtt_to_us_in_ms, is_client_boss));
             }
 
             ui.separator();
