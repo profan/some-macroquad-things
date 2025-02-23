@@ -4,7 +4,7 @@ use fnv::FnvHashMap;
 use lockstep_client::game::GameContext;
 use macroquad_particles::{EmitterConfig, Emitter};
 use puffin_egui::egui::{self, Align2};
-use utility::{draw_arrow, draw_rectangle_lines_centered, draw_text_centered, draw_texture_centered, draw_texture_centered_with_rotation, draw_texture_centered_with_rotation_frame, is_point_inside_rect, AsPerpendicular, AsVector, AverageLine2D, DebugText, RotatedBy, TextPosition, WithAlpha};
+use utility::{draw_arrow, draw_rectangle_lines_centered, draw_rectangle_lines_centered_with_rotation, draw_text_centered, draw_texture_centered, draw_texture_centered_with_rotation, draw_texture_centered_with_rotation_frame, is_point_inside_rect, AsPerpendicular, AsVector, AverageLine2D, DebugText, RotatedBy, TextPosition, WithAlpha};
 use lockstep_client::step::LockstepClient;
 use macroquad_particles::*;
 use macroquad::prelude::*;
@@ -2001,7 +2001,7 @@ impl RymdGameView {
         for (e, body) in world.query::<&DynamicBody>().iter() {
             let bounds_colour = if body.is_enabled { GREEN } else { YELLOW };
             let screen_bounds = self.camera.world_to_screen_rect(body.bounds());
-            draw_rectangle_lines_centered(screen_bounds.x, screen_bounds.y, screen_bounds.w, screen_bounds.h, bounds_line_thickness, bounds_colour);
+            draw_rectangle_lines_centered_with_rotation(screen_bounds.x, screen_bounds.y, screen_bounds.w, screen_bounds.h, bounds_line_thickness, bounds_colour, body.kinematic.orientation);
         }
 
     }
