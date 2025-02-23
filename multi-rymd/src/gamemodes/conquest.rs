@@ -2,7 +2,7 @@ use lockstep_client::{game::GameLobbyContext, step::LockstepClient};
 use nanoserde::{DeJson, SerJson};
 use puffin_egui::egui;
 
-use crate::{commands::{CommandsExt, GameCommand}, game::{RymdGameParameters, RymdGameTeam}, model::{set_default_energy_pool_size, set_default_metal_pool_size, set_player_team_allegiance, RymdGameModel}, utils::helpers::{create_asteroid_clumps, create_player_commander_ships, is_any_commander_still_alive_in_team}, PlayerID};
+use crate::{commands::{CommandsExt, GameCommand}, game::{RymdGameParameters, RymdGameTeam}, model::{set_default_energy_pool_size, set_default_metal_pool_size, set_player_team_allegiance, RymdGameModel}, utils::helpers::{create_asteroid_clumps, create_player_commander_ships, create_players, is_any_commander_still_alive_in_team}, PlayerID};
 
 use super::gamemode::{RymdGameMode, RymdGameModeResult};
 
@@ -78,11 +78,7 @@ impl RymdGameMode for RymdGameModeConquest {
         let number_of_asteroid_clumps = 10;
         let number_of_asteroids = 10;
 
-        create_player_commander_ships(model, parameters);
-        create_asteroid_clumps(model, number_of_asteroid_clumps, number_of_asteroids);
-
-        set_default_metal_pool_size(&mut model.world, self.data.starting_metal, self.data.starting_metal);
-        set_default_energy_pool_size(&mut model.world, self.data.starting_energy, self.data.starting_energy);
+        create_players(model, parameters);
 
         for team in &self.data.teams {
             for &player_id in &team.players {
@@ -90,6 +86,12 @@ impl RymdGameMode for RymdGameModeConquest {
                 set_player_team_allegiance(&mut model.world, player_id, current_team_mask);
             }
         }
+
+        create_player_commander_ships(model, parameters);
+        create_asteroid_clumps(model, number_of_asteroid_clumps, number_of_asteroids);
+
+        set_default_metal_pool_size(&mut model.world, self.data.starting_metal, self.data.starting_metal);
+        set_default_energy_pool_size(&mut model.world, self.data.starting_energy, self.data.starting_energy);
 
     }
 

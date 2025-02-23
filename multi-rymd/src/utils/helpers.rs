@@ -3,11 +3,17 @@ use macroquad::math::vec2;
 
 use crate::{game::{RymdGameParameters, RymdGameTeam}, model::{create_asteroid, create_player_entity, spawn_commander_ship, Commander, Controller, Player, RymdGameModel}, PlayerID};
 
+pub fn create_players(model: &mut RymdGameModel, parameters: &RymdGameParameters) {
+
+    for player in &parameters.players {
+        create_player_entity(&mut model.world, player.id);
+    }
+
+}
+
 pub fn create_player_commander_ships(model: &mut RymdGameModel, parameters: &RymdGameParameters) {
 
     for player in &parameters.players {
-
-        create_player_entity(&mut model.world, player.id);
 
         let start_random_x = model.random.gen_range(-400, 400);
         let start_random_y = model.random.gen_range(-400, 400);
