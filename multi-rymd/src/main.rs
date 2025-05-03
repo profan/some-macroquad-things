@@ -35,7 +35,7 @@ async fn main() {
     let mut main_loop_update_time_ms = 0.0;
     let mut app = ApplicationState::new("multi-rymd", RymdGame::new());
 
-    app.set_target_host("90.205.118.249");
+    app.set_target_host("90.205.116.212");
     app.set_debug_text_colour(WHITE);
     app.load_resources().await;
 
