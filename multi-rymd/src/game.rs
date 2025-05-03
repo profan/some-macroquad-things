@@ -253,6 +253,7 @@ impl Game for RymdGame {
             let game_mode_result = game_mode.tick(&mut self.model);
             if game_mode_result == RymdGameModeResult::End {
                 // we do something specific when requesting to end the game, ... return to lobby probably?
+                ctx.stop_lobby();
             }
         }
         

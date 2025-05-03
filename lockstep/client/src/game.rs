@@ -30,6 +30,20 @@ impl<'a> GameContext<'a> {
         &self.relay_client.get_client(client_id).unwrap().name
     }
 
+    pub fn is_player_boss(&self) -> bool {
+        if let Some(lobby) = self.current_lobby() {
+            lobby.boss == self.lockstep.peer_id()
+        } else {
+            false
+        }
+    }
+
+    pub fn stop_lobby(&mut self) {
+        if self.is_player_boss() {
+            self.relay_client.stop_lobby();
+        }
+    }
+
     pub fn lockstep_mut(&mut self) -> &mut LockstepClient {
         self.lockstep
     }
