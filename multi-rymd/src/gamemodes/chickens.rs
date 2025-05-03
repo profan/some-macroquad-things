@@ -2,7 +2,7 @@ use lockstep_client::game::GameLobbyContext;
 use nanoserde::{DeJson, SerJson};
 use puffin_egui::egui;
 
-use crate::{commands::GameCommand, game::RymdGameParameters, lobby::LobbyGameState, model::RymdGameModel, utils::helpers::{create_asteroid_clumps, create_player_commander_ships, create_players}, PlayerID};
+use crate::{commands::GameCommand, game::RymdGameParameters, lobby::LobbyGameState, model::RymdGameModel, utils::helpers::{create_asteroid_clumps, create_player_commander_ships, create_players, is_commander_dead_for_player}, PlayerID};
 
 use super::gamemode::{RymdGameMode, RymdGameModeResult};
 
@@ -56,6 +56,18 @@ impl RymdGameMode for RymdGameModeChickens {
     }
 
     fn tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult {
+
+        let mut any_alive_commander = false;
+        for (player_id, player) in &model.player_mapping {
+            if is_commander_dead_for_player(&mut model.world, *player_id) == false {
+                any_alive_commander = true;
+            }
+        }
+
+        if any_alive_commander == false {
+            return RymdGameModeResult::End
+        }
+
         RymdGameModeResult::Continue
     }
 
