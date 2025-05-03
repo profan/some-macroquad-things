@@ -2,21 +2,23 @@ use lockstep_client::game::GameLobbyContext;
 use nanoserde::{DeJson, SerJson};
 use puffin_egui::egui;
 
-use crate::{commands::GameCommand, game::RymdGameParameters, model::RymdGameModel, utils::helpers::{create_asteroid_clumps, create_player_commander_ships}, PlayerID};
+use crate::{commands::GameCommand, game::RymdGameParameters, lobby::LobbyGameState, model::RymdGameModel, utils::helpers::{create_asteroid_clumps, create_player_commander_ships}, PlayerID};
 
 use super::gamemode::{RymdGameMode, RymdGameModeResult};
 
 #[derive(Clone, Debug, SerJson, DeJson)]
 pub struct RymdGameModeChickensData {
     pub number_of_waves: i32,
-    pub difficulty_multiplier: f32
+    pub difficulty_multiplier: f32,
+    pub changed: bool
 }
 
 impl RymdGameModeChickensData {
     pub fn new() -> RymdGameModeChickensData {
         RymdGameModeChickensData {
             number_of_waves: 3,
-            difficulty_multiplier: 1.0
+            difficulty_multiplier: 1.0,
+            changed: false
         }
     }
 }
@@ -74,6 +76,7 @@ impl RymdGameMode for RymdGameModeChickens {
 
     fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, ctx: &mut GameLobbyContext) {
         
+        let old_data = self.data.clone();
         let mut any_element_changed = false;
 
         ui.vertical_centered(|ui| {
@@ -92,9 +95,10 @@ impl RymdGameMode for RymdGameModeChickens {
 
         });
 
-        if any_element_changed {
-            let chickens_lobby_data = self.data.serialize_json();
-            ctx.push_new_lobby_data(chickens_lobby_data);
+        self.data.changed = self.data.changed || any_element_changed;
+
+        if ctx.is_player_boss() == false {
+            self.data = old_data;
         }
 
     }
@@ -104,7 +108,26 @@ impl RymdGameMode for RymdGameModeChickens {
     }
     
     fn handle_lobby_tick(&mut self, ctx: &mut GameLobbyContext) {
-        todo!()
+
+        if ctx.is_player_boss() && self.data.changed {
+            
+            self.data.changed = false;
+            
+            let chicken_lobby_data = self.data.serialize_json();
+            let lobby_game_state = LobbyGameState {
+                game_mode_name: self.name().to_owned(),
+                game_mode_state: chicken_lobby_data
+            };
+            
+            ctx.push_new_lobby_data(lobby_game_state.serialize_json());
+
+        }
+
+    }
+
+    fn force_lobby_update(&mut self, ctx: &mut GameLobbyContext) {
+        self.data.changed = true;
+        self.handle_lobby_tick(ctx);
     }
 
 }

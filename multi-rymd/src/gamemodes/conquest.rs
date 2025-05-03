@@ -2,7 +2,7 @@ use lockstep_client::game::GameLobbyContext;
 use nanoserde::{DeJson, SerJson};
 use puffin_egui::egui;
 
-use crate::{commands::{CommandsExt, GameCommand}, game::{RymdGameParameters, RymdGameTeam}, model::{set_default_energy_pool_size, set_default_metal_pool_size, set_player_team_allegiance, RymdGameModel}, utils::helpers::{create_asteroid_clumps, create_player_commander_ships, create_players, destroy_all_units_controlled_by_team, is_any_commander_still_alive_in_team}, PlayerID};
+use crate::{commands::{CommandsExt, GameCommand}, game::{RymdGameParameters, RymdGameTeam}, lobby::LobbyGameState, model::{set_default_energy_pool_size, set_default_metal_pool_size, set_player_team_allegiance, RymdGameModel}, utils::helpers::{create_asteroid_clumps, create_player_commander_ships, create_players, destroy_all_units_controlled_by_team, is_any_commander_still_alive_in_team}, PlayerID};
 
 use super::gamemode::{RymdGameMode, RymdGameModeResult};
 
@@ -145,7 +145,7 @@ impl RymdGameMode for RymdGameModeConquest {
     
     fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, ctx: &mut GameLobbyContext) {
 
-        let can_modify_settings_directly = ctx.is_player_boss();
+        let old_data = self.data.clone();
         let mut anything_changed = false;
 
         ui.vertical_centered(|ui| {
@@ -154,25 +154,13 @@ impl RymdGameMode for RymdGameModeConquest {
 
             ui.horizontal(|ui| {
                 ui.label("starting metal");
-
-                let old_metal_value = self.data.starting_metal;
                 let e = ui.add(egui::Slider::new(&mut self.data.starting_metal, 1000..=50000));
-                if ctx.is_player_boss() == false {
-                    self.data.starting_metal = old_metal_value;
-                }
-
                 anything_changed = anything_changed || e.changed();
             });
 
             ui.horizontal(|ui| {
                 ui.label("starting energy");
-
-                let old_energy_value = self.data.starting_energy;
                 let e = ui.add(egui::Slider::new(&mut self.data.starting_energy, 1000..=50000));
-                if ctx.is_player_boss() == false {
-                    self.data.starting_energy = old_energy_value;
-                }
-                
                 anything_changed = anything_changed || e.changed();
             });
 
@@ -195,6 +183,10 @@ impl RymdGameMode for RymdGameModeConquest {
         });
         
         self.data.changed = self.data.changed || anything_changed;
+
+        if ctx.is_player_boss() == false {
+            self.data = old_data;
+        }
 
     }
     
@@ -219,11 +211,21 @@ impl RymdGameMode for RymdGameModeConquest {
         if ctx.is_player_boss() && self.data.changed {
             
             self.data.changed = false;
+            
             let conquest_lobby_data = self.data.serialize_json();
-            ctx.push_new_lobby_data(conquest_lobby_data);
+            let lobby_game_state = LobbyGameState {
+                game_mode_name: self.name().to_owned(),
+                game_mode_state: conquest_lobby_data
+            };
+            
+            ctx.push_new_lobby_data(lobby_game_state.serialize_json());
 
         }
 
+    }
+    
+    fn force_lobby_update(&mut self, ctx: &mut GameLobbyContext) {
+        self.data.changed = true;
     }
 
 }

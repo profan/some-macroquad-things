@@ -9,6 +9,7 @@ use crate::commands::{CommandsExt, GameCommand};
 use crate::gamemodes::chickens::RymdGameModeChickens;
 use crate::gamemodes::conquest::RymdGameModeConquest;
 use crate::gamemodes::gamemode::{RymdGameMode, RymdGameModeResult};
+use crate::lobby::LobbyGameState;
 use crate::PlayerID;
 use crate::measure_scope;
 use crate::model::{GameMessage, RymdGameModel};
@@ -69,7 +70,7 @@ pub struct RymdGameSetup {
 impl RymdGameSetup {
     pub fn new() -> RymdGameSetup {
         RymdGameSetup {
-            game_modes: vec![Box::new(RymdGameModeConquest::new()), Box::new(RymdGameModeChickens::new())],
+            game_modes: Vec::new(),
             game_mode: None,
             selected_game_mode: String::new()
         }
@@ -297,19 +298,41 @@ impl Game for RymdGame {
 
     fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, ctx: &mut GameLobbyContext) {
 
-        // let gamemode_result = egui::ComboBox::from_label("Current Game Mode")
-        //     .selected_text(format!("{:?}", self.setup.game_mode.as_ref().and_then(|g| Some(g.name())).unwrap_or("None")))
-        //     .show_ui(ui, |ui| {
-        //         for game_mode in &mut self.setup.game_modes {
-        //             ui.selectable_value(&mut self.setup.selected_game_mode, game_mode.name().to_string(), game_mode.name().to_string());
-        //         }
-        //     }
-        // );
+        let mut gamemode_was_changed = false;
 
-        // self.setup.set_game_mode(self.setup.selected_game_mode.clone());
+        if ctx.is_player_boss() {
+
+            let old_combobox_value = self.setup.selected_game_mode.clone();
+
+            let gamemode_result = egui::ComboBox::from_label("Current Game Mode")
+                .selected_text(format!("{:?}", self.setup.game_mode.as_ref().and_then(|g| Some(g.name())).unwrap_or("None")))
+                .show_ui(ui, |ui| {
+                    for game_mode in &mut self.setup.game_modes {
+                        ui.selectable_value(&mut self.setup.selected_game_mode, game_mode.name().to_string(), game_mode.name().to_string());
+                    }
+                }
+            );
+
+            if self.setup.selected_game_mode != old_combobox_value {
+                gamemode_was_changed = true;
+            }
+
+        } else {
+
+            ui.add(egui::Label::new(format!("Current Game Mode: {}", self.setup.selected_game_mode)));
+
+        }
+
+        self.setup.set_game_mode(self.setup.selected_game_mode.clone());
 
         if let Some(game_mode) = &mut self.setup.game_mode {
+
+            if ctx.is_player_boss() && gamemode_was_changed {
+                game_mode.force_lobby_update(ctx);
+            }
+
             game_mode.draw_lobby_ui(ui, ctx);
+
         }
 
         if ctx.lockstep_mut().is_singleplayer() == false {
@@ -339,7 +362,8 @@ impl Game for RymdGame {
     }
 
     fn on_enter_lobby(&mut self) {
-        self.setup.game_mode = Some(Box::new(RymdGameModeConquest::new()));
+        self.setup.game_modes = vec![Box::new(RymdGameModeConquest::new()), Box::new(RymdGameModeChickens::new())];
+        self.setup.game_mode = None;
         self.chat.reset();
     }
 
@@ -349,8 +373,14 @@ impl Game for RymdGame {
     }
 
     fn handle_lobby_update(&mut self, new_lobby_data: String) {
-        if let Some(game_mode) = &mut self.setup.game_mode && self.is_started == false {
-            game_mode.on_lobby_update(new_lobby_data);
+        if let Ok(lobby_game_state) = LobbyGameState::deserialize_json(&new_lobby_data) {
+
+            self.setup.selected_game_mode = lobby_game_state.game_mode_name;
+
+            if let Some(game_mode) = &mut self.setup.game_mode && self.is_started == false {
+                game_mode.on_lobby_update(lobby_game_state.game_mode_state);
+            }
+
         }
     }
 

@@ -26,4 +26,6 @@ pub trait RymdGameMode {
     fn handle_lobby_tick(&mut self, ctx: &mut GameLobbyContext);
     fn draw_lobby_ui(&mut self, ui: &mut egui::Ui, ctx: &mut GameLobbyContext);
 
+    fn force_lobby_update(&mut self, ctx: &mut GameLobbyContext);
+
 }
