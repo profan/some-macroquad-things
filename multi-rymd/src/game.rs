@@ -275,9 +275,6 @@ impl Game for RymdGame {
         {
             measure_scope!(self.stats.draw_time_ms);
             self.view.draw(&mut self.model, ctx, dt);
-            // if let Some(game_mode) = &self.setup.game_mode {
-            //     game_mode.draw(&self.model, &mut self.view);
-            // }
         }
 
         self.draw_frame_stats(ctx.debug_text());
@@ -291,10 +288,6 @@ impl Game for RymdGame {
         }
 
         self.view.draw_ui(ui_ctx, &mut self.model, ctx);
-
-        // if let Some(game_mode) = &self.setup.game_mode {
-        //     game_mode.draw_ui(&self.model, &mut self.view);
-        // }
         
         if crate::INGAME_PROFILER_ENABLED {
             puffin_egui::profiler_window(ui_ctx);
