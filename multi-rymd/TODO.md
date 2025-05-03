@@ -60,6 +60,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] allow constructing 20 units at a time by the button to build + ctrl
 [x] allow constructing 100 units a time by the button to build + ctrl + shift
 [x] once a constructor has built a building, have it get it out of the way of the building afterwards
+[] when issuing construction orders, buildings that are about to be placed should be highlighted in red if they cannot be placed in a given position
 
 # resources
 [x] allow entities to generate resources
@@ -101,3 +102,9 @@ rough list of things to work on in the game currently, usually ordered as items 
 [] implement sort orders for sprites, initially just hardcoded numbers per sprite
 [x] implement the ability to switch what side you're currently controlling
 [x] make sure the camera starts where the player's commander starts
+
+# gamemodes
+[] allow a gamemode to end the running game (return the game to the lobby)
+
+# conquest
+[] implement the game ending, announcing the winner of the game when the last team loses their last living commander
