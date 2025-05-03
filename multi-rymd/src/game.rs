@@ -169,9 +169,6 @@ impl Game for RymdGame {
                 let game_players = lockstep.peers().iter().map(|client| RymdGamePlayer { id: client.id } ).collect();
                 RymdGameParameters { players: game_players }
             };
-
-            // just to be certain lol, we keep the view around (because of resource loading, but the model is best clean)
-            self.model = RymdGameModel::new();
             
             if let Some(game_mode) = &mut self.setup.game_mode {
                 game_mode.on_start(&mut self.model, &game_parameters);
@@ -200,7 +197,7 @@ impl Game for RymdGame {
         self.is_running = false;
         self.is_started = false;
         self.is_paused = false;
-        self.model.stop()
+        self.model = RymdGameModel::new();
     }
 
     fn handle_generic_message(&mut self, peer_id: PeerID, message: &str) {
