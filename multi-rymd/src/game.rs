@@ -8,7 +8,7 @@ use utility::{DebugText, TextPosition};
 use crate::commands::{CommandsExt, GameCommand};
 use crate::gamemodes::chickens::RymdGameModeChickens;
 use crate::gamemodes::conquest::RymdGameModeConquest;
-use crate::gamemodes::gamemode::RymdGameMode;
+use crate::gamemodes::gamemode::{RymdGameMode, RymdGameModeResult};
 use crate::PlayerID;
 use crate::measure_scope;
 use crate::model::{GameMessage, RymdGameModel};
@@ -250,7 +250,10 @@ impl Game for RymdGame {
         self.model.tick();
 
         if let Some(game_mode) = &mut self.setup.game_mode {
-            game_mode.tick(&mut self.model);
+            let game_mode_result = game_mode.tick(&mut self.model);
+            if game_mode_result == RymdGameModeResult::End {
+                // we do something specific when requesting to end the game, ... return to lobby probably?
+            }
         }
         
         self.view.update(&mut self.model);

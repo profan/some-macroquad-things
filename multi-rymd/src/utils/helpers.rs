@@ -1,7 +1,7 @@
 use hecs::World;
 use macroquad::math::vec2;
 
-use crate::{game::{RymdGameParameters, RymdGameTeam}, model::{create_asteroid, create_player_entity, spawn_commander_ship, Commander, Controller, Player, RymdGameModel}, PlayerID};
+use crate::{game::{RymdGameParameters, RymdGameTeam}, model::{create_asteroid, create_player_entity, spawn_commander_ship, Commander, Controller, Health, Player, RymdGameModel}, PlayerID};
 
 pub fn create_players(model: &mut RymdGameModel, parameters: &RymdGameParameters) {
 
@@ -51,6 +51,14 @@ pub fn is_any_commander_still_alive_in_team(world: &mut World, team: &RymdGameTe
         }
     }
     has_alive_commander
+}
+
+pub fn destroy_all_units_controlled_by_team(world: &mut World, team: &RymdGameTeam) {
+    for (e, (controller, health)) in world.query_mut::<(&Controller, &mut Health)>() {
+        if team.players.contains(&controller.id) {
+            health.kill();
+        }
+    }
 }
 
 pub fn create_asteroid_clumps(model: &mut RymdGameModel, number_of_asteroid_clumps: i32, number_of_asteroids: i32) {

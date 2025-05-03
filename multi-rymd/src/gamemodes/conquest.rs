@@ -2,7 +2,7 @@ use lockstep_client::{game::GameLobbyContext, step::LockstepClient};
 use nanoserde::{DeJson, SerJson};
 use puffin_egui::egui;
 
-use crate::{commands::{CommandsExt, GameCommand}, game::{RymdGameParameters, RymdGameTeam}, model::{set_default_energy_pool_size, set_default_metal_pool_size, set_player_team_allegiance, RymdGameModel}, utils::helpers::{create_asteroid_clumps, create_player_commander_ships, create_players, is_any_commander_still_alive_in_team}, PlayerID};
+use crate::{commands::{CommandsExt, GameCommand}, game::{RymdGameParameters, RymdGameTeam}, model::{set_default_energy_pool_size, set_default_metal_pool_size, set_player_team_allegiance, RymdGameModel}, utils::helpers::{create_asteroid_clumps, create_player_commander_ships, create_players, destroy_all_units_controlled_by_team, is_any_commander_still_alive_in_team}, PlayerID};
 
 use super::gamemode::{RymdGameMode, RymdGameModeResult};
 
@@ -123,10 +123,20 @@ impl RymdGameMode for RymdGameModeConquest {
 
     fn tick(&self, model: &mut RymdGameModel) -> RymdGameModeResult {
 
+        let mut number_of_teams_with_alive_commanders = 0;
+
         for team in &self.data.teams {
             if is_any_commander_still_alive_in_team(&mut model.world, team) == false {
                 // evaporate all the units of this team?
+                destroy_all_units_controlled_by_team(&mut model.world, team);
+            } else {
+                number_of_teams_with_alive_commanders += 1;
             }
+        }
+
+        // is there just one remaining victor team? if so, we should end the match
+        if number_of_teams_with_alive_commanders <= 1 {
+            return RymdGameModeResult::End
         }
 
         RymdGameModeResult::Continue

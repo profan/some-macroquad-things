@@ -3,6 +3,7 @@ use puffin_egui::egui;
 
 use crate::{commands::GameCommand, game::RymdGameParameters, model::RymdGameModel, PlayerID};
 
+#[derive(PartialEq)]
 pub enum RymdGameModeResult {
     Start,
     Continue,

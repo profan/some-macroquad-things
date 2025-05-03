@@ -29,6 +29,7 @@ rapier2d = { version = "*", features = [ "enhanced-determinism" ] }
 [profile.dev]
 opt-level = 2
 incremental = true
+debug = false
 
 [profile.dev.build-override]
 opt-level = 3
