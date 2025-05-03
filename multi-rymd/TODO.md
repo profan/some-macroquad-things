@@ -104,7 +104,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] make sure the camera starts where the player's commander starts
 
 # gamemodes
-[] allow a gamemode to end the running game (return the game to the lobby)
+[x] allow a gamemode to end the running game (return the game to the lobby)
 
 # conquest
 [] implement the game ending, announcing the winner of the game when the last team loses their last living commander
