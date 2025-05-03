@@ -989,13 +989,19 @@ impl RymdGameView {
     }
 
     fn is_entity_friendly(&self, entity: Entity, model: &RymdGameModel) -> bool {
-        let controller = model.world.get::<&Controller>(entity).expect("must have controller!");
-        model.is_controller_friendly_to(self.game_player_id, &controller)
+        if let Ok(controller) = model.world.get::<&Controller>(entity) {
+            model.is_controller_friendly_to(self.game_player_id, &controller)
+        } else {
+            false
+        }
     }
 
     fn is_entity_controllable(&self, entity: Entity, model: &RymdGameModel) -> bool {
-        let controller = model.world.get::<&Controller>(entity).expect("must have controller!");
-        model.is_controller_controllable_by(self.game_player_id, &controller)
+        if let Ok(controller) = model.world.get::<&Controller>(entity) {
+            model.is_controller_controllable_by(self.game_player_id, &controller)
+        } else {
+            false
+        }
     }
 
     fn handle_order(&mut self, model: &mut RymdGameModel, lockstep: &mut LockstepClient) {

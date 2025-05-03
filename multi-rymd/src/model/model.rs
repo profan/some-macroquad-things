@@ -1048,8 +1048,11 @@ impl RymdGameModel {
     }
 
     pub fn is_entity_attackable_by(&self, attacking_controller_id: PlayerID, entity: Entity) -> bool {
-        let controller = self.world.get::<&Controller>(entity).expect("must have controller!");
-        self.is_controller_attackable_by(attacking_controller_id, &controller) && self.world.get::<&Attackable>(entity).is_ok()
+        if let Ok(controller) = self.world.get::<&Controller>(entity) {
+            self.is_controller_attackable_by(attacking_controller_id, &controller) && self.world.get::<&Attackable>(entity).is_ok()
+        } else {
+            false
+        }
     }
 
     pub fn tick(&mut self) {
