@@ -1,4 +1,4 @@
-use lockstep_client::{game::GameLobbyContext, step::LockstepClient};
+use lockstep_client::game::GameLobbyContext;
 use puffin_egui::egui;
 
 use crate::{commands::GameCommand, game::RymdGameParameters, model::RymdGameModel, PlayerID};

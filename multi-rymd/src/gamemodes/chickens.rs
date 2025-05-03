@@ -1,4 +1,4 @@
-use lockstep_client::{game::GameLobbyContext, step::LockstepClient};
+use lockstep_client::game::GameLobbyContext;
 use nanoserde::{DeJson, SerJson};
 use puffin_egui::egui;
 
