@@ -150,7 +150,7 @@ impl PhysicsManager {
     }
 
     pub fn clear(&mut self) {
-
+        *self = PhysicsManager::new(self.timestep())
     }
 
     pub fn ray_cast(&self, source: Vec2, target: Vec2, world: &World, spatial_query_manager: &SpatialQueryManager, test_mask: u64) -> Option<(Entity, Vec2)> {
