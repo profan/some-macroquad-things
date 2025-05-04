@@ -93,7 +93,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 
 # multiplayer
 [] implement game state hashing for checking if in sync
-[] implement compensating the end-turn times given the latency to each player in the match somehow (who is authorative here though, the original host?)
+[] implement compensating the command turn length given the latency to each player in the match somehow (who is authorative here though, the original host?)
 [x] implement messaging to the client(s?) managing the lobby about when a client leaves the lobby, so cleanup can happen
 
 # view
@@ -108,3 +108,6 @@ rough list of things to work on in the game currently, usually ordered as items 
 
 # conquest
 [] implement the game ending, announcing the winner of the game when the last team loses their last living commander
+
+# chickens
+[] implement the basics of the enemy chicken controller
