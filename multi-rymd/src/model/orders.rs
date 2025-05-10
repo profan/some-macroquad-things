@@ -1,7 +1,6 @@
 use std::f32::consts::PI;
 
 use hecs::{Entity, World};
-use macroquad::miniquad::log;
 use macroquad::prelude::*;
 use nanoserde::{SerJson, DeJson};
 use lockstep_client::step::LockstepClient;
@@ -17,7 +16,6 @@ use super::set_rotation_target_to_position;
 use super::Attacker;
 use super::BlueprintID;
 use super::DynamicBody;
-use super::EntityState;
 use super::Extractor;
 use super::PhysicsBody;
 use super::get_entity_position;
