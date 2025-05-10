@@ -152,8 +152,9 @@ impl ConstructionState {
 
         let is_build_position_blocked = existing_static_body_within_bounds(&model.world, get_blueprint_bounds(resources, blueprint), blueprint_preview_position);
 
-        let should_cancel = is_mouse_button_released(MouseButton::Right) || is_mouse_button_released(MouseButton::Middle);
-        let should_build = is_mouse_button_released(MouseButton::Left) && is_build_position_blocked == false;
+        let wants_to_build = is_mouse_button_released(MouseButton::Left);
+        let should_cancel = (is_mouse_button_released(MouseButton::Right) || is_mouse_button_released(MouseButton::Middle)) || (wants_to_build && is_build_position_blocked);
+        let should_build = wants_to_build && is_build_position_blocked == false;
 
         Self::draw_building(resources, blueprint, blueprint_preview_position, is_build_position_blocked);
 
