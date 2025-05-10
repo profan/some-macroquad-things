@@ -9,6 +9,8 @@ use utility::RotatedBy;
 use crate::EntityID;
 use crate::model::GameMessage;
 
+use super::constructible_at_position;
+use super::existing_static_body_at_position;
 use super::set_movement_target_to_position;
 use super::set_rotation_target_to_position;
 use super::Attacker;
@@ -307,26 +309,6 @@ impl ConstructOrder {
     pub fn entity(&self) -> Option<Entity> {
         Entity::from_bits(self.entity_id?)
     }
-}
-
-/// Returns the constructible entity intersecting with the specific position, if any
-fn constructible_at_position(world: &World, position: Vec2) -> Option<Entity> {
-    for (e, (body, health, state)) in world.query::<(&DynamicBody, &Health, &EntityState)>().iter() {
-        if body.bounds().contains(position) && *state == EntityState::Ghost {
-            return Some(e);
-        }
-    }
-    None
-}
-
-/// Returns true if there's an existing static body at the given position.
-fn existing_static_body_at_position(world: &World, position: Vec2) -> bool {
-    for (e, (body, health, state)) in world.query::<(&DynamicBody, &Health, &EntityState)>().iter() {
-        if body.bounds().contains(position) && body.is_static {
-            return true;
-        }
-    }
-    false
 }
 
 impl Order for ConstructOrder {

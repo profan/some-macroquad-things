@@ -7,12 +7,12 @@ use puffin_egui::egui::{self, Align2};
 use utility::{draw_arrow, draw_rectangle_lines_centered_with_rotation, draw_text_centered, draw_texture_centered, draw_texture_centered_with_rotation, draw_texture_centered_with_rotation_frame, is_point_inside_rect, AsPerpendicular, AsVector, AverageLine2D, DebugText, RotatedBy, TextPosition, WithAlpha};
 use lockstep_client::step::LockstepClient;
 use macroquad_particles::*;
-use macroquad::prelude::*;
+use macroquad::{prelude::*, text};
 use hecs::*;
 
 use crate::PlayerID;
 use crate::game::RymdGameParameters;
-use crate::model::{current_energy, current_energy_income, current_metal, current_metal_income, max_energy, max_metal, Attacker, Beam, Blueprint, BlueprintID, BlueprintIdentity, Blueprints, Building, Commander, Effect, EntityState, Extractor, GameOrder, GameOrderType, Impact, PhysicsBody, ResourceSource, Spawner};
+use crate::model::{current_energy, current_energy_income, current_metal, current_metal_income, existing_static_body_within_bounds, max_energy, max_metal, Attacker, Beam, Blueprint, BlueprintID, BlueprintIdentity, Blueprints, Building, Commander, Effect, EntityState, Extractor, GameOrder, GameOrderType, Impact, PhysicsBody, ResourceSource, Spawner};
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Controller, Health, get_entity_position};
 
 use super::{calculate_sprite_bounds, GameCamera2D};
@@ -27,6 +27,16 @@ fn entity_state_to_alpha(state: Option<&EntityState>) -> f32 {
         }
     } else {
         1.0
+    }
+}
+
+fn get_blueprint_bounds(resources: &Resources, blueprint: &Blueprint) -> Rect {
+    let texture = resources.get_texture_by_name(&blueprint.name);
+    Rect {
+        x: -(texture.width() / 2.0),
+        y: -(texture.height() / 2.0),
+        w: texture.width(),
+        h: texture.height()
     }
 }
 
@@ -118,29 +128,46 @@ impl ConstructionState {
 
     }
 
-    fn draw_building(resources: &Resources, blueprint: &Blueprint, position: Vec2) {
+    fn draw_building(resources: &Resources, blueprint: &Blueprint, position: Vec2, is_blocked: bool) {
 
         let blueprint_preview_alpha = 0.5;
         let blueprint_preview_texture = resources.get_texture_by_name(&blueprint.texture);
         let blueprint_preview_position = position;
 
+        let blueprint_preview_color = if is_blocked == false { WHITE.with_alpha(blueprint_preview_alpha) } else { RED.with_alpha(blueprint_preview_alpha) };
+
         draw_texture_centered(
             &blueprint_preview_texture,
             blueprint_preview_position.x,
             blueprint_preview_position.y,
-            WHITE.with_alpha(blueprint_preview_alpha)
+            blueprint_preview_color
         );
         
     }
 
     fn preview_building(&mut self, resources: &Resources, blueprint: &Blueprint, model: &RymdGameModel, camera: &GameCamera2D, lockstep: &mut LockstepClient) {
 
-        let should_cancel = is_mouse_button_released(MouseButton::Right) || is_mouse_button_released(MouseButton::Middle);
-        let should_build = is_mouse_button_released(MouseButton::Left);
         let mouse_world_position: Vec2 = camera.mouse_world_position();
-
         let blueprint_preview_position = mouse_world_position;
-        Self::draw_building(resources, blueprint, blueprint_preview_position);
+
+        let is_build_position_blocked = existing_static_body_within_bounds(&model.world, get_blueprint_bounds(resources, blueprint), blueprint_preview_position);
+
+        let should_cancel = is_mouse_button_released(MouseButton::Right) || is_mouse_button_released(MouseButton::Middle);
+        let should_build = is_mouse_button_released(MouseButton::Left) && is_build_position_blocked == false;
+
+        Self::draw_building(resources, blueprint, blueprint_preview_position, is_build_position_blocked);
+
+        // if is_build_position_blocked {
+        //     let blueprint_bounds = get_blueprint_bounds(resources, blueprint).offset(blueprint_preview_position);
+        //     draw_rectangle_lines(
+        //         blueprint_bounds.x,
+        //         blueprint_bounds.y,
+        //         blueprint_bounds.w,
+        //         blueprint_bounds.h,
+        //         2.0,
+        //         GREEN
+        //     );
+        // }
 
         if should_build {
             self.finalize_blueprint(model, camera, lockstep);
@@ -1495,7 +1522,7 @@ impl RymdGameView {
                 {
                     let position = vec2(order.x, order.y);
                     if let Some(blueprint) = model.blueprint_manager.get_blueprint(blueprint_id) {
-                        ConstructionState::draw_building(&self.resources, blueprint, position);
+                        ConstructionState::draw_building(&self.resources, blueprint, position, false);
                     }
                 }
             }

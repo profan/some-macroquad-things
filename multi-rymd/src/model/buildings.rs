@@ -2,7 +2,7 @@ use hecs::{CommandBuffer, Entity, World};
 use macroquad::{math::{Vec2, Rect, vec2}, miniquad::KeyCode};
 
 use crate::PlayerID;
-use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, get_player_team_allegiance, Attackable, Blueprint, BlueprintIdentity, Blueprints, Building, Constructor, Controller, Cost, DynamicBody, EntityState, Health, MovementTarget, Orderable, Producer, Spawner, Sprite, Storage, Transform};
+use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, get_player_team_allegiance, Attackable, Blueprint, BlueprintIdentity, Blueprints, Building, Constructor, Controller, Cost, DynamicBody, EntityState, Health, MovementTarget, Orderable, PhysicsBody, Producer, Spawner, Sprite, Storage, Transform};
 
 pub fn create_solar_collector_blueprint() -> Blueprint {
     Blueprint {
@@ -230,4 +230,34 @@ pub fn build_metal_storage(world: &mut World, owner: PlayerID, position: Vec2) -
 
     metal_storage
 
+}
+
+/// Returns the constructible entity intersecting with the specific position, if any
+pub fn constructible_at_position(world: &World, position: Vec2) -> Option<Entity> {
+    for (e, (body, health, state)) in world.query::<(&DynamicBody, &Health, &EntityState)>().iter() {
+        if body.physics_bounds().contains(position) && *state == EntityState::Ghost {
+            return Some(e);
+        }
+    }
+    None
+}
+
+/// Returns true if there's an existing static body at the given position.
+pub fn existing_static_body_at_position(world: &World, position: Vec2) -> bool {
+    for (e, (body, health, state)) in world.query::<(&DynamicBody, &Health, &EntityState)>().iter() {
+        if body.physics_bounds().contains(position) && body.is_static {
+            return true;
+        }
+    }
+    false
+}
+
+/// Returns true if there's an existing static body within the given bounds at the specific position.
+pub fn existing_static_body_within_bounds(world: &World, bounds: Rect, position: Vec2) -> bool {
+    for (e, (body, health, state)) in world.query::<(&DynamicBody, &Health, &EntityState)>().iter() {
+        if body.physics_bounds().overlaps(&bounds.offset(position)) && body.is_static {
+            return true;
+        }
+    }
+    false
 }
