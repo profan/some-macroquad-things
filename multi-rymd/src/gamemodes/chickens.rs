@@ -2,7 +2,7 @@ use lockstep_client::game::GameLobbyContext;
 use nanoserde::{DeJson, SerJson};
 use puffin_egui::egui;
 
-use crate::{commands::GameCommand, game::RymdGameParameters, lobby::LobbyGameState, model::RymdGameModel, utils::helpers::{create_asteroid_clumps, create_player_commander_ships, create_players, is_commander_dead_for_player}, PlayerID};
+use crate::{commands::GameCommand, game::RymdGameParameters, lobby::LobbyGameState, model::{set_player_team_allegiance, RymdGameModel}, utils::helpers::{create_asteroid_clumps, create_player_commander_ships, create_players, is_commander_dead_for_player}, PlayerID};
 
 use super::gamemode::{RymdGameMode, RymdGameModeResult};
 
@@ -50,6 +50,12 @@ impl RymdGameMode for RymdGameModeChickens {
         let number_of_asteroids = 10;
 
         create_players(model, parameters);
+
+        for player in &parameters.players{
+            let current_team_mask: u64 = 1 << 0;
+            set_player_team_allegiance(&mut model.world, player.id, current_team_mask);
+        }
+
         create_player_commander_ships(model, parameters);
         create_asteroid_clumps(model, number_of_asteroid_clumps, number_of_asteroids);
 
