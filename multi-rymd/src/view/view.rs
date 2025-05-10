@@ -31,7 +31,7 @@ fn entity_state_to_alpha(state: Option<&EntityState>) -> f32 {
 }
 
 fn get_blueprint_bounds(resources: &Resources, blueprint: &Blueprint) -> Rect {
-    let texture = resources.get_texture_by_name(&blueprint.name);
+    let texture = resources.get_texture_by_name(&blueprint.texture);
     Rect {
         x: -(texture.width() / 2.0),
         y: -(texture.height() / 2.0),
@@ -157,18 +157,6 @@ impl ConstructionState {
         let should_build = wants_to_build && is_build_position_blocked == false;
 
         Self::draw_building(resources, blueprint, blueprint_preview_position, is_build_position_blocked);
-
-        // if is_build_position_blocked {
-        //     let blueprint_bounds = get_blueprint_bounds(resources, blueprint).offset(blueprint_preview_position);
-        //     draw_rectangle_lines(
-        //         blueprint_bounds.x,
-        //         blueprint_bounds.y,
-        //         blueprint_bounds.w,
-        //         blueprint_bounds.h,
-        //         2.0,
-        //         GREEN
-        //     );
-        // }
 
         if should_build {
             self.finalize_blueprint(model, camera, lockstep);
