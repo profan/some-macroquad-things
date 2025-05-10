@@ -1,6 +1,7 @@
 use std::f32::consts::PI;
 
 use hecs::{Entity, World};
+use macroquad::miniquad::log;
 use macroquad::prelude::*;
 use nanoserde::{SerJson, DeJson};
 use lockstep_client::step::LockstepClient;
@@ -341,21 +342,29 @@ impl Order for ConstructOrder {
 
     fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
 
-        // we're building/repairing an existing construction, this could be tick 2 of the "constructing a blueprint" case
-        if let Some(entity_id) = self.entity_id && let Some(constructing_entity) = Entity::from_bits(entity_id) {
+        if let Some(current_constructor_target) = model.world.get::<&Constructor>(entity).expect("must have constructor to be issuing construct order!").current_target {
 
-            let target_position = get_entity_position_from_id(&model.world, entity_id).expect("could not unpack target position?");
+            let target_position = get_entity_position(&model.world, current_constructor_target).expect("could not unpack target position?");
+
             if self.is_self_order == false && self.is_within_constructor_range(entity, &model.world, target_position) == false {
                 set_movement_target_to_position(&model.world, entity, Some(target_position));
-                return;
             }
 
             if self.is_self_order == false && self.is_within_constructor_range(entity, &model.world, target_position) {
                 set_rotation_target_to_position(&model.world, entity, Some(target_position));
             }
 
+            return;
+            
+        }
+
+        // we're building/repairing an existing construction, this could be tick 2 of the "constructing a blueprint" case
+        if let Some(entity_id) = self.entity_id && let Some(constructing_entity) = Entity::from_bits(entity_id) {
+
             let mut constructor = model.world.get::<&mut Constructor>(entity).expect("must have constructor to be issuing construct order!");
             constructor.current_target = Some(constructing_entity);
+
+            return;
 
         }
 
@@ -369,6 +378,7 @@ impl Order for ConstructOrder {
             // issue order to go construct the new thing!
             self.construct_external_entity(entity, &mut model.world, existing_constructible, vec2(self.x, self.y));
 
+            return;
         }
 
         // we're constructing something new given a blueprint
@@ -400,6 +410,8 @@ impl Order for ConstructOrder {
                 }
 
             }
+
+            return;
 
         }
 
