@@ -146,7 +146,6 @@ impl RymdGameMode for RymdGameModeChickens {
 
     fn force_lobby_update(&mut self, ctx: &mut GameLobbyContext) {
         self.data.changed = true;
-        self.handle_lobby_tick(ctx);
     }
 
 }

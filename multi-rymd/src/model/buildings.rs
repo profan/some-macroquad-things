@@ -2,7 +2,7 @@ use hecs::{CommandBuffer, Entity, World};
 use macroquad::{math::{Vec2, Rect, vec2}, miniquad::KeyCode};
 
 use crate::PlayerID;
-use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, get_player_team_allegiance, Attackable, Blueprint, BlueprintIdentity, Blueprints, Building, Constructor, Controller, Cost, DynamicBody, EntityState, Health, MovementTarget, Orderable, PhysicsBody, Producer, Spawner, Sprite, Storage, Transform};
+use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, get_player_team_allegiance, Attackable, Blueprint, BlueprintIdentity, Blueprints, Building, Constructor, Consumer, Controller, Cost, DynamicBody, EntityState, Health, MovementTarget, Orderable, PhysicsBody, Powered, Producer, Spawner, Sprite, Storage, Transform};
 
 pub fn create_solar_collector_blueprint() -> Blueprint {
     Blueprint {
@@ -48,6 +48,18 @@ pub fn create_metal_storage_blueprint() -> Blueprint {
         texture: String::from("METAL_STORAGE"),
         constructor: build_metal_storage,
         cost: Cost { metal: 25.0, energy: 0.0 },
+        is_building: true
+    }
+}
+
+pub fn create_energy_converter_blueprint() -> Blueprint {
+    Blueprint {
+        id: Blueprints::EnergyConverter as i32,
+        shortcut: KeyCode::M,
+        name: String::from("Energy Converter"),
+        texture: String::from("ENERGY_CONVERTER"),
+        constructor: build_energy_converter,
+        cost: Cost { metal: 1.0, energy: 1000.0 },
         is_building: true
     }
 }
@@ -229,6 +241,36 @@ pub fn build_metal_storage(world: &mut World, owner: PlayerID, position: Vec2) -
     let _ = world.insert(metal_storage, (storage, ));
 
     metal_storage
+
+}
+
+pub fn build_energy_converter(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
+
+    let energy_converter_size = 48.0;
+    let energy_converter_bounds = Rect { x: 0.0, y: 0.0, w: energy_converter_size, h: energy_converter_size };
+
+    let maximum_energy_converter_health = 500.0;
+    let initial_energy_converter_health = 10.0;
+
+    let energy_convertor_parameters = BuildingParameters {
+
+        initial_health: initial_energy_converter_health,
+        maximum_health: maximum_energy_converter_health,
+        blueprint: Blueprints::EnergyConverter,
+
+        bounds: energy_converter_bounds,
+        texture: "ENERGY_CONVERTER".to_string()
+
+    };
+
+    let energy_converter = create_building(world, owner, position, energy_convertor_parameters);
+
+    let resource_consumer = Consumer { metal: 0.0, energy: 50.0 };
+    let resource_producer = Producer { metal: 1.0, energy: 0.0 };
+
+    let _ = world.insert(energy_converter, (resource_consumer, resource_producer, Powered{}));
+
+    energy_converter
 
 }
 

@@ -9,15 +9,16 @@ pub enum Blueprints {
     SolarCollector = 2,
     EnergyStorage = 3,
     MetalStorage = 4,
+    EnergyConverter = 5,
 
     // blue units
-    Commander = 5,
-    Arrowhead = 6,
-    Extractor = 7,
+    Commander = 6,
+    Arrowhead = 7,
+    Extractor = 8,
 
     // green units
-    Commissar = 8,
-    Grunt = 9
+    Commissar = 9,
+    Grunt = 10
 
 }
 

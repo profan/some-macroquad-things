@@ -22,6 +22,7 @@ use crate::PlayerID;
 use super::are_players_allied;
 use super::are_players_hostile;
 use super::create_commissar_ship_blueprint;
+use super::create_energy_converter_blueprint;
 use super::create_extractor_ship_blueprint;
 use super::create_grunt_ship_blueprint;
 use super::create_impact_effect_in_world;
@@ -100,11 +101,13 @@ fn create_blue_side_blueprints() -> BTreeMap<i32, Blueprint> {
     let metal_storage_blueprint = create_metal_storage_blueprint();
     let energy_storage_blueprint = create_energy_storage_blueprint();
     let solar_collector_blueprint = create_solar_collector_blueprint();
+    let energy_converter_blueprint = create_energy_converter_blueprint();
     let shipyard_blueprint = create_shipyard_blueprint();
 
     blueprints.insert(metal_storage_blueprint.id, metal_storage_blueprint);
     blueprints.insert(energy_storage_blueprint.id, energy_storage_blueprint);
     blueprints.insert(solar_collector_blueprint.id, solar_collector_blueprint);
+    blueprints.insert(energy_converter_blueprint.id, energy_converter_blueprint);
     blueprints.insert(shipyard_blueprint.id, shipyard_blueprint);
 
     // units
@@ -261,7 +264,7 @@ impl RymdGameModel {
     fn tick_powered_entities(&mut self) {
 
         for (e, (state, controller, consumer, _powered)) in self.world.query::<(&mut EntityState, &Controller, &Consumer, &Powered)>().iter() {
-            if *state == EntityState::Constructed {
+            if *state == EntityState::Constructed || *state == EntityState::Inactive {
                 if consumer.energy >= current_energy(controller.id, &self.world) {
                     *state = EntityState::Inactive
                 } else {

@@ -54,7 +54,7 @@ pub fn create_arrowhead_ship_blueprint() -> Blueprint {
         name: String::from("Arrowhead (Fighter)"),
         texture: String::from("ARROWHEAD"),
         constructor: build_arrowhead_ship,
-        cost: Cost { metal: 1.0, energy: 1.0 },
+        cost: Cost { metal: 100.0, energy: 50.0 },
         is_building: false
     }
 }
@@ -187,7 +187,13 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let commander_build_speed = 100;
     let commander_build_range = 100;
     let commander_build_offset = -vec2(commander_bounds.w / 8.0, 0.0);
-    let commander_blueprints = vec![Blueprints::Shipyard as i32, Blueprints::SolarCollector as i32, Blueprints::EnergyStorage as i32, Blueprints::MetalStorage as i32];
+    let commander_blueprints = vec![
+        Blueprints::Shipyard as i32,
+        Blueprints::SolarCollector as i32,
+        Blueprints::EnergyStorage as i32,
+        Blueprints::MetalStorage as i32,
+        Blueprints::EnergyConverter as i32
+    ];
 
     let commander_thruster_power = 64.0;
     let commander_turn_thruster_power = 16.0;
