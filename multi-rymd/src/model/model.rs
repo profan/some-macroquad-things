@@ -265,7 +265,7 @@ impl RymdGameModel {
 
         for (e, (state, controller, consumer, _powered)) in self.world.query::<(&mut EntityState, &Controller, &Consumer, &Powered)>().iter() {
             if *state == EntityState::Constructed || *state == EntityState::Inactive {
-                if consumer.energy >= current_energy(controller.id, &self.world) {
+                if consumer.energy * Self::TIME_STEP >= current_energy(controller.id, &self.world) {
                     *state = EntityState::Inactive
                 } else {
                     *state = EntityState::Constructed;
