@@ -35,7 +35,7 @@ pub fn create_energy_storage_blueprint() -> Blueprint {
         name: String::from("Energy Storage"),
         texture: String::from("ENERGY_STORAGE"),
         constructor: build_energy_storage,
-        cost: Cost { metal: 25.0, energy: 0.0 },
+        cost: Cost { metal: 10.0, energy: 100.0 },
         is_building: true
     }
 }
@@ -47,7 +47,7 @@ pub fn create_metal_storage_blueprint() -> Blueprint {
         name: String::from("Metal Storage"),
         texture: String::from("METAL_STORAGE"),
         constructor: build_metal_storage,
-        cost: Cost { metal: 25.0, energy: 0.0 },
+        cost: Cost { metal: 100.0, energy: 10.0 },
         is_building: true
     }
 }
