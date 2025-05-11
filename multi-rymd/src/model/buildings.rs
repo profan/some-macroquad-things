@@ -143,7 +143,7 @@ pub fn build_solar_collector(world: &mut World, owner: PlayerID, position: Vec2)
     };
 
     let solar_collector = create_building(world, owner, position, solar_collector_parameters);
-    let resource_producer = Producer { metal: 0.0, energy: 10.0 };
+    let resource_producer = Producer { metal: 0.0, energy: 20.0 };
 
     let _ = world.insert(solar_collector, (resource_producer,));
 
