@@ -1849,7 +1849,7 @@ impl RymdGameView {
 
         for id in available_blueprints {
             let blueprint = model.blueprint_manager.get_blueprint(id).unwrap();
-            debug.draw_text(format!(" > {} ({:?})", blueprint.name, blueprint.shortcut), TextPosition::BottomRight, WHITE);
+            debug.draw_text(format!(" > {} ({:?}) - ({} M, {} E)", blueprint.name, blueprint.shortcut, blueprint.cost.metal, blueprint.cost.energy), TextPosition::BottomRight, WHITE);
             if is_key_released(blueprint.shortcut) {
                 self.construction.preview_blueprint(id);
             }
