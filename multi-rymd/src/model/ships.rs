@@ -459,7 +459,7 @@ pub fn build_dragonfly_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let dragonfly = create_ship(world, owner, position, dragonfly_ship_parameters);
 
     let beam_weapon = BeamWeapon {
-         offset: vec2(0.0, -dragonfly_ship_size).rotated_by(PI / 2.0),
+         offset: vec2(0.0, -(dragonfly_ship_size - 4.0)).rotated_by(PI / 2.0),
          fire_rate: dragonfly_fire_rate,
          deviation: dragonfly_fire_deviation,
          cooldown: dragonfly_fire_cooldown,
