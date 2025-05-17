@@ -136,6 +136,10 @@ impl PhysicsBody for DynamicBody {
     fn visual_position(&self) -> Vec2 {
         self.kinematic.position - self.bounds.size() / 2.0
     }
+
+    fn local_physics_bounds(&self) -> Rect {
+        self.bounds.offset(-self.bounds.size() / 2.0)
+    }
     
     fn physics_bounds(&self) -> Rect {
         self.bounds().offset(-self.bounds.size() / 2.0)

@@ -21,6 +21,7 @@ pub trait PhysicsBody {
     fn bounds(&self) -> Rect;
     fn position(&self) -> Vec2;
     fn visual_position(&self) -> Vec2;
+    fn local_physics_bounds(&self) -> Rect;
     fn physics_bounds(&self) -> Rect;
     fn orientation(&self) -> f32;
     fn velocity(&self) -> Vec2;

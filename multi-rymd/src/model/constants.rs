@@ -1,7 +1,7 @@
 use macroquad::{math::Rect, prelude::Vec2};
 use utility::{SteeringParameters, Kinematic};
 
-use super::{BeamParameters, BulletParameters};
+use super::{BeamParameters, BulletParameters, ARBITRARY_DISTANCE_THRESHOLD};
 
 pub enum Blueprints {
 
@@ -28,7 +28,7 @@ pub const DEFAULT_STEERING_PARAMETERS: SteeringParameters = SteeringParameters {
 
     max_speed: 384.0,
     max_acceleration: 128.0,
-    arrive_radius: 64.0,
+    arrive_radius: ARBITRARY_DISTANCE_THRESHOLD,
     slow_radius: 200.0,
 
     align_max_rotation: 2.0,

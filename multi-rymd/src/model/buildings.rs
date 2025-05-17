@@ -303,3 +303,18 @@ pub fn existing_static_body_within_bounds(world: &World, bounds: Rect, position:
     }
     false
 }
+
+/// Returns true if there's an existing static body within the bounds of the entity at the specific position
+pub fn existing_static_body_within_entity_bounds(world: &World, entity: Entity) -> bool {
+
+    let Some(position) = get_entity_position(world, entity) else { return false };
+    let Ok(bounds) = world.get::<&DynamicBody>(entity).and_then(|b| Ok(b.physics_bounds())) else { return false };
+
+    for (e, (body, health, state)) in world.query::<(&DynamicBody, &Health, &EntityState)>().iter() {
+        if body.physics_bounds().overlaps(&bounds) && body.is_static {
+            return true;
+        }
+    }
+
+    false
+}

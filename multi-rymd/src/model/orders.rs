@@ -11,6 +11,7 @@ use crate::model::GameMessage;
 
 use super::constructible_at_position;
 use super::existing_static_body_at_position;
+use super::existing_static_body_within_entity_bounds;
 use super::set_movement_target_to_position;
 use super::set_rotation_target_to_position;
 use super::Attacker;
@@ -22,6 +23,9 @@ use super::get_entity_position;
 use super::get_entity_position_from_id;
 use super::get_closest_position_with_entity_bounds;
 use super::{RymdGameModel, Constructor, Controller, Health, Orderable};
+
+pub const ARBITRARY_DISTANCE_THRESHOLD: f32 = 16.0;
+pub const ARBITRARY_DISTANCE_THRESHOLD_SQUARED: f32 = ARBITRARY_DISTANCE_THRESHOLD * ARBITRARY_DISTANCE_THRESHOLD;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum GameOrderType {
@@ -188,9 +192,8 @@ pub struct MoveOrder {
 
 impl Order for MoveOrder {
     fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
-        let arbitrary_distance_threshold_squared = 64.0 * 64.0;
         let position = get_entity_position(&model.world, entity).expect("could not get position for move order, should never happen!");
-        position.distance_squared(vec2(self.x, self.y)) < arbitrary_distance_threshold_squared
+        position.distance_squared(vec2(self.x, self.y)) < ARBITRARY_DISTANCE_THRESHOLD_SQUARED
     }
 
     fn get_target_position(&self, model: &RymdGameModel) -> Option<Vec2> {
@@ -259,9 +262,8 @@ pub struct AttackMoveOrder {
 
 impl Order for AttackMoveOrder {
     fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
-        let arbitrary_distance_threshold_squared = 64.0 * 64.0;
         let position = get_entity_position(&model.world, entity).expect("could not get position for attack move order, should never happen!");
-        position.distance_squared(vec2(self.x, self.y)) < arbitrary_distance_threshold_squared
+        position.distance_squared(vec2(self.x, self.y)) < ARBITRARY_DISTANCE_THRESHOLD_SQUARED
     }
 
     fn get_target_position(&self, model: &RymdGameModel) -> Option<Vec2> {
@@ -376,6 +378,8 @@ impl Order for ConstructOrder {
             // issue order to go construct the new thing!
             self.construct_external_entity(entity, &mut model.world, existing_constructible, vec2(self.x, self.y));
 
+            info!("cancel!");
+
             return;
         }
 
@@ -433,10 +437,13 @@ impl Order for ConstructOrder {
         }
 
         let our_position = get_entity_position(&model.world, entity).unwrap();
-        if self.is_self_order == false && existing_static_body_at_position(&model.world, our_position) && has_pending_orders(&model.world, entity, GameOrderType::Order) == false {
+        if self.is_self_order == false && existing_static_body_within_entity_bounds(&model.world, entity) && has_pending_orders(&model.world, entity, GameOrderType::Order) == false {
+
             let Some(constructed_entity) = self.entity() else { return; };
-            let Some(target_position) = Self::calculate_movement_position_out_of_constructor(our_position, model, constructed_entity, true) else { return; };
-            self.move_entity_to_position(entity, &mut model.world, target_position);
+            if let Some(target_position) = Self::calculate_movement_position_out_of_constructor(our_position, model, constructed_entity, true) {
+                self.move_entity_to_position(entity, &mut model.world, target_position);
+            }
+
         }
 
     }
@@ -523,16 +530,31 @@ impl ConstructOrder {
     }
 
     fn calculate_movement_position_out_of_constructor(position: Vec2, model: &mut RymdGameModel, entity: Entity, has_orderable: bool) -> Option<Vec2> {
-        let target_position = if let Ok(body) = model.world.get::<&DynamicBody>(entity) && has_orderable {
+
+        if has_orderable == false {
+            return None;
+        }
+
+        let Ok(body) = model.world.get::<&DynamicBody>(entity) else { return None };
+
+        let attempts = 10;
+        let mut target_position = Vec2::ZERO;
+
+        for i in 0..attempts {
+
             let angle_range = PI / 4.0;
             let random_angle = model.random.gen_range(-angle_range, angle_range);
             let dir_to_entity = (position - body.position()).normalize();
-            let target_position = body.position() + dir_to_entity.rotated_by(random_angle) * body.bounds.size().max_element();
-            Some(target_position)
-        } else {
-            None
-        };
-        target_position
+            target_position = body.position() + dir_to_entity.rotated_by(random_angle) * body.bounds.size().max_element();
+
+            if existing_static_body_at_position(&model.world, target_position) == false {
+                break;
+            }
+
+        }
+
+        Some(target_position)
+
     }
 
 }
