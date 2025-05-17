@@ -6,7 +6,7 @@ use utility::{AsAngle, RotatedBy, SteeringParameters};
 
 use crate::PlayerID;
 use crate::model::{Transform, Orderable, AnimatedSprite, Thruster, DynamicBody, Ship, ThrusterKind};
-use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, get_player_team_allegiance, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Commander, Constructor, Controller, Cost, EntityState, Extractor, Health, MovementTarget, Producer, ProjectileWeapon, RotationTarget, Steering, ARROWHEAD_STEERING_PARAMETERS, COMMANDER_STEERING_PARAMETERS, DEFAULT_STEERING_PARAMETERS, DRAGONFLY_STEERING_PARAMETERS, EXTRACTOR_STEERING_PARAMETERS, SIMPLE_BULLET_PARAMETERS};
+use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, get_player_team_allegiance, Attackable, Attacker, BeamParameters, BeamWeapon, Blueprint, BlueprintIdentity, Blueprints, Commander, Constructor, Controller, Cost, EntityState, Extractor, Health, MovementTarget, Producer, ProjectileWeapon, RotationTarget, Steering, ARROWHEAD_STEERING_PARAMETERS, COMMANDER_STEERING_PARAMETERS, DEFAULT_STEERING_PARAMETERS, DRAGONFLY_STEERING_PARAMETERS, EXTRACTOR_STEERING_PARAMETERS, SIMPLE_BEAM_PARAMETERS, SIMPLE_BULLET_PARAMETERS};
 
 #[derive(Bundle)]
 pub struct ShipThruster {
@@ -66,7 +66,7 @@ pub fn create_dragonfly_ship_blueprint() -> Blueprint {
         name: String::from("Dragonfly (Drone)"),
         texture: String::from("DRAGONFLY"),
         constructor: build_dragonfly_ship,
-        cost: Cost { metal: 10.0, energy: 5.0 },
+        cost: Cost { metal: 20.0, energy: 10.0 },
         is_building: false
     }
 }
@@ -426,15 +426,19 @@ pub fn build_dragonfly_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let dragonfly_bounds = Rect { x: 0.0, y: 0.0, w: dragonfly_ship_size, h: dragonfly_ship_size };
 
     let initial_dragonfly_health = 1.0;
-    let maximum_dragonfly_health = 250.0;
+    let maximum_dragonfly_health = 50.0;
 
     let dragonfly_thruster_power = 16.0;
     let dragonfly_thruster_rate = 64.0;
-    let dragonfly_fire_rate = 0.25;
+
+    let dragonfly_fire_rate = 1.0;
     let dragonfly_fire_deviation = 0.1;
     let dragonfly_fire_cooldown = 0.0;
     let dragonfly_fire_arc = PI / 8.0; // 22.5 degrees
     let dragonfly_range = 256.0;
+
+    let dragonfly_beam_damage = 7.5;
+    let dragonfly_beam_range = 64.0;
 
     let dragonfly_steering_parameters = DRAGONFLY_STEERING_PARAMETERS;
 
@@ -453,6 +457,23 @@ pub fn build_dragonfly_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     };
 
     let dragonfly = create_ship(world, owner, position, dragonfly_ship_parameters);
+
+    let beam_weapon = BeamWeapon {
+         offset: vec2(0.0, -dragonfly_ship_size).rotated_by(PI / 2.0),
+         fire_rate: dragonfly_fire_rate,
+         deviation: dragonfly_fire_deviation,
+         cooldown: dragonfly_fire_cooldown,
+         fire_arc: dragonfly_fire_arc,
+         beam: BeamParameters {
+            damage: dragonfly_beam_damage,
+            range: dragonfly_beam_range,
+            ..SIMPLE_BEAM_PARAMETERS
+         }
+    };
+
+    let attacker = Attacker::new(dragonfly_range);
+
+    let _ = world.insert(dragonfly, (beam_weapon, attacker));
 
     let dragonfly_ship_thruster_main = world.spawn(ShipThruster::new(vec2(0.0, 5.0).rotated_by(PI/ 2.0), Vec2::Y.rotated_by(PI/ 2.0), 0.0, dragonfly_thruster_power, dragonfly_thruster_rate, ThrusterKind::Main, dragonfly));
 
