@@ -12,7 +12,8 @@ pub struct Thruster {
     pub kind: ThrusterKind,
     pub direction: Vec2,
     pub angle: f32,
-    pub power: f32
+    pub power: f32,
+    pub rate: f32
 }
 
 #[derive(Clone, Copy, PartialEq)]

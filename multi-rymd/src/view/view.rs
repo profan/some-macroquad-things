@@ -509,8 +509,8 @@ impl Resources {
         self.load_texture_or_placeholder("ENEMY_GRUNT", "raw/enemy_grunt.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("ENEMY_MEDIUM_GRUNT", "raw/enemy_medium_grunt.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("ENEMY_GRUNT_REPAIR", "raw/enemy_grunt_repair.png", FilterMode::Nearest).await;
-        self.load_texture_or_placeholder("HAMMERHEAD", "raw/hammerhead.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("ARROWHEAD", "raw/arrowhead.png", FilterMode::Nearest).await;
+        self.load_texture_or_placeholder("DRAGONFLY", "raw/dragonfly.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("EXTRACTOR", "raw/extractor.png", FilterMode::Nearest).await;
         
         // buildings of various kinds
@@ -1686,7 +1686,7 @@ impl RymdGameView {
                             particles.emitter.config.initial_direction = thruster_emit_direction;
                             particles.emitter.config.initial_velocity = thruster.power * 4.0;
                             particles.emitter.config.lifetime = 0.25; // ARBITRARY NUMBERS WOO
-                            particles.emitter.emit(vec2(0.0, 0.0), ((thruster.power * thruster_alignment) / 4.0) as usize);
+                            particles.emitter.emit(vec2(0.0, 0.0), ((thruster.rate * thruster_alignment) / 4.0) as usize);
                         }
 
                     } else {
@@ -1698,7 +1698,7 @@ impl RymdGameView {
                             particles.emitter.config.initial_direction = thruster_emit_direction;
                             particles.emitter.config.initial_velocity = thruster.power * 4.0;
                             particles.emitter.config.lifetime = 1.0; // ARBITRARY NUMBERS WOO
-                            particles.emitter.emit(vec2(0.0, 0.0), (ship_alignment.abs() / thruster.power * 2.0) as usize);
+                            particles.emitter.emit(vec2(0.0, 0.0), (ship_alignment.abs() / thruster.rate * 2.0) as usize);
                         }
                         
                     }

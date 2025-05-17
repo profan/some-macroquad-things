@@ -14,11 +14,12 @@ pub enum Blueprints {
     // blue units
     Commander = 6,
     Arrowhead = 7,
-    Extractor = 8,
+    Dragonfly = 8,
+    Extractor = 9,
 
     // green units
-    Commissar = 9,
-    Grunt = 10
+    Commissar = 10,
+    Grunt = 11
 
 }
 
@@ -47,6 +48,11 @@ pub const COMMANDER_STEERING_PARAMETERS: SteeringParameters = SteeringParameters
 };
 
 pub const ARROWHEAD_STEERING_PARAMETERS: SteeringParameters = SteeringParameters {
+    align_max_angular_acceleration: 8.0,
+    ..DEFAULT_STEERING_PARAMETERS
+};
+
+pub const DRAGONFLY_STEERING_PARAMETERS: SteeringParameters = SteeringParameters {
     align_max_angular_acceleration: 8.0,
     ..DEFAULT_STEERING_PARAMETERS
 };

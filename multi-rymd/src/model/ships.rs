@@ -6,7 +6,7 @@ use utility::{AsAngle, RotatedBy, SteeringParameters};
 
 use crate::PlayerID;
 use crate::model::{Transform, Orderable, AnimatedSprite, Thruster, DynamicBody, Ship, ThrusterKind};
-use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, get_player_team_allegiance, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Commander, Constructor, Controller, Cost, EntityState, Extractor, Health, MovementTarget, Producer, ProjectileWeapon, RotationTarget, Steering, ARROWHEAD_STEERING_PARAMETERS, COMMANDER_STEERING_PARAMETERS, DEFAULT_STEERING_PARAMETERS, EXTRACTOR_STEERING_PARAMETERS, SIMPLE_BULLET_PARAMETERS};
+use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, get_player_team_allegiance, Attackable, Attacker, Blueprint, BlueprintIdentity, Blueprints, Commander, Constructor, Controller, Cost, EntityState, Extractor, Health, MovementTarget, Producer, ProjectileWeapon, RotationTarget, Steering, ARROWHEAD_STEERING_PARAMETERS, COMMANDER_STEERING_PARAMETERS, DEFAULT_STEERING_PARAMETERS, DRAGONFLY_STEERING_PARAMETERS, EXTRACTOR_STEERING_PARAMETERS, SIMPLE_BULLET_PARAMETERS};
 
 #[derive(Bundle)]
 pub struct ShipThruster {
@@ -15,10 +15,10 @@ pub struct ShipThruster {
 }
 
 impl ShipThruster {
-    pub fn new(position: Vec2, direction: Vec2, angle: f32, power: f32, kind: ThrusterKind, parent: Entity) -> ShipThruster {
+    pub fn new(position: Vec2, direction: Vec2, angle: f32, velocity: f32, amount: f32, kind: ThrusterKind, parent: Entity) -> ShipThruster {
         ShipThruster {
             transform: Transform::new(position, direction.as_angle(), Some(parent)),
-            thruster: Thruster { kind, direction, angle, power },
+            thruster: Thruster { kind, direction, angle, power: velocity, rate: amount },
         }
     }
 }
@@ -55,6 +55,18 @@ pub fn create_arrowhead_ship_blueprint() -> Blueprint {
         texture: String::from("ARROWHEAD"),
         constructor: build_arrowhead_ship,
         cost: Cost { metal: 100.0, energy: 50.0 },
+        is_building: false
+    }
+}
+
+pub fn create_dragonfly_ship_blueprint() -> Blueprint {
+        Blueprint {
+        id: Blueprints::Dragonfly as i32,
+        shortcut: KeyCode::D,
+        name: String::from("Dragonfly (Drone)"),
+        texture: String::from("DRAGONFLY"),
+        constructor: build_dragonfly_ship,
+        cost: Cost { metal: 10.0, energy: 5.0 },
         is_building: false
     }
 }
@@ -238,13 +250,13 @@ pub fn build_commander_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let _ = world.insert(commander_ship_body, (commander, constructor, producer));
 
     // add ship thrusters
-    let commander_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0).rotated_by(PI/ 2.0), -Vec2::X.rotated_by(PI/ 2.0), -(PI / 2.0), commander_turn_thruster_power, ThrusterKind::Attitude, commander_ship_body));
-    let commander_ship_thuster_right_top = world.spawn(ShipThruster::new(vec2(14.0, 4.0).rotated_by(PI/ 2.0), Vec2::X.rotated_by(PI/ 2.0), PI / 2.0, commander_turn_thruster_power, ThrusterKind::Attitude, commander_ship_body));
+    let commander_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0).rotated_by(PI/ 2.0), -Vec2::X.rotated_by(PI/ 2.0), -(PI / 2.0), commander_turn_thruster_power, commander_turn_thruster_power, ThrusterKind::Attitude, commander_ship_body));
+    let commander_ship_thuster_right_top = world.spawn(ShipThruster::new(vec2(14.0, 4.0).rotated_by(PI/ 2.0), Vec2::X.rotated_by(PI/ 2.0), PI / 2.0, commander_turn_thruster_power, commander_turn_thruster_power, ThrusterKind::Attitude, commander_ship_body));
 
-    let commander_ship_thruster_left_bottom = world.spawn(ShipThruster::new(vec2(-14.0, 4.0).rotated_by(PI/ 2.0), Vec2::X.rotated_by(PI/ 2.0), -(PI / 2.0), commander_turn_thruster_power, ThrusterKind::Attitude, commander_ship_body));
-    let commander_ship_thuster_right_bottom = world.spawn(ShipThruster::new(vec2(14.0, 4.0).rotated_by(PI/ 2.0), -Vec2::X.rotated_by(PI/ 2.0), PI / 2.0, commander_turn_thruster_power, ThrusterKind::Attitude, commander_ship_body));
+    let commander_ship_thruster_left_bottom = world.spawn(ShipThruster::new(vec2(-14.0, 4.0).rotated_by(PI/ 2.0), Vec2::X.rotated_by(PI/ 2.0), -(PI / 2.0), commander_turn_thruster_power, commander_turn_thruster_power, ThrusterKind::Attitude, commander_ship_body));
+    let commander_ship_thuster_right_bottom = world.spawn(ShipThruster::new(vec2(14.0, 4.0).rotated_by(PI/ 2.0), -Vec2::X.rotated_by(PI/ 2.0), PI / 2.0, commander_turn_thruster_power, commander_turn_thruster_power, ThrusterKind::Attitude, commander_ship_body));
 
-    let commander_ship_thruster_main = world.spawn(ShipThruster::new(vec2(0.0, 10.0).rotated_by(PI/ 2.0), Vec2::Y.rotated_by(PI/ 2.0), 0.0, commander_thruster_power, ThrusterKind::Main, commander_ship_body));
+    let commander_ship_thruster_main = world.spawn(ShipThruster::new(vec2(0.0, 10.0).rotated_by(PI/ 2.0), Vec2::Y.rotated_by(PI/ 2.0), 0.0, commander_thruster_power, commander_thruster_power, ThrusterKind::Main, commander_ship_body));
 
     {
         let mut commander_ship = world.get::<&mut Ship>(commander_ship_body).unwrap();
@@ -315,13 +327,13 @@ pub fn build_commissar_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let _ = world.insert(commissar_ship_body, (commander, constructor, producer));
 
     // add ship thrusters
-    let commissar_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0).rotated_by(PI/ 2.0), (-Vec2::X).rotated_by(PI/ 2.0), -(PI / 2.0), commissar_turn_thruster_power, ThrusterKind::Attitude, commissar_ship_body));
-    let commissar_ship_thuster_right_top = world.spawn(ShipThruster::new(vec2(14.0, 4.0).rotated_by(PI/ 2.0), Vec2::X.rotated_by(PI/ 2.0), PI / 2.0, commissar_turn_thruster_power, ThrusterKind::Attitude, commissar_ship_body));
+    let commissar_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0).rotated_by(PI/ 2.0), (-Vec2::X).rotated_by(PI/ 2.0), -(PI / 2.0), commissar_turn_thruster_power, commissar_turn_thruster_power, ThrusterKind::Attitude, commissar_ship_body));
+    let commissar_ship_thuster_right_top = world.spawn(ShipThruster::new(vec2(14.0, 4.0).rotated_by(PI/ 2.0), Vec2::X.rotated_by(PI/ 2.0), PI / 2.0, commissar_turn_thruster_power, commissar_turn_thruster_power, ThrusterKind::Attitude, commissar_ship_body));
 
-    let commissar_ship_thruster_left_bottom = world.spawn(ShipThruster::new(vec2(-14.0, 4.0).rotated_by(PI/ 2.0), Vec2::X.rotated_by(PI/ 2.0), -(PI / 2.0), commissar_turn_thruster_power, ThrusterKind::Attitude, commissar_ship_body));
-    let commissar_ship_thuster_right_bottom = world.spawn(ShipThruster::new(vec2(14.0, 4.0).rotated_by(PI/ 2.0), (-Vec2::X).rotated_by(PI/ 2.0), PI / 2.0, commissar_turn_thruster_power, ThrusterKind::Attitude, commissar_ship_body));
+    let commissar_ship_thruster_left_bottom = world.spawn(ShipThruster::new(vec2(-14.0, 4.0).rotated_by(PI/ 2.0), Vec2::X.rotated_by(PI/ 2.0), -(PI / 2.0), commissar_turn_thruster_power, commissar_turn_thruster_power, ThrusterKind::Attitude, commissar_ship_body));
+    let commissar_ship_thuster_right_bottom = world.spawn(ShipThruster::new(vec2(14.0, 4.0).rotated_by(PI/ 2.0), (-Vec2::X).rotated_by(PI/ 2.0), PI / 2.0, commissar_turn_thruster_power, commissar_turn_thruster_power, ThrusterKind::Attitude, commissar_ship_body));
 
-    let commissar_ship_thruster_main = world.spawn(ShipThruster::new(vec2(0.0, 10.0).rotated_by(PI/ 2.0), Vec2::Y, 0.0, commissar_thruster_power, ThrusterKind::Main, commissar_ship_body));
+    let commissar_ship_thruster_main = world.spawn(ShipThruster::new(vec2(0.0, 10.0).rotated_by(PI/ 2.0), Vec2::Y, 0.0, commissar_thruster_power, commissar_thruster_power, ThrusterKind::Main, commissar_ship_body));
 
     let mut commissar_ship = world.get::<&mut Ship>(commissar_ship_body).unwrap();
     commissar_ship.thrusters.push(commissar_ship_thruster_left_top);
@@ -389,13 +401,13 @@ pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let _ = world.insert(arrowhead_ship_body, (projectile_weapon, attacker));
 
     // add ship thrusters
-    let arrowhead_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0).rotated_by(PI/ 2.0), -Vec2::X.rotated_by(PI/ 2.0), -(PI / 2.0), arrowhead_turn_thruster_power, ThrusterKind::Attitude, arrowhead_ship_body));
-    let arrowhead_ship_thuster_right_top = world.spawn(ShipThruster::new(vec2(14.0, 4.0).rotated_by(PI/ 2.0), Vec2::X.rotated_by(PI/ 2.0), PI / 2.0, arrowhead_turn_thruster_power, ThrusterKind::Attitude, arrowhead_ship_body));
+    let arrowhead_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0).rotated_by(PI/ 2.0), -Vec2::X.rotated_by(PI/ 2.0), -(PI / 2.0), arrowhead_turn_thruster_power, arrowhead_turn_thruster_power, ThrusterKind::Attitude, arrowhead_ship_body));
+    let arrowhead_ship_thuster_right_top = world.spawn(ShipThruster::new(vec2(14.0, 4.0).rotated_by(PI/ 2.0), Vec2::X.rotated_by(PI/ 2.0), PI / 2.0, arrowhead_turn_thruster_power, arrowhead_turn_thruster_power, ThrusterKind::Attitude, arrowhead_ship_body));
 
-    let arrowhead_ship_thruster_left_bottom = world.spawn(ShipThruster::new(vec2(-14.0, 4.0).rotated_by(PI/ 2.0), Vec2::X.rotated_by(PI/ 2.0), -(PI / 2.0), arrowhead_turn_thruster_power, ThrusterKind::Attitude, arrowhead_ship_body));
-    let arrowhead_ship_thuster_right_bottom = world.spawn(ShipThruster::new(vec2(14.0, 4.0).rotated_by(PI/ 2.0), (-Vec2::X).rotated_by(PI/ 2.0), PI / 2.0, arrowhead_turn_thruster_power, ThrusterKind::Attitude, arrowhead_ship_body));
+    let arrowhead_ship_thruster_left_bottom = world.spawn(ShipThruster::new(vec2(-14.0, 4.0).rotated_by(PI/ 2.0), Vec2::X.rotated_by(PI/ 2.0), -(PI / 2.0), arrowhead_turn_thruster_power, arrowhead_turn_thruster_power, ThrusterKind::Attitude, arrowhead_ship_body));
+    let arrowhead_ship_thuster_right_bottom = world.spawn(ShipThruster::new(vec2(14.0, 4.0).rotated_by(PI/ 2.0), (-Vec2::X).rotated_by(PI/ 2.0), PI / 2.0, arrowhead_turn_thruster_power, arrowhead_turn_thruster_power, ThrusterKind::Attitude, arrowhead_ship_body));
 
-    let arrowhead_ship_thruster_main = world.spawn(ShipThruster::new(vec2(0.0, 10.0).rotated_by(PI/ 2.0), Vec2::Y.rotated_by(PI/ 2.0), 0.0, arrowhead_thruster_power, ThrusterKind::Main, arrowhead_ship_body));
+    let arrowhead_ship_thruster_main = world.spawn(ShipThruster::new(vec2(0.0, 10.0).rotated_by(PI/ 2.0), Vec2::Y.rotated_by(PI/ 2.0), 0.0, arrowhead_thruster_power, arrowhead_thruster_power, ThrusterKind::Main, arrowhead_ship_body));
 
     let mut arrowhead_ship = world.get::<&mut Ship>(arrowhead_ship_body).unwrap();
     arrowhead_ship.thrusters.push(arrowhead_ship_thruster_left_top);
@@ -405,6 +417,49 @@ pub fn build_arrowhead_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     arrowhead_ship.thrusters.push(arrowhead_ship_thruster_main);
 
     arrowhead_ship_body
+
+}
+
+pub fn build_dragonfly_ship(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
+
+    let dragonfly_ship_size = 16.0;
+    let dragonfly_bounds = Rect { x: 0.0, y: 0.0, w: dragonfly_ship_size, h: dragonfly_ship_size };
+
+    let initial_dragonfly_health = 1.0;
+    let maximum_dragonfly_health = 250.0;
+
+    let dragonfly_thruster_power = 16.0;
+    let dragonfly_thruster_rate = 64.0;
+    let dragonfly_fire_rate = 0.25;
+    let dragonfly_fire_deviation = 0.1;
+    let dragonfly_fire_cooldown = 0.0;
+    let dragonfly_fire_arc = PI / 8.0; // 22.5 degrees
+    let dragonfly_range = 256.0;
+
+    let dragonfly_steering_parameters = DRAGONFLY_STEERING_PARAMETERS;
+
+    let dragonfly_ship_parameters = ShipParameters {
+
+        initial_health: initial_dragonfly_health,
+        maximum_health: maximum_dragonfly_health,
+        blueprint: Blueprints::Dragonfly,
+
+        bounds: dragonfly_bounds,
+        texture: "DRAGONFLY".to_string(),
+        texture_h_frames: 1,
+
+        steering_parameters: dragonfly_steering_parameters
+
+    };
+
+    let dragonfly = create_ship(world, owner, position, dragonfly_ship_parameters);
+
+    let dragonfly_ship_thruster_main = world.spawn(ShipThruster::new(vec2(0.0, 5.0).rotated_by(PI/ 2.0), Vec2::Y.rotated_by(PI/ 2.0), 0.0, dragonfly_thruster_power, dragonfly_thruster_rate, ThrusterKind::Main, dragonfly));
+
+    let mut dragonfly_ship = world.get::<&mut Ship>(dragonfly).unwrap();
+    dragonfly_ship.thrusters.push(dragonfly_ship_thruster_main);
+
+    dragonfly
 
 }
 
@@ -453,13 +508,13 @@ pub fn build_extractor_ship(world: &mut World, owner: PlayerID, position: Vec2) 
     let _ = world.insert(extractor_ship_body, (extractor,));
 
     // add ship thrusters
-    let extractor_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0).rotated_by(PI/ 2.0), (-Vec2::X).rotated_by(PI/ 2.0), -(PI / 2.0), extractor_turn_thruster_power, ThrusterKind::Attitude, extractor_ship_body));
-    let extractor_ship_thuster_right_top = world.spawn(ShipThruster::new(vec2(14.0, 4.0).rotated_by(PI/ 2.0), Vec2::X.rotated_by(PI/ 2.0), PI / 2.0, extractor_turn_thruster_power, ThrusterKind::Attitude, extractor_ship_body));
+    let extractor_ship_thruster_left_top = world.spawn(ShipThruster::new(vec2(-14.0, 4.0).rotated_by(PI/ 2.0), (-Vec2::X).rotated_by(PI/ 2.0), -(PI / 2.0), extractor_turn_thruster_power, extractor_turn_thruster_power, ThrusterKind::Attitude, extractor_ship_body));
+    let extractor_ship_thuster_right_top = world.spawn(ShipThruster::new(vec2(14.0, 4.0).rotated_by(PI/ 2.0), Vec2::X.rotated_by(PI/ 2.0), PI / 2.0, extractor_turn_thruster_power, extractor_turn_thruster_power, ThrusterKind::Attitude, extractor_ship_body));
 
-    let extractor_ship_thruster_left_bottom = world.spawn(ShipThruster::new(vec2(-14.0, 4.0).rotated_by(PI/ 2.0), Vec2::X.rotated_by(PI/ 2.0), -(PI / 2.0), extractor_turn_thruster_power, ThrusterKind::Attitude, extractor_ship_body));
-    let extractor_ship_thuster_right_bottom = world.spawn(ShipThruster::new(vec2(14.0, 4.0).rotated_by(PI/ 2.0), (-Vec2::X).rotated_by(PI/ 2.0), PI / 2.0, extractor_turn_thruster_power, ThrusterKind::Attitude, extractor_ship_body));
+    let extractor_ship_thruster_left_bottom = world.spawn(ShipThruster::new(vec2(-14.0, 4.0).rotated_by(PI/ 2.0), Vec2::X.rotated_by(PI/ 2.0), -(PI / 2.0), extractor_turn_thruster_power, extractor_turn_thruster_power, ThrusterKind::Attitude, extractor_ship_body));
+    let extractor_ship_thuster_right_bottom = world.spawn(ShipThruster::new(vec2(14.0, 4.0).rotated_by(PI/ 2.0), (-Vec2::X).rotated_by(PI/ 2.0), PI / 2.0, extractor_turn_thruster_power, extractor_turn_thruster_power, ThrusterKind::Attitude, extractor_ship_body));
 
-    let extractor_ship_thruster_main = world.spawn(ShipThruster::new(vec2(0.0, 10.0).rotated_by(PI/ 2.0), Vec2::Y.rotated_by(PI/ 2.0), 0.0, extractor_thruster_power, ThrusterKind::Main, extractor_ship_body));
+    let extractor_ship_thruster_main = world.spawn(ShipThruster::new(vec2(0.0, 10.0).rotated_by(PI/ 2.0), Vec2::Y.rotated_by(PI/ 2.0), 0.0, extractor_thruster_power, extractor_thruster_power, ThrusterKind::Main, extractor_ship_body));
 
     let mut extractor_ship = world.get::<&mut Ship>(extractor_ship_body).unwrap();
     extractor_ship.thrusters.push(extractor_ship_thruster_left_top);
@@ -518,7 +573,7 @@ pub fn build_grunt_ship(world: &mut World, owner: PlayerID, position: Vec2) -> E
     let attacker = Attacker::new(grunt_fire_range);
 
     let _ = world.insert(grunt_ship_body, (projectile_weapon, attacker));
-    let grunt_ship_thruster_main = world.spawn(ShipThruster::new(vec2(0.0, 4.0), Vec2::Y, 0.0, grunt_thruster_power, ThrusterKind::Main, grunt_ship_body));
+    let grunt_ship_thruster_main = world.spawn(ShipThruster::new(vec2(0.0, 4.0), Vec2::Y, 0.0, grunt_thruster_power, grunt_thruster_power, ThrusterKind::Main, grunt_ship_body));
 
     let mut grunt_ship = world.get::<&mut Ship>(grunt_ship_body).unwrap();
     grunt_ship.thrusters.push(grunt_ship_thruster_main);

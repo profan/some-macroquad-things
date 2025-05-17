@@ -160,7 +160,7 @@ pub fn build_shipyard(world: &mut World, owner: PlayerID, position: Vec2) -> Ent
     let initial_shipyard_health = 10.0;
 
     let shipyard_build_speed = 100;
-    let shipyard_blueprints = vec![Blueprints::Arrowhead as i32, Blueprints::Extractor as i32];
+    let shipyard_blueprints = vec![Blueprints::Arrowhead as i32, Blueprints::Extractor as i32, Blueprints::Dragonfly as i32];
 
     let shipyard_parameters = BuildingParameters {
         
