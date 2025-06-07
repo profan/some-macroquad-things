@@ -452,7 +452,12 @@ impl Health {
 
     pub fn damage(&mut self, value: f32) {
         self.last_health = self.current_health;
-        self.current_health -= value;
+        self.current_health = (self.current_health - value).clamp(0.0, self.full_health); // ensure we don't go below zero or above max health, bad things will probably happen
+    }
+
+    pub fn damage_fraction(&mut self, fraction: f32) {
+        let value = self.full_health * fraction;
+        self.damage(value);
     }
 
     pub fn kill(&mut self) {
@@ -602,6 +607,11 @@ impl ResourceSource {
         ResourceSource { total_metal: metal, total_energy: energy, current_metal: metal, current_energy: energy, is_finite: true }
     }
 
+}
+
+#[derive(Debug, Clone)]
+pub struct Decayer {
+    pub last_entity_health: f32
 }
 
 #[derive(Debug, Clone)]

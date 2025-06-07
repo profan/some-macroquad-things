@@ -36,6 +36,7 @@ use super::AnimatedSprite;
 use super::Beam;
 use super::Building;
 use super::BulletParameters;
+use super::Decayer;
 use super::ExtractOrder;
 use super::Extractor;
 use super::MovementTarget;
@@ -727,6 +728,28 @@ impl RymdGameModel {
 
     }
 
+    fn tick_decayers(&mut self) {
+
+        for (e, (&state, health, decayer)) in self.world.query::<(&EntityState, &mut Health, &mut Decayer)>().iter() {
+
+            // percentage of the health of this unit that should decay per second, or should it be a flat amount of metal/energy per second? for now it's a percentage
+            let decay_fraction = 0.1 * Self::TIME_STEP;
+
+            if state != EntityState::Ghost {
+                return;
+            }
+
+            let should_decay = decayer.last_entity_health == health.current_health();
+            decayer.last_entity_health = health.current_health();
+
+            if should_decay {
+                health.damage_fraction(decay_fraction);
+            }
+
+        }
+
+    }
+
     fn entities_within_radius_sorted_by_distance(&self, world_position: Vec2, radius: f32) -> Vec<Entity> {
         self.spatial_manager.entities_within_radius_sorted_by(
             world_position,
@@ -1081,6 +1104,7 @@ impl RymdGameModel {
         self.tick_effects();
         self.tick_constructors();
         self.tick_extractors();
+        self.tick_decayers();
         self.tick_physics_engine();
         self.tick_spatial_engine();
         self.tick_transform_updates();

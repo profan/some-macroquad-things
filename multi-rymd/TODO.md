@@ -50,7 +50,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] when constructing buildings, show the entire build queue visually (probably by walking over the build order queue)
 [x] when constructing units, have the constructed unit inherit any (non-construction) orders the building may have
 [x] when constructing entities, display the construction queue when that entity is selected
-[] when entities are left not fully constructed, have them slowly decay (health wise)
+[x] when entities are left not fully constructed, have them slowly decay (health wise)
 [x] when entities are being constructed, show the time they have left until done
 [] when entities are being constructed in a building, allow constructors to assist the building
 [x] fix issue where construction queue always displays the commander ship as the current item in construction, regardless of what the current item in construction actually is

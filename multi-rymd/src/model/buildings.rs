@@ -2,7 +2,7 @@ use hecs::{CommandBuffer, Entity, World};
 use macroquad::{math::{Vec2, Rect, vec2}, miniquad::KeyCode};
 
 use crate::PlayerID;
-use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, get_player_team_allegiance, Attackable, Blueprint, BlueprintIdentity, Blueprints, Building, Constructor, Consumer, Controller, Cost, DynamicBody, EntityState, Health, MovementTarget, Orderable, PhysicsBody, Powered, Producer, Spawner, Sprite, Storage, Transform};
+use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, get_player_team_allegiance, Attackable, Blueprint, BlueprintIdentity, Blueprints, Building, Constructor, Consumer, Controller, Cost, Decayer, DynamicBody, EntityState, Health, MovementTarget, Orderable, PhysicsBody, Powered, Producer, Spawner, Sprite, Storage, Transform};
 
 pub fn create_solar_collector_blueprint() -> Blueprint {
     Blueprint {
@@ -118,8 +118,9 @@ fn create_building(world: &mut World, owner: PlayerID, position: Vec2, parameter
     let state = EntityState::Ghost;
     let attackable = Attackable;
     let building = Building;
+    let decayer = Decayer { last_entity_health: health.current_health() };
 
-    world.spawn((controller, transform, blueprint_identity, health, sprite, dynamic_body, state, attackable, building))
+    world.spawn((controller, transform, blueprint_identity, health, sprite, dynamic_body, state, attackable, building, decayer))
 
 }
 

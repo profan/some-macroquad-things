@@ -603,7 +603,8 @@ pub struct RymdGameView {
 struct RymdGameDebug {
     render_bounds: bool,
     render_kinematic: bool,
-    render_spatial: bool
+    render_spatial: bool,
+    render_states: bool
 }
 
 impl RymdGameDebug {
@@ -611,7 +612,8 @@ impl RymdGameDebug {
         RymdGameDebug {
             render_bounds: false,
             render_kinematic: false,
-            render_spatial: false
+            render_spatial: false,
+            render_states: false
         }
     }
 }
@@ -1756,6 +1758,7 @@ impl RymdGameView {
         ctx.debug_text().draw_text(format!(" - shift+c to toggle bounds debug (enabled: {})", self.debug.render_bounds), TextPosition::TopLeft, WHITE);
         ctx.debug_text().draw_text(format!(" - shift+k to toggle kinematics debug (enabled: {})", self.debug.render_kinematic), TextPosition::TopLeft, WHITE);
         ctx.debug_text().draw_text(format!(" - shift+s to toggle spatial debug (enabled: {})", self.debug.render_spatial), TextPosition::TopLeft, WHITE);
+        ctx.debug_text().draw_text(format!(" - shift+e to toggle state debug (enabled: {})", self.debug.render_states), TextPosition::TopLeft, WHITE);
 
         if ctx.lockstep_mut().is_singleplayer() {
             ctx.debug_text().draw_text("press tab to switch the current player!", TextPosition::TopLeft, WHITE);
@@ -1777,6 +1780,11 @@ impl RymdGameView {
         let should_toggle_spatial_debug = is_key_down(KeyCode::LeftShift) && is_key_released(KeyCode::S);
         if should_toggle_spatial_debug {
             self.debug.render_spatial = !self.debug.render_spatial
+        }
+
+        let should_toggle_state_debug = is_key_down(KeyCode::LeftShift) && is_key_released(KeyCode::E);
+        if should_toggle_state_debug {
+            self.debug.render_states = !self.debug.render_states;
         }
 
     }
@@ -2017,6 +2025,17 @@ impl RymdGameView {
 
     }
 
+    fn draw_entity_states(&self, world: &World) {
+
+        for (e, (transform, bounds, &state)) in world.query::<(&Transform, &Bounds, &EntityState)>().iter() {
+
+            let state_label_position = transform.world_position + vec2(0.0, bounds.as_radius() * 1.5);
+            draw_text_centered(&format!("{:?}", state), state_label_position.x, state_label_position.y, 24.0, WHITE);
+
+        }
+
+    }
+
     fn draw_body_bounds(&self, world: &World) {
 
         let bounds_line_thickness = 2.0;
@@ -2151,6 +2170,10 @@ impl RymdGameView {
         // self.draw_health_labels(&model.world);
         self.draw_resource_labels(&model.world);
         self.draw_build_time_labels(&model.world);
+
+        if self.debug.render_states {
+            self.draw_entity_states(&model.world);
+        }
         
         self.camera.pop();
 
