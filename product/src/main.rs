@@ -60,7 +60,7 @@ async fn main() {
         debug_text.skip_line(utility::TextPosition::TopLeft);
 
         let a = if n_p < 0.0 { n_d.acos() } else { -n_d.acos() };
-        debug_text.draw_text(format!("angle between vector and target = {:.2} degrees ({:.2} radians, {:.2} pi)", a.to_degrees(), a, a / PI), utility::TextPosition::TopLeft, BLACK);
+        debug_text.draw_text(format!("angle between (normalized) vector and target = {:.2} degrees ({:.2} radians, {:.2} pi)", a.to_degrees(), a, a / PI), utility::TextPosition::TopLeft, BLACK);
 
         next_frame().await;
 
