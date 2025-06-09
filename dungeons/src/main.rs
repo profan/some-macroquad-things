@@ -2,7 +2,7 @@
 #![feature(map_try_insert)]
 
 use std::{path::PathBuf, fs::read_to_string, collections::HashMap, time::Instant};
-use macroquad::{prelude::*, rand::{ChooseRandom}};
+use macroquad::{prelude::{camera::mouse, *}, rand::ChooseRandom, ui::{self, hash, root_ui}};
 use utility::*;
 
 const TILE_SIZE: f32 = 32.0;
@@ -558,7 +558,10 @@ async fn main() {
         }
     );
 
-    let mut dungeon = generate_dungeon(6);
+    let mut target_number_of_rooms = 12;
+    let mut last_generation_time_ms = 0u128;
+    let mut number_of_rooms = target_number_of_rooms.to_string();
+    let mut dungeon = generate_dungeon(target_number_of_rooms);
 
     loop {
 
@@ -567,9 +570,22 @@ async fn main() {
 
         if is_key_pressed(KeyCode::R) {
             let start_time = Instant::now();
-            dungeon = generate_dungeon(6);
+            dungeon = generate_dungeon(target_number_of_rooms);
             let elapsed_time = Instant::now() - start_time;
-            println!("generate_dungeon: took: {} ms to generate!", elapsed_time.as_millis())
+            println!("generate_dungeon: took: {} ms to generate!", elapsed_time.as_millis());
+            last_generation_time_ms = elapsed_time.as_millis();
+        }
+
+        root_ui().window(hash!(), vec2(32.0, 64.0), vec2(256.0, 28.0), |w| {
+            w.input_text(hash!(), "number of rooms", &mut number_of_rooms);
+            target_number_of_rooms = number_of_rooms.parse().unwrap_or(12);
+            if is_key_pressed(KeyCode::Enter) {
+                w.clear_input_focus();
+            }
+        });
+
+        if root_ui().is_mouse_over(mouse_position().into()) == false && is_mouse_button_pressed(MouseButton::Left) {
+            root_ui().clear_input_focus();
         }
 
         clear_background(WHITE);
@@ -580,6 +596,10 @@ async fn main() {
 
         set_default_camera();
         draw_debug_text(&camera, &mut debug_text);
+
+        if last_generation_time_ms != 0 {
+            debug_text.draw_text(format!("last took: {} ms to generate!", last_generation_time_ms), TextPosition::TopLeft, BLACK);
+        }
 
         next_frame().await;
 
