@@ -17,6 +17,7 @@
         "./multi-rymd/Cargo.toml",
         "./orbits/Cargo.toml",
         "./polar/Cargo.toml",
+        "./product/Cargo.toml",
         "./procedural-animation/Cargo.toml",
         "./stress-majorization/Cargo.toml",
         "./territory/Cargo.toml",
