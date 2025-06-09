@@ -19,6 +19,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 
 # selection
 [x] make selection aware of exact bounds when available, so that you can more precisely select units in construction
+[x] implement showing which control groups a selected unit is a part of
 
 # attacking
 [x] represent attacking and attackable entities
@@ -29,7 +30,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] implement beam based weapons
 
 # movement
-[] data-drive parameters for stuff like turn-rate?
+[x] data-drive parameters for stuff like turn-rate?
 
 # rts camera
 [x] implement a simple camera that you can pan around with
@@ -49,7 +50,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] when constructing buildings, show the entire build queue visually (probably by walking over the build order queue)
 [x] when constructing units, have the constructed unit inherit any (non-construction) orders the building may have
 [x] when constructing entities, display the construction queue when that entity is selected
-[] when entities are left not fully constructed, have them slowly decay (health wise)
+[x] when entities are left not fully constructed, have them slowly decay (health wise)
 [x] when entities are being constructed, show the time they have left until done
 [] when entities are being constructed in a building, allow constructors to assist the building
 [x] fix issue where construction queue always displays the commander ship as the current item in construction, regardless of what the current item in construction actually is
@@ -59,6 +60,7 @@ rough list of things to work on in the game currently, usually ordered as items 
 [x] allow constructing 20 units at a time by the button to build + ctrl
 [x] allow constructing 100 units a time by the button to build + ctrl + shift
 [x] once a constructor has built a building, have it get it out of the way of the building afterwards
+[x] when issuing construction orders, buildings that are about to be placed should be highlighted in red if they cannot be placed in a given position
 
 # resources
 [x] allow entities to generate resources
@@ -91,11 +93,22 @@ rough list of things to work on in the game currently, usually ordered as items 
 
 # multiplayer
 [] implement game state hashing for checking if in sync
-[] implement compensating the end-turn times given the latency to each player in the match somehow (who is authorative here though, the original host?)
+[] implement compensating the command turn length given the latency to each player in the match somehow (who is authorative here though, the original host?)
+[x] implement messaging to the client(s?) managing the lobby about when a client leaves the lobby, so cleanup can happen
 
 # view
 [x] implement parallax background
 [] look at implementing parallax background layers (different levels/depths of stars?)
 [] implement sort orders for sprites, initially just hardcoded numbers per sprite
 [x] implement the ability to switch what side you're currently controlling
-[] make sure the camera starts where the player's commander starts
+[x] make sure the camera starts where the player's commander starts
+
+# gamemodes
+[x] allow a gamemode to end the running game (return the game to the lobby)
+
+# conquest
+[x] implement the game ending when the last team loses their last living commander
+[] implement the game announcing the winning team when the game ends
+
+# chickens
+[] implement the basics of the enemy chicken controller

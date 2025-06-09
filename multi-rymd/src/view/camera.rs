@@ -35,8 +35,8 @@ impl GameCamera2D {
         };
 
         GameCamera2D {
-            size: size,
-            camera: camera,
+            size,
+            camera,
             camera_zoom: 1.0,
             last_mouse_position: mouse_position().into(),
             parameters

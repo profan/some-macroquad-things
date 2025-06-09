@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 
 use lockstep::lobby::Lobby;
@@ -8,8 +9,7 @@ use lockstep::lobby::LobbyState;
 use lockstep::lobby::RelayMessage;
 use macroquad::time::get_time;
 use nanoserde::DeJson;
-
-const IS_DEBUGGING: bool = false;
+use nanoserde::SerJson;
 
 struct RelayPingStats {
     send_time: i32,
@@ -18,18 +18,12 @@ struct RelayPingStats {
 }
 
 impl RelayPingStats {
-    fn new() -> RelayPingStats {
-        RelayPingStats { send_time: 0, receive_time: 0, last_time: 999 }
-    }
-
     fn ping(&self) -> i32 {
-
         if self.receive_time != self.send_time {
             self.receive_time - self.send_time
         } else {
             self.last_time
         }
-
     }
 }
 
@@ -37,7 +31,7 @@ pub struct RelayClient {
     client_id: Option<LobbyClientID>,
     current_lobby_id: Option<LobbyID>,
     client_stats: BTreeMap<LobbyClientID, RelayPingStats>, // milliseconds latency
-    server_stats: RelayPingStats,
+    queued_messages: RefCell<Vec<String>>,
     clients: Vec<LobbyClient>,
     lobbies: Vec<Lobby>,
     is_debug: bool
@@ -50,7 +44,7 @@ impl RelayClient {
             client_id: None,
             current_lobby_id: None,
             client_stats: BTreeMap::new(),
-            server_stats: RelayPingStats::new(),
+            queued_messages: RefCell::new(Vec::new()),
             clients: Vec::new(),
             lobbies: Vec::new(),
             is_debug: false
@@ -294,6 +288,24 @@ impl RelayClient {
         self.clients.clear();
     }
 
+    pub fn send_message(&mut self, message: String) {
+        (*self.queued_messages.borrow_mut()).push(message);
+    }
+
+    pub fn send_relay_message(&self, message: RelayMessage) {
+        (*self.queued_messages.borrow_mut()).push(message.serialize_json());
+    }
+
+    pub fn handle_queued_messages<F>(&mut self, mut handle_message: F)
+        where F: FnMut(&str) -> ()
+    {
+        for m in &(*self.queued_messages.borrow()) {
+            handle_message(&m);
+        }
+
+        self.queued_messages.borrow_mut().clear();
+    }
+
     pub fn handle_message<F>(&mut self, text: String, handle_message: F) -> Option<RelayMessage>
         where F: FnOnce(LobbyClientID, &str) -> ()
     {
@@ -328,6 +340,9 @@ impl RelayClient {
 
             // when the game/lobby is running, these relevant
             RelayMessage::Message(client_id, ref text) => handle_message(client_id, text),
+
+            // when someone becomes the boss/authority
+            RelayMessage::Boss(_) => (),
 
             // server only messages
             RelayMessage::PushLobbyData(_) => (),

@@ -1,6 +1,13 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 #![allow(async_fn_in_trait)]
+#![allow(clippy::manual_map)]
+#![allow(clippy::bool_comparison)]
+#![allow(clippy::match_like_matches_macro)]
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::let_and_return)]
+#![allow(clippy::unused_unit)]
+#![allow(clippy::for_kv_map)]
 #![feature(let_chains)]
 
 use game::RymdGame;
@@ -11,6 +18,7 @@ use puffin_egui::puffin;
 
 mod commands;
 mod game;
+mod gamemodes;
 mod lobby;
 mod model;
 mod utils;
@@ -27,7 +35,7 @@ async fn main() {
     let mut main_loop_update_time_ms = 0.0;
     let mut app = ApplicationState::new("multi-rymd", RymdGame::new());
 
-    app.set_target_host("90.205.118.249");
+    app.set_target_host("90.205.116.212");
     app.set_debug_text_colour(WHITE);
     app.load_resources().await;
 

@@ -12,7 +12,8 @@ pub struct Thruster {
     pub kind: ThrusterKind,
     pub direction: Vec2,
     pub angle: f32,
-    pub power: f32
+    pub power: f32,
+    pub rate: f32
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -52,7 +53,7 @@ impl Transform {
             world_rotation: rotation,
             local_position: position,
             local_rotation: rotation,
-            parent: parent
+            parent
         }
     }
 
@@ -121,6 +122,10 @@ impl PhysicsBody for DynamicBody {
         self.is_enabled
     }
 
+    fn local_bounds(&self) -> Rect {
+        self.bounds
+    }
+
     fn bounds(&self) -> Rect {
         self.bounds.offset(self.kinematic.position)
     }
@@ -131,6 +136,10 @@ impl PhysicsBody for DynamicBody {
 
     fn visual_position(&self) -> Vec2 {
         self.kinematic.position - self.bounds.size() / 2.0
+    }
+
+    fn local_physics_bounds(&self) -> Rect {
+        self.bounds.offset(-self.bounds.size() / 2.0)
     }
     
     fn physics_bounds(&self) -> Rect {
@@ -382,8 +391,8 @@ impl Orderable {
     /// Returns true if there's any pending orders in the given order queue.
     pub fn has_pending_orders(&self, order_type: GameOrderType) -> bool {
         match order_type {
-            GameOrderType::Order => self.orders(order_type).len() > 0,
-            GameOrderType::Construct => self.orders(order_type).len() > 0
+            GameOrderType::Order => self.orders(order_type).is_empty() == false,
+            GameOrderType::Construct => self.orders(order_type).is_empty() == false
         }
     }
 
@@ -443,7 +452,12 @@ impl Health {
 
     pub fn damage(&mut self, value: f32) {
         self.last_health = self.current_health;
-        self.current_health -= value;
+        self.current_health = (self.current_health - value).clamp(0.0, self.full_health); // ensure we don't go below zero or above max health, bad things will probably happen
+    }
+
+    pub fn damage_fraction(&mut self, fraction: f32) {
+        let value = self.full_health * fraction;
+        self.damage(value);
     }
 
     pub fn kill(&mut self) {
@@ -596,6 +610,11 @@ impl ResourceSource {
 }
 
 #[derive(Debug, Clone)]
+pub struct Decayer {
+    pub last_entity_health: f32
+}
+
+#[derive(Debug, Clone)]
 pub struct Spawner {
     /// This position is a local offset from the position of the transform this is attached to, and is where units will spawn.
     pub position: Vec2
@@ -677,6 +696,9 @@ pub struct ProjectileWeapon {
     pub deviation: f32,
     pub cooldown: f32,
 
+    /// Angle from the forward of this weapon the describes the arc within which it can fire!
+    pub fire_arc: f32,
+
     pub projectile: BulletParameters
 
 }
@@ -687,6 +709,9 @@ pub struct BeamWeapon {
     pub fire_rate: f32,
     pub deviation: f32,
     pub cooldown: f32,
+
+    /// Angle from the forward of this weapon the describes the arc within which it can fire!
+    pub fire_arc: f32,
 
     pub beam: BeamParameters
 

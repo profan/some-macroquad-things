@@ -75,6 +75,22 @@ pub struct SteeringOutput {
     pub angular: f32
 }
 
+impl SteeringOutput {
+    pub fn from_linear_velocity(linear: Vec2) -> SteeringOutput {
+        SteeringOutput {
+            linear,
+            angular: 0.0
+        }
+    }
+
+    pub fn from_angular_velocity(angular: f32) -> SteeringOutput {
+        SteeringOutput {
+            linear: Vec2::ZERO,
+            angular,
+        }
+    }
+}
+
 impl Add for SteeringOutput {
     type Output = Self;
 
@@ -195,48 +211,14 @@ pub fn arrive(character: &Kinematic, target: &Kinematic, max_speed: f32, max_acc
 
 }
 
-pub fn map_to_range_new(r: f32) -> f32 {
-    let two_pi = 2.0 * PI;
-    let wrapped_angle = ((r - PI) % two_pi + two_pi) % two_pi;
-    if wrapped_angle >= PI {
-        wrapped_angle - two_pi
-    } else {
-        wrapped_angle
-    }
-}
-
-pub fn map_to_range_fmod(r: f32) -> f32 {
-    ((r - PI) % PI + PI) % PI
-}
-
-pub fn map_to_range_basic(r: f32) -> f32 {
-    r % PI
-}
-
+/// Maps the angle r to [-PI, PI]
 pub fn map_to_range(r: f32) -> f32 {
-    (r + PI) % (PI*2.0) - PI
+    r - (PI*2.0) * ((r + PI) * (1.0 / (PI*2.0))).floor()
 }
 
-pub fn map_to_range_old(r: f32) -> f32 {
-    // note: ARGHHHH
-    r % (2.0*PI)
-    // r.rem_euclid(2.0*PI) - PI
-}
-
-pub fn shortest_arc_old(r: f32, t: f32) -> f32 {
-    if (t - r).abs() < PI {
-        t - r
-    } else if t > r {
-        t - r - PI*2.0
-    } else {
-        t - r + PI*2.0
-    }
-}
-
-pub fn shortest_arc(r: f32, t: f32) -> f32 {
-    let max = PI*2.0;
-    let delta = (t - r) % max;
-    2.0 * delta % (max - delta)
+/// Maps the angle to [-PI, PI], but in an expensive way, most useful as a way to sanity-check any similar functions like this
+pub fn map_to_range_expensive(r: f32) -> f32 {
+    r.as_vector().as_angle()
 }
 
 pub fn align_ex(character: &Kinematic, target: &Kinematic, parameters: SteeringParameters, time_to_target: f32) -> Option<SteeringOutput> {
@@ -245,34 +227,55 @@ pub fn align_ex(character: &Kinematic, target: &Kinematic, parameters: SteeringP
 
 pub fn align(character: &Kinematic, target: &Kinematic, max_rotation: f32, max_angular_acceleration: f32, target_radius: f32, slow_radius: f32, time_to_target: f32) -> Option<SteeringOutput> {
 
-    // let rotation_to_target = target.orientation
     let rotation_to_target = map_to_range(target.orientation - character.orientation);
-    let rotation_size = rotation_to_target.abs();
+    // let rotation_size = rotation_to_target.abs();
 
-    if rotation_size < target_radius {
-        return None
-    }
+    // if rotation_size < target_radius {
+    //     return None
+    // }
 
-    let target_rotation = if rotation_to_target < slow_radius {
-        max_rotation * rotation_size / slow_radius
-    } else {
-        max_rotation
-    } * rotation_to_target / rotation_size;
+    // let clamped_max_angular_acceleration = (character.angular_velocity.abs() - max_angular_acceleration).min(character.angular_velocity.abs());
+    // let clamped_max_angular_acceleration_with_slow = if rotation_size < slow_radius {
+    //     clamped_max_angular_acceleration * rotation_size / slow_radius
+    // } else {
+    //     clamped_max_angular_acceleration
+    // };
 
-    let result_rotation = target_rotation - character.orientation;
-    let result_rotation_diff = result_rotation / time_to_target;
-    let result_angular_acceleration = result_rotation_diff.abs();
-
-    let scaled_angular_acceleration = if result_angular_acceleration > max_angular_acceleration {
-        (result_rotation_diff / result_angular_acceleration) * max_angular_acceleration
-    } else {
-        result_rotation_diff
-    };
+    // let max_rotation_to_target = rotation_to_target * (character.angular_velocity.abs() - max_angular_acceleration).min(character.angular_velocity.abs());
 
     Some(SteeringOutput {
-        linear: vec2(0.0, 0.0),
-        angular: scaled_angular_acceleration
+        linear: Vec2::ZERO,
+        angular: rotation_to_target * max_angular_acceleration
     })
+
+    // let rotation_to_target = target.orientation
+    // let rotation_to_target = map_to_range_expensive(character.orientation, target.orientation);
+    // let rotation_size = rotation_to_target.abs();
+
+    // if rotation_size < target_radius {
+    //     return None
+    // }
+
+    // let target_rotation = if rotation_to_target < slow_radius {
+    //     max_rotation * rotation_size / slow_radius
+    // } else {
+    //     max_rotation
+    // } * rotation_to_target / rotation_size;
+
+    // let result_rotation = target_rotation - character.orientation;
+    // let result_rotation_diff = result_rotation / time_to_target;
+    // let result_angular_acceleration = result_rotation_diff.abs();
+
+    // let scaled_angular_acceleration = if result_angular_acceleration > max_angular_acceleration {
+    //     (result_rotation_diff / result_angular_acceleration) * max_angular_acceleration
+    // } else {
+    //     result_rotation_diff
+    // };
+
+    // Some(SteeringOutput {
+    //     linear: vec2(0.0, 0.0),
+    //     angular: scaled_angular_acceleration
+    // })
 
 }
 
@@ -306,7 +309,7 @@ pub fn face(character: &Kinematic, target: &Kinematic, max_rotation: f32, max_an
     }
 
     let adjusted_target = Kinematic {
-        orientation: -vector_to_target.as_angle(),
+        orientation: vector_to_target.as_angle(),
         ..*target
     };
 

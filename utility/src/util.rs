@@ -3,6 +3,8 @@ use std::f32::consts::PI;
 
 use macroquad::prelude::*;
 
+use crate::draw_with_transformation;
+
 /// Draws some text centered over a given position in screen space.
 pub fn draw_text_centered(text: &str, x: f32, y: f32, font_size: f32, colour: Color) {
     let TextDimensions { width: t_w, height: t_h, .. } = measure_text(text, None, font_size as u16, 1.0);
@@ -80,6 +82,13 @@ pub fn lerp(a: f32, b: f32, v: f32) -> f32 {
 /// Draws a rectangle with a given colour where the origin is the center of the rendered shape (given its width, height).
 pub fn draw_rectangle_lines_centered(x: f32, y: f32, w: f32, h: f32, thickness: f32, color: Color) {
     draw_rectangle_lines(x - w/2.0, y - h/2.0, w, h, thickness, color);
+}
+
+/// Draws a rectangle with a given colour and rotation where the origin is the center of the rendered shape (given its width, height).
+pub fn draw_rectangle_lines_centered_with_rotation(x: f32, y: f32, w: f32, h: f32, thickness: f32, color: Color, rotation: f32) {
+    draw_with_transformation(vec3(x, y, 0.0), Quat::from_rotation_z(rotation), || {
+        draw_rectangle_lines(- (w/2.0), -(h/2.0), w, h, thickness, color);
+    });
 }
 
 /// Retuns true if the given point is inside the rect.

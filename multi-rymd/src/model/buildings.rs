@@ -2,7 +2,7 @@ use hecs::{CommandBuffer, Entity, World};
 use macroquad::{math::{Vec2, Rect, vec2}, miniquad::KeyCode};
 
 use crate::PlayerID;
-use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, Attackable, Blueprint, BlueprintIdentity, Blueprints, Building, Constructor, Controller, Cost, DynamicBody, EntityState, GameOrderType, Health, MovementTarget, Orderable, Producer, Spawner, Sprite, Storage, Transform};
+use super::{cancel_pending_orders, create_default_kinematic_body, create_explosion_effect_in_buffer, get_entity_position, get_player_team_allegiance, Attackable, Blueprint, BlueprintIdentity, Blueprints, Building, Constructor, Consumer, Controller, Cost, Decayer, DynamicBody, EntityState, Health, MovementTarget, Orderable, PhysicsBody, Powered, Producer, Spawner, Sprite, Storage, Transform};
 
 pub fn create_solar_collector_blueprint() -> Blueprint {
     Blueprint {
@@ -35,7 +35,7 @@ pub fn create_energy_storage_blueprint() -> Blueprint {
         name: String::from("Energy Storage"),
         texture: String::from("ENERGY_STORAGE"),
         constructor: build_energy_storage,
-        cost: Cost { metal: 25.0, energy: 0.0 },
+        cost: Cost { metal: 10.0, energy: 100.0 },
         is_building: true
     }
 }
@@ -47,7 +47,19 @@ pub fn create_metal_storage_blueprint() -> Blueprint {
         name: String::from("Metal Storage"),
         texture: String::from("METAL_STORAGE"),
         constructor: build_metal_storage,
-        cost: Cost { metal: 25.0, energy: 0.0 },
+        cost: Cost { metal: 100.0, energy: 10.0 },
+        is_building: true
+    }
+}
+
+pub fn create_energy_converter_blueprint() -> Blueprint {
+    Blueprint {
+        id: Blueprints::EnergyConverter as i32,
+        shortcut: KeyCode::M,
+        name: String::from("Energy Converter"),
+        texture: String::from("ENERGY_CONVERTER"),
+        constructor: build_energy_converter,
+        cost: Cost { metal: 1.0, energy: 1000.0 },
         is_building: true
     }
 }
@@ -93,7 +105,7 @@ fn create_building(world: &mut World, owner: PlayerID, position: Vec2, parameter
 
     let is_body_enabled = true;
     let is_body_static = true;
-    let body_mask = 1 << owner;
+    let body_mask = 1 << get_player_team_allegiance(world, owner);
 
     let kinematic = create_default_kinematic_body(position, 0.0);
 
@@ -106,8 +118,9 @@ fn create_building(world: &mut World, owner: PlayerID, position: Vec2, parameter
     let state = EntityState::Ghost;
     let attackable = Attackable;
     let building = Building;
+    let decayer = Decayer { last_entity_health: health.current_health() };
 
-    world.spawn((controller, transform, blueprint_identity, health, sprite, dynamic_body, state, attackable, building))
+    world.spawn((controller, transform, blueprint_identity, health, sprite, dynamic_body, state, attackable, building, decayer))
 
 }
 
@@ -131,7 +144,7 @@ pub fn build_solar_collector(world: &mut World, owner: PlayerID, position: Vec2)
     };
 
     let solar_collector = create_building(world, owner, position, solar_collector_parameters);
-    let resource_producer = Producer { metal: 0.0, energy: 10.0 };
+    let resource_producer = Producer { metal: 0.0, energy: 20.0 };
 
     let _ = world.insert(solar_collector, (resource_producer,));
 
@@ -148,7 +161,7 @@ pub fn build_shipyard(world: &mut World, owner: PlayerID, position: Vec2) -> Ent
     let initial_shipyard_health = 10.0;
 
     let shipyard_build_speed = 100;
-    let shipyard_blueprints = vec![Blueprints::Arrowhead as i32, Blueprints::Extractor as i32];
+    let shipyard_blueprints = vec![Blueprints::Arrowhead as i32, Blueprints::Extractor as i32, Blueprints::Dragonfly as i32];
 
     let shipyard_parameters = BuildingParameters {
         
@@ -230,4 +243,79 @@ pub fn build_metal_storage(world: &mut World, owner: PlayerID, position: Vec2) -
 
     metal_storage
 
+}
+
+pub fn build_energy_converter(world: &mut World, owner: PlayerID, position: Vec2) -> Entity {
+
+    let energy_converter_size = 48.0;
+    let energy_converter_bounds = Rect { x: 0.0, y: 0.0, w: energy_converter_size, h: energy_converter_size };
+
+    let maximum_energy_converter_health = 500.0;
+    let initial_energy_converter_health = 10.0;
+
+    let energy_convertor_parameters = BuildingParameters {
+
+        initial_health: initial_energy_converter_health,
+        maximum_health: maximum_energy_converter_health,
+        blueprint: Blueprints::EnergyConverter,
+
+        bounds: energy_converter_bounds,
+        texture: "ENERGY_CONVERTER".to_string()
+
+    };
+
+    let energy_converter = create_building(world, owner, position, energy_convertor_parameters);
+
+    let resource_consumer = Consumer { metal: 0.0, energy: 50.0 };
+    let resource_producer = Producer { metal: 1.0, energy: 0.0 };
+
+    let _ = world.insert(energy_converter, (resource_consumer, resource_producer, Powered{}));
+
+    energy_converter
+
+}
+
+/// Returns the constructible entity intersecting with the specific position, if any
+pub fn constructible_at_position(world: &World, position: Vec2) -> Option<Entity> {
+    for (e, (body, health, state)) in world.query::<(&DynamicBody, &Health, &EntityState)>().iter() {
+        if body.physics_bounds().contains(position) && *state == EntityState::Ghost {
+            return Some(e);
+        }
+    }
+    None
+}
+
+/// Returns true if there's an existing static body at the given position.
+pub fn existing_static_body_at_position(world: &World, position: Vec2) -> bool {
+    for (e, (body, health, state)) in world.query::<(&DynamicBody, &Health, &EntityState)>().iter() {
+        if body.physics_bounds().contains(position) && body.is_static {
+            return true;
+        }
+    }
+    false
+}
+
+/// Returns true if there's an existing static body within the given bounds at the specific position.
+pub fn existing_static_body_within_bounds(world: &World, bounds: Rect, position: Vec2) -> bool {
+    for (e, (body, health, state)) in world.query::<(&DynamicBody, &Health, &EntityState)>().iter() {
+        if body.physics_bounds().overlaps(&bounds.offset(position)) && body.is_static {
+            return true;
+        }
+    }
+    false
+}
+
+/// Returns true if there's an existing static body within the bounds of the entity at the specific position
+pub fn existing_static_body_within_entity_bounds(world: &World, entity: Entity) -> bool {
+
+    let Some(position) = get_entity_position(world, entity) else { return false };
+    let Ok(bounds) = world.get::<&DynamicBody>(entity).and_then(|b| Ok(b.physics_bounds())) else { return false };
+
+    for (e, (body, health, state)) in world.query::<(&DynamicBody, &Health, &EntityState)>().iter() {
+        if body.physics_bounds().overlaps(&bounds) && body.is_static {
+            return true;
+        }
+    }
+
+    false
 }

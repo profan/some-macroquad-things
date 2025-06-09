@@ -4,15 +4,15 @@ use fnv::FnvHashMap;
 use lockstep_client::game::GameContext;
 use macroquad_particles::{EmitterConfig, Emitter};
 use puffin_egui::egui::{self, Align2};
-use utility::{draw_arrow, draw_rectangle_lines_centered, draw_text_centered, draw_texture_centered, draw_texture_centered_with_rotation, draw_texture_centered_with_rotation_frame, is_point_inside_rect, normalize, AsPerpendicular, AsVector, AverageLine2D, DebugText, RotatedBy, TextPosition, WithAlpha};
-use lockstep_client::{step::LockstepClient};
+use utility::{draw_arrow, draw_rectangle_lines_centered_with_rotation, draw_text_centered, draw_texture_centered, draw_texture_centered_with_rotation, draw_texture_centered_with_rotation_frame, is_point_inside_rect, AsPerpendicular, AsVector, AverageLine2D, DebugText, RotatedBy, TextPosition, WithAlpha};
+use lockstep_client::step::LockstepClient;
 use macroquad_particles::*;
 use macroquad::prelude::*;
 use hecs::*;
 
 use crate::PlayerID;
 use crate::game::RymdGameParameters;
-use crate::model::{current_energy, current_energy_income, current_metal, current_metal_income, max_energy, max_metal, Attackable, Attacker, Beam, Blueprint, BlueprintID, BlueprintIdentity, Blueprints, Building, Effect, EntityState, Extractor, GameOrder, GameOrderType, Impact, PhysicsBody, ResourceSource, Spawner};
+use crate::model::{current_energy, current_energy_income, current_metal, current_metal_income, existing_static_body_within_bounds, max_energy, max_metal, Attacker, Beam, Blueprint, BlueprintID, BlueprintIdentity, Blueprints, Building, Commander, Effect, EntityState, Extractor, GameOrder, GameOrderType, Impact, PhysicsBody, ResourceSource, Spawner};
 use crate::model::{RymdGameModel, Orderable, Transform, Sprite, AnimatedSprite, GameOrdersExt, DynamicBody, Thruster, Ship, ThrusterKind, Constructor, Controller, Health, get_entity_position};
 
 use super::{calculate_sprite_bounds, GameCamera2D};
@@ -27,6 +27,16 @@ fn entity_state_to_alpha(state: Option<&EntityState>) -> f32 {
         }
     } else {
         1.0
+    }
+}
+
+fn get_blueprint_bounds(resources: &Resources, blueprint: &Blueprint) -> Rect {
+    let texture = resources.get_texture_by_name(&blueprint.texture);
+    Rect {
+        x: -(texture.width() / 2.0),
+        y: -(texture.height() / 2.0),
+        w: texture.width(),
+        h: texture.height()
     }
 }
 
@@ -118,29 +128,35 @@ impl ConstructionState {
 
     }
 
-    fn draw_building(resources: &Resources, blueprint: &Blueprint, position: Vec2) {
+    fn draw_building(resources: &Resources, blueprint: &Blueprint, position: Vec2, is_blocked: bool) {
 
         let blueprint_preview_alpha = 0.5;
         let blueprint_preview_texture = resources.get_texture_by_name(&blueprint.texture);
         let blueprint_preview_position = position;
 
+        let blueprint_preview_color = if is_blocked == false { WHITE.with_alpha(blueprint_preview_alpha) } else { RED.with_alpha(blueprint_preview_alpha) };
+
         draw_texture_centered(
             &blueprint_preview_texture,
             blueprint_preview_position.x,
             blueprint_preview_position.y,
-            WHITE.with_alpha(blueprint_preview_alpha)
+            blueprint_preview_color
         );
         
     }
 
     fn preview_building(&mut self, resources: &Resources, blueprint: &Blueprint, model: &RymdGameModel, camera: &GameCamera2D, lockstep: &mut LockstepClient) {
 
-        let should_cancel = is_mouse_button_released(MouseButton::Right) || is_mouse_button_released(MouseButton::Middle);
-        let should_build = is_mouse_button_released(MouseButton::Left);
         let mouse_world_position: Vec2 = camera.mouse_world_position();
-
         let blueprint_preview_position = mouse_world_position;
-        Self::draw_building(resources, blueprint, blueprint_preview_position);
+
+        let is_build_position_blocked = existing_static_body_within_bounds(&model.world, get_blueprint_bounds(resources, blueprint), blueprint_preview_position);
+
+        let wants_to_build = is_mouse_button_released(MouseButton::Left);
+        let should_cancel = (is_mouse_button_released(MouseButton::Right) || is_mouse_button_released(MouseButton::Middle)) || (wants_to_build && is_build_position_blocked);
+        let should_build = wants_to_build && is_build_position_blocked == false;
+
+        Self::draw_building(resources, blueprint, blueprint_preview_position, is_build_position_blocked);
 
         if should_build {
             self.finalize_blueprint(model, camera, lockstep);
@@ -215,8 +231,8 @@ impl SelectionState {
     fn was_double_click(&self) -> bool {
         let double_click_time = 0.5;
         let current_time = get_time();
-        let was_double_click = (current_time - self.last_click_time) < double_click_time;
-        was_double_click
+        
+        (current_time - self.last_click_time) < double_click_time
     }
 
     fn as_bounds(&self) -> (Vec2, Vec2) {
@@ -493,8 +509,8 @@ impl Resources {
         self.load_texture_or_placeholder("ENEMY_GRUNT", "raw/enemy_grunt.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("ENEMY_MEDIUM_GRUNT", "raw/enemy_medium_grunt.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("ENEMY_GRUNT_REPAIR", "raw/enemy_grunt_repair.png", FilterMode::Nearest).await;
-        self.load_texture_or_placeholder("HAMMERHEAD", "raw/hammerhead.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("ARROWHEAD", "raw/arrowhead.png", FilterMode::Nearest).await;
+        self.load_texture_or_placeholder("DRAGONFLY", "raw/dragonfly.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("EXTRACTOR", "raw/extractor.png", FilterMode::Nearest).await;
         
         // buildings of various kinds
@@ -504,6 +520,7 @@ impl Resources {
         self.load_texture_or_placeholder("SOLAR_COLLECTOR", "raw/solar_collector_light.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("ENERGY_STORAGE", "raw/energy_storage_small.png", FilterMode::Nearest).await;
         self.load_texture_or_placeholder("METAL_STORAGE", "raw/metal_storage_small.png", FilterMode::Nearest).await;
+        self.load_texture_or_placeholder("ENERGY_CONVERTER", "raw/energy_converter_small.png", FilterMode::Nearest).await;
 
         // bullets
         self.load_texture_or_placeholder("SIMPLE_BULLET", "raw/simple_bullet.png", FilterMode::Nearest).await;
@@ -561,7 +578,7 @@ impl ControlGroupState {
             return &control_group.entities;
         }
 
-        return &[];
+        &[]
         
     }
 
@@ -586,7 +603,8 @@ pub struct RymdGameView {
 struct RymdGameDebug {
     render_bounds: bool,
     render_kinematic: bool,
-    render_spatial: bool
+    render_spatial: bool,
+    render_states: bool
 }
 
 impl RymdGameDebug {
@@ -594,7 +612,8 @@ impl RymdGameDebug {
         RymdGameDebug {
             render_bounds: false,
             render_kinematic: false,
-            render_spatial: false
+            render_spatial: false,
+            render_states: false
         }
     }
 }
@@ -686,7 +705,7 @@ impl RymdGameView {
                 continue;
             }
 
-            if blueprint_identity.blueprint_id != blueprint_id as i32 {
+            if blueprint_identity.blueprint_id != blueprint_id {
                 selectable.is_selected = false;
             }
 
@@ -746,7 +765,7 @@ impl RymdGameView {
     }
 
     fn is_any_number_key_pressed() -> bool {
-        return is_key_pressed(KeyCode::Key0)
+        is_key_pressed(KeyCode::Key0)
             || is_key_pressed(KeyCode::Key1)
             || is_key_pressed(KeyCode::Key2)
             || is_key_pressed(KeyCode::Key3)
@@ -755,7 +774,7 @@ impl RymdGameView {
             || is_key_pressed(KeyCode::Key6)
             || is_key_pressed(KeyCode::Key7)
             || is_key_pressed(KeyCode::Key8)
-            || is_key_pressed(KeyCode::Key9);
+            || is_key_pressed(KeyCode::Key9)
     }
 
     fn get_first_number_key_pressed() -> Option<i32> {
@@ -800,8 +819,26 @@ impl RymdGameView {
             return Some(9);
         }
 
-        return None;
+        None
 
+    }
+
+    fn get_entity_control_group(&self, entity: Entity) -> Option<i32> {
+        for control_group in &self.control_groups.groups {
+            if control_group.entities.contains(&entity) {
+                return Some(control_group.id);
+            }
+        }
+        None
+    }
+
+    fn is_entity_in_control_group(&self, entity: Entity, control_group_id: i32) -> bool {
+        for control_group in &self.control_groups.groups {
+            if control_group.id == control_group_id && control_group.entities.contains(&entity) {
+                return true;
+            }
+        }
+        false
     }
 
     fn perform_retrieve_and_select_control_group(&mut self, world: &mut World) {
@@ -811,7 +848,7 @@ impl RymdGameView {
         }
 
         let control_group_id = Self::get_first_number_key_pressed().expect("there must be a number key pressed when calling this function, there was none!");
-        let control_group_entities: Vec<Entity> = self.control_groups.get(control_group_id).iter().cloned().collect();
+        let control_group_entities: Vec<Entity> = self.control_groups.get(control_group_id).to_vec();
 
         for e in control_group_entities {
             if let Ok((controller, selectable)) = world.query_one_mut::<(&Controller, &mut Selectable)>(e) {
@@ -971,13 +1008,19 @@ impl RymdGameView {
     }
 
     fn is_entity_friendly(&self, entity: Entity, model: &RymdGameModel) -> bool {
-        let controller = model.world.get::<&Controller>(entity).expect("must have controller!");
-        model.is_controller_friendly_to(self.game_player_id, &controller)
+        if let Ok(controller) = model.world.get::<&Controller>(entity) {
+            model.is_controller_friendly_to(self.game_player_id, &controller)
+        } else {
+            false
+        }
     }
 
     fn is_entity_controllable(&self, entity: Entity, model: &RymdGameModel) -> bool {
-        let controller = model.world.get::<&Controller>(entity).expect("must have controller!");
-        model.is_controller_controllable_by(self.game_player_id, &controller)
+        if let Ok(controller) = model.world.get::<&Controller>(entity) {
+            model.is_controller_controllable_by(self.game_player_id, &controller)
+        } else {
+            false
+        }
     }
 
     fn handle_order(&mut self, model: &mut RymdGameModel, lockstep: &mut LockstepClient) {
@@ -1014,14 +1057,10 @@ impl RymdGameView {
                 self.handle_move_order(&mut model.world, current_selection_end_point, mouse_position, lockstep, should_group, should_add, should_issue_attack_move_order);
             }
 
+        } else if about_to_issue_any_order {
+            self.ordering.add_point(mouse_position);
         } else {
-
-            if about_to_issue_any_order {
-                self.ordering.add_point(mouse_position);
-            } else {
-                self.ordering.clear_points();
-            }
-            
+            self.ordering.clear_points();
         }
 
         if should_cancel_current_orders {
@@ -1108,14 +1147,10 @@ impl RymdGameView {
             let current_order_point = if should_group {
                 let offset_from_centroid = centroid_of_selected_orderables - transform.world_position;
                 current_mouse_world_position - offset_from_centroid
-            }
-            else
-            {
-                if number_of_selected_orderables > 1 {
-                    self.ordering.get_point(number_of_selected_orderables, idx)
-                } else {
-                    current_mouse_world_position
-                }
+            } else if number_of_selected_orderables > 1 {
+                self.ordering.get_point(number_of_selected_orderables, idx)
+            } else {
+                current_mouse_world_position
             };
 
             if should_attack {
@@ -1138,7 +1173,7 @@ impl RymdGameView {
                 return true;
             }
         }
-        return false;
+        false
     }
 
     fn can_select_unit(&self, controller: &Controller) -> bool {
@@ -1366,7 +1401,27 @@ impl RymdGameView {
         
     }
 
+    pub fn move_camera_to_first_unselected_commander(&mut self, model: &mut RymdGameModel) {
+
+        for (e, (commander, transform, selectable)) in model.world.query_mut::<(&Commander, &Transform, &Selectable)>() {
+
+            if selectable.is_selected == false {
+                self.camera.move_camera_to_position(transform.world_position);
+                return;
+            }
+
+        }
+
+    }
+
     pub fn update(&mut self, model: &mut RymdGameModel) {
+
+        // this is tick 2 because at tick 0 and 1, the world isn't really initialized yet properly lol
+
+        if model.current_tick == 2 {
+            // #HACK: move the camera to the first unselected commander when the game starts
+            self.move_camera_to_first_unselected_commander(model);
+        }
 
         let mut beam_components_to_add = Vec::new();
         let mut selectable_components_to_add = Vec::new();
@@ -1459,7 +1514,7 @@ impl RymdGameView {
                 {
                     let position = vec2(order.x, order.y);
                     if let Some(blueprint) = model.blueprint_manager.get_blueprint(blueprint_id) {
-                        ConstructionState::draw_building(&self.resources, blueprint, position);
+                        ConstructionState::draw_building(&self.resources, blueprint, position, false);
                     }
                 }
             }
@@ -1537,6 +1592,7 @@ impl RymdGameView {
         let bounds_colour = GREEN.with_alpha(0.5);
 
         for (e, (transform, selectable, bounds)) in world.query::<(&Transform, &Selectable, &Bounds)>().iter() {
+
             if selectable.is_selected {
                 let screen_position = self.camera.world_to_screen(transform.world_position);
                 let screen_radius = self.camera.world_to_screen_scale_v(bounds.as_radius() * 1.5);
@@ -1547,7 +1603,22 @@ impl RymdGameView {
                     bounds_thickness,
                     bounds_colour
                 );
+
+                let mut current_offset = 0;
+                for i in 0..9 {
+                    if self.is_entity_in_control_group(e, i) {
+                        let screen_text_size = 24.0;
+                        let screen_position = self.camera.world_to_screen(transform.world_position);
+                        let screen_radius = self.camera.world_to_screen_scale_v(bounds.as_radius() * 1.5);
+                        let screen_position_offset = screen_position + vec2(screen_radius, screen_radius);
+                        let screen_offset = screen_text_size * current_offset as f32;
+                        
+                        draw_text(&i.to_string(), screen_position_offset.x + screen_offset, screen_position_offset.y, screen_text_size, WHITE);
+                        current_offset += 1;
+                    }
+                }
             }
+
         }
 
     }
@@ -1617,7 +1688,7 @@ impl RymdGameView {
                             particles.emitter.config.initial_direction = thruster_emit_direction;
                             particles.emitter.config.initial_velocity = thruster.power * 4.0;
                             particles.emitter.config.lifetime = 0.25; // ARBITRARY NUMBERS WOO
-                            particles.emitter.emit(vec2(0.0, 0.0), ((thruster.power * thruster_alignment) / 4.0) as usize);
+                            particles.emitter.emit(vec2(0.0, 0.0), ((thruster.rate * thruster_alignment) / 4.0) as usize);
                         }
 
                     } else {
@@ -1629,7 +1700,7 @@ impl RymdGameView {
                             particles.emitter.config.initial_direction = thruster_emit_direction;
                             particles.emitter.config.initial_velocity = thruster.power * 4.0;
                             particles.emitter.config.lifetime = 1.0; // ARBITRARY NUMBERS WOO
-                            particles.emitter.emit(vec2(0.0, 0.0), (ship_alignment.abs() / thruster.power * 2.0) as usize);
+                            particles.emitter.emit(vec2(0.0, 0.0), (ship_alignment.abs() / thruster.rate * 2.0) as usize);
                         }
                         
                     }
@@ -1687,6 +1758,7 @@ impl RymdGameView {
         ctx.debug_text().draw_text(format!(" - shift+c to toggle bounds debug (enabled: {})", self.debug.render_bounds), TextPosition::TopLeft, WHITE);
         ctx.debug_text().draw_text(format!(" - shift+k to toggle kinematics debug (enabled: {})", self.debug.render_kinematic), TextPosition::TopLeft, WHITE);
         ctx.debug_text().draw_text(format!(" - shift+s to toggle spatial debug (enabled: {})", self.debug.render_spatial), TextPosition::TopLeft, WHITE);
+        ctx.debug_text().draw_text(format!(" - shift+e to toggle state debug (enabled: {})", self.debug.render_states), TextPosition::TopLeft, WHITE);
 
         if ctx.lockstep_mut().is_singleplayer() {
             ctx.debug_text().draw_text("press tab to switch the current player!", TextPosition::TopLeft, WHITE);
@@ -1708,6 +1780,11 @@ impl RymdGameView {
         let should_toggle_spatial_debug = is_key_down(KeyCode::LeftShift) && is_key_released(KeyCode::S);
         if should_toggle_spatial_debug {
             self.debug.render_spatial = !self.debug.render_spatial
+        }
+
+        let should_toggle_state_debug = is_key_down(KeyCode::LeftShift) && is_key_released(KeyCode::E);
+        if should_toggle_state_debug {
+            self.debug.render_states = !self.debug.render_states;
         }
 
     }
@@ -1780,7 +1857,7 @@ impl RymdGameView {
 
         for id in available_blueprints {
             let blueprint = model.blueprint_manager.get_blueprint(id).unwrap();
-            debug.draw_text(format!(" > {} ({:?})", blueprint.name, blueprint.shortcut), TextPosition::BottomRight, WHITE);
+            debug.draw_text(format!(" > {} ({:?}) - ({} M, {} E)", blueprint.name, blueprint.shortcut, blueprint.cost.metal, blueprint.cost.energy), TextPosition::BottomRight, WHITE);
             if is_key_released(blueprint.shortcut) {
                 self.construction.preview_blueprint(id);
             }
@@ -1938,11 +2015,22 @@ impl RymdGameView {
 
             let health_difference = health.current_health() - health.last_health();
             let health_difference_to_max = (health.full_health() - health.current_health()).max(0.0);
-            let health_difference_per_second = (1.0 / RymdGameModel::TIME_STEP) * health_difference as f32;
-            let time_remaining_seconds = health_difference_to_max as f32 / health_difference_per_second;
+            let health_difference_per_second = (1.0 / RymdGameModel::TIME_STEP) * health_difference;
+            let time_remaining_seconds = health_difference_to_max / health_difference_per_second;
             
             let time_label_position = transform.world_position + vec2(0.0, -bounds.as_radius());
             draw_text_centered(&format!("{:.0}s", time_remaining_seconds), time_label_position.x, time_label_position.y, 24.0, WHITE);
+
+        }
+
+    }
+
+    fn draw_entity_states(&self, world: &World) {
+
+        for (e, (transform, bounds, &state)) in world.query::<(&Transform, &Bounds, &EntityState)>().iter() {
+
+            let state_label_position = transform.world_position + vec2(0.0, bounds.as_radius() * 1.5);
+            draw_text_centered(&format!("{:?}", state), state_label_position.x, state_label_position.y, 24.0, WHITE);
 
         }
 
@@ -1955,7 +2043,7 @@ impl RymdGameView {
         for (e, body) in world.query::<&DynamicBody>().iter() {
             let bounds_colour = if body.is_enabled { GREEN } else { YELLOW };
             let screen_bounds = self.camera.world_to_screen_rect(body.bounds());
-            draw_rectangle_lines_centered(screen_bounds.x, screen_bounds.y, screen_bounds.w, screen_bounds.h, bounds_line_thickness, bounds_colour);
+            draw_rectangle_lines_centered_with_rotation(screen_bounds.x, screen_bounds.y, screen_bounds.w, screen_bounds.h, bounds_line_thickness, bounds_colour, body.kinematic.orientation);
         }
 
     }
@@ -2043,15 +2131,15 @@ impl RymdGameView {
 
         self.camera.tick(dt);
 
-        self.update_constructor_beams(&model);
-        self.update_extractor_beams(&model);
+        self.update_constructor_beams(model);
+        self.update_extractor_beams(model);
         self.update_thrusters(&model.world);
         self.update_impacts(&model.world);
 
         self.draw_background_texture(screen_width(), screen_height(), self.camera.world_position());
 
-        self.draw_pending_orders(&model);
-        self.draw_orders(&model);
+        self.draw_pending_orders(model);
+        self.draw_orders(model);
 
         self.draw_selection();
         self.draw_selectables(&mut model.world);
@@ -2066,7 +2154,7 @@ impl RymdGameView {
         }
 
         if self.debug.render_spatial {
-            self.draw_spatial_debug(&model);
+            self.draw_spatial_debug(model);
         }
 
         self.camera.push();
@@ -2082,6 +2170,10 @@ impl RymdGameView {
         // self.draw_health_labels(&model.world);
         self.draw_resource_labels(&model.world);
         self.draw_build_time_labels(&model.world);
+
+        if self.debug.render_states {
+            self.draw_entity_states(&model.world);
+        }
         
         self.camera.pop();
 

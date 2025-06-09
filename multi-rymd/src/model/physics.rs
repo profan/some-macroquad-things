@@ -1,18 +1,27 @@
-use macroquad::prelude::*;
-use hecs::{CommandBuffer, Entity, World};
-use utility::{intersect_rect, line_segment_rect_intersection, AsPerpendicular};
+use std::collections::HashMap;
 
+use fnv::FnvHashMap;
+use macroquad::prelude::*;
+use hecs::{CommandBuffer, Entity, Without, World};
+use rapier2d::{crossbeam, prelude::*};
+use utility::line_segment_rect_intersection;
 use super::{spatial::{entity_distance_sort_function, SpatialQueryManager}, DynamicBody, DynamicBodyCallback};
 
 const COLLISION_ELASTICITY: f32 = 1.0;
+
+struct PhysicsBodyHandle {
+    rigid_body_handle: RigidBodyHandle
+}
 
 pub trait PhysicsBody {
 
     fn enabled(&self) -> bool;
 
+    fn local_bounds(&self) -> Rect;
     fn bounds(&self) -> Rect;
     fn position(&self) -> Vec2;
     fn visual_position(&self) -> Vec2;
+    fn local_physics_bounds(&self) -> Rect;
     fn physics_bounds(&self) -> Rect;
     fn orientation(&self) -> f32;
     fn velocity(&self) -> Vec2;
@@ -30,26 +39,119 @@ pub trait PhysicsBody {
 
 }
 
+struct PhysicsManagerRapierCoreState {
+    integration_parameters: IntegrationParameters,
+    physics_pipeline: PhysicsPipeline,
+    island_manager: IslandManager,
+    broad_phase: DefaultBroadPhase,
+    narrow_phase: NarrowPhase,
+    rigid_body_set: RigidBodySet,
+    collider_set: ColliderSet,
+    impulse_joint_set: ImpulseJointSet,
+    multibody_joint_set: MultibodyJointSet,
+    ccd_solver: CCDSolver,
+    query_pipeline: QueryPipeline
+}
+
+impl PhysicsManagerRapierCoreState {
+
+    pub fn new(timestep: f32) -> PhysicsManagerRapierCoreState {
+
+        let default_integration_parameters = IntegrationParameters {
+            dt: timestep,
+            ..Default::default()
+        };
+
+        PhysicsManagerRapierCoreState {
+            integration_parameters: default_integration_parameters,
+            physics_pipeline: PhysicsPipeline::new(),
+            island_manager: IslandManager::new(),
+            broad_phase: DefaultBroadPhase::new(),
+            narrow_phase: NarrowPhase::new(),
+            rigid_body_set: RigidBodySet::new(),
+            collider_set: ColliderSet::new(),
+            impulse_joint_set: ImpulseJointSet::new(),
+            multibody_joint_set: MultibodyJointSet::new(),
+            ccd_solver: CCDSolver::new(),
+            query_pipeline: QueryPipeline::new(),
+        }
+
+    }
+
+    pub fn step(&mut self, mut on_collision_event: impl FnMut(RigidBodyHandle, RigidBodyHandle) -> ()) {
+
+        let physics_hooks = ();
+
+        let (collision_send, collision_recv) = crossbeam::channel::unbounded();
+        let (contact_force_send, contact_force_recv) = crossbeam::channel::unbounded();
+        let event_handler = ChannelEventCollector::new(collision_send, contact_force_send);
+        
+        self.physics_pipeline.step(
+            &vector![0.0, 0.0],
+            &self.integration_parameters,
+            &mut self.island_manager,
+            &mut self.broad_phase,
+            &mut self.narrow_phase,
+            &mut self.rigid_body_set,
+            &mut self.collider_set,
+            &mut self.impulse_joint_set,
+            &mut self.multibody_joint_set,
+            &mut self.ccd_solver,
+            Some(&mut self.query_pipeline),
+            &physics_hooks,
+            &event_handler
+        );
+
+        while let Ok(collision_event) = collision_recv.try_recv() {
+
+            if collision_event.removed() {
+                continue
+            }
+
+            if collision_event.stopped() {
+                continue
+            }
+
+            let rigid_body_handle_1 = self.collider_set.get(collision_event.collider1()).unwrap().parent();
+            let rigid_body_handle_2 = self.collider_set.get(collision_event.collider2()).unwrap().parent();
+            if let Some(r1) = rigid_body_handle_1 && let Some(r2) = rigid_body_handle_2 {
+                on_collision_event(r1, r2)
+            }
+
+        }
+
+        while let Ok(contact_force_event) = contact_force_recv.try_recv() {
+            // do a thing?
+        }
+
+    }
+
+}
+
 pub struct PhysicsManager {
-    collision_responses: Vec<(Entity, Entity, bool)>,
-    timestep: f32
+    core_state: PhysicsManagerRapierCoreState,
+    rigid_body_handle_to_entity: FnvHashMap<RigidBodyHandle, Entity>
 }
 
 impl PhysicsManager {
 
     pub fn new(timestep: f32) -> PhysicsManager {
         PhysicsManager {
-            collision_responses: Vec::new(),
-            timestep
+            core_state: PhysicsManagerRapierCoreState::new(timestep),
+            rigid_body_handle_to_entity: HashMap::default()
         }
     }
 
+    pub fn timestep(&self) -> f32 {
+        self.core_state.integration_parameters.dt
+    }
+
     pub fn number_of_active_collision_responses(&self) -> usize {
-        self.collision_responses.len()
+        self.core_state.narrow_phase.contact_pairs().count()
     }
 
     pub fn clear(&mut self) {
-        self.collision_responses.clear();
+        *self = PhysicsManager::new(self.timestep())
     }
 
     pub fn ray_cast(&self, source: Vec2, target: Vec2, world: &World, spatial_query_manager: &SpatialQueryManager, test_mask: u64) -> Option<(Entity, Vec2)> {
@@ -80,201 +182,156 @@ impl PhysicsManager {
 
     }
 
-    pub fn integrate(&mut self, world: &mut World) {
+    pub fn tick(&mut self, world: &mut World) {
 
-        for (e, body) in world.query_mut::<&mut DynamicBody>() {
-            if body.is_static == false {
-                body.kinematic.integrate(self.timestep);
-                body.kinematic.apply_friction(self.timestep);
-            } else {
-                body.kinematic.velocity = Vec2::ZERO;
-                body.kinematic.angular_velocity = 0.0;
+        self.handle_created_entities(world);
+        self.handle_destroyed_entities(world);
+
+        for (e, (dynamic_body, physics_body_handle)) in world.query_mut::<(&mut DynamicBody, &PhysicsBodyHandle)>() {
+
+            let current_rigid_body = self.core_state.rigid_body_set.get_mut(physics_body_handle.rigid_body_handle).unwrap();
+
+            let current_dynamic_body_velocity = dynamic_body.kinematic.velocity;
+            let current_dynamic_body_angular_velocity = dynamic_body.kinematic.angular_velocity;
+
+            // pass our updated velocities/angles to the physics state, then less the physics engine affect the bodies in between
+            current_rigid_body.set_linvel(vector![current_dynamic_body_velocity.x, current_dynamic_body_velocity.y], true);
+            current_rigid_body.set_angvel(current_dynamic_body_angular_velocity, true);
+
+            if dynamic_body.is_static == false && current_rigid_body.body_type() == RigidBodyType::Fixed {
+                current_rigid_body.set_body_type(RigidBodyType::Dynamic, true);
             }
+            else if dynamic_body.is_static && current_rigid_body.body_type() == RigidBodyType::Dynamic {
+                current_rigid_body.set_body_type(RigidBodyType::Fixed, true);
+            }
+
+        }
+
+        let mut command_buffer = CommandBuffer::new();
+
+        self.core_state.step(|a, b| {
+
+            let a_entity = self.rigid_body_handle_to_entity[&a];
+            let b_entity = self.rigid_body_handle_to_entity[&b];
+
+            if let Ok(a_callback) = world.get::<&DynamicBodyCallback>(a_entity) {
+                if let Ok(other_body) = world.get::<&DynamicBody>(b_entity) {
+                    (a_callback.on_collision)(world, &mut command_buffer, a_entity, b_entity, &other_body);
+                }
+            }
+
+            if let Ok(b_callback)= world.get::<&DynamicBodyCallback>(b_entity) {
+                if let Ok(other_body) = world.get::<&DynamicBody>(a_entity) {
+                    (b_callback.on_collision)(world, &mut command_buffer, b_entity, a_entity, &other_body);
+                }
+            }
+
+        });
+
+        command_buffer.run_on(world);
+
+        for (e, (dynamic_body, physics_body_handle)) in world.query_mut::<(&mut DynamicBody, &PhysicsBodyHandle)>() {
+
+            let current_rigid_body = self.core_state.rigid_body_set.get(physics_body_handle.rigid_body_handle).unwrap();
+            let current_rigid_body_translation = current_rigid_body.translation();
+            let current_rigid_body_rotation = current_rigid_body.rotation().angle();
+            let current_rigid_body_velocity = current_rigid_body.linvel();
+            let current_rigid_body_angular_velocity = current_rigid_body.angvel();
+
+            // update position/rotation of kinematic according to new reported physics position!
+            dynamic_body.kinematic.position = vec2(current_rigid_body_translation.x, current_rigid_body_translation.y);
+            dynamic_body.kinematic.orientation = current_rigid_body_rotation;
+
+            dynamic_body.kinematic.velocity = vec2(current_rigid_body_velocity.x, current_rigid_body_velocity.y);
+            dynamic_body.kinematic.angular_velocity = current_rigid_body_angular_velocity;
+
         }
 
     }
 
-    pub fn handle_overlaps(&mut self, world: &mut World, spatial_query_manager: &SpatialQueryManager) {
+    fn create_rigid_body_for_entity(physics_body: &DynamicBody) -> RigidBody {
 
-        for (e1, body) in world.query::<&DynamicBody>().iter() {
+        let body_translation = physics_body.position();
+        let body_orientation = physics_body.orientation();
+        let body_type = if physics_body.is_static { RigidBodyType::Fixed } else { RigidBodyType::Dynamic };
 
-            if body.is_enabled == false {
-                continue;
-            }
+        RigidBodyBuilder::new(body_type)
+            .translation(vector![body_translation.x, body_translation.y])
+            .rotation(body_orientation)
+            .linear_damping(physics_body.friction())
+            .angular_damping(physics_body.friction())
+            .build()
+    }
 
-            for e2 in spatial_query_manager.entities_within_rect(body.bounds()) {
+    fn create_collider_for_entity(physics_body: &DynamicBody) -> Collider {
 
-                if e1 == e2 {
-                    continue;
-                }
+        let body_local_bounds = physics_body.local_bounds();
 
-                if let Ok(other_body) = world.get::<&DynamicBody>(e2) {
+        // #FIXME: this is a tad bit horrible, but it's cool that it's this simple to set up the collision masks, guess we just gotta worry if we have > 32 teams?
+        let body_interaction_groups = InteractionGroups::new((physics_body.mask as u32).into(), Group::all().difference((physics_body.mask as u32).into()));
 
-                    if other_body.is_enabled == false {
-                        continue;
-                    }
+        ColliderBuilder::cuboid(body_local_bounds.w / 2.0, body_local_bounds.h / 2.0)
+            .active_events(ActiveEvents::COLLISION_EVENTS)
+            .collision_groups(body_interaction_groups)
+            .translation(vector![body_local_bounds.x, body_local_bounds.y])
+            .build()
+    }
 
-                    let should_collide = self.collides_with(body, &other_body);
-                    if should_collide && intersect_rect(&body.bounds(), &other_body.bounds()) {
-                        let new_response = (e1, e2, false);
-                        let pair_already_has_collision_response = self.collision_responses.iter().any(|(a_entity, b_entity, _)| *a_entity == new_response.0 && *b_entity == new_response.1);
-                        if pair_already_has_collision_response == false {
-                            self.collision_responses.push(new_response);
-                        }
-                    }
+    fn handle_created_entities(&mut self, world: &mut World) {
 
-                }
+        let mut bodies_to_create: Vec<Entity> = Vec::new();
 
-            }
+        for (e, dynamic_body) in world.query_mut::<Without<&DynamicBody, &PhysicsBodyHandle>>() {
+            bodies_to_create.push(e);
+        }
 
+        for e in bodies_to_create {
+            
+            let dynamic_body = world.query_one_mut::<&DynamicBody>(e).unwrap();
+            let new_rigid_body = Self::create_rigid_body_for_entity(dynamic_body);
+            let new_collider = Self::create_collider_for_entity(dynamic_body);
+
+            let new_rigid_body_handle = self.core_state.rigid_body_set.insert(new_rigid_body);
+            self.core_state.collider_set.insert_with_parent(new_collider, new_rigid_body_handle, &mut self.core_state.rigid_body_set);
+
+            // register our newly created rigid body handle so we can actually track it
+            self.rigid_body_handle_to_entity.insert(new_rigid_body_handle, e);
+
+            // add the physics body handle component to our entity :)
+            let _ = world.insert_one(e, PhysicsBodyHandle { rigid_body_handle: new_rigid_body_handle });
+            
         }
 
     }
 
     fn handle_destroyed_entities(&mut self, world: &mut World) {
 
-        let mut destroyed_responses = Vec::new();
+        let mut destroyed_bodies: Vec<RigidBodyHandle> = Vec::new();
 
-        for r @ (entity, other, active) in &mut self.collision_responses.iter() {
-            if world.contains(*entity) == false || world.contains(*other) == false {
-                destroyed_responses.push(*r);
+        for (&rigid_body, &e) in &self.rigid_body_handle_to_entity {
+            if world.contains(e) == false {
+                destroyed_bodies.push(rigid_body);
             }
         }
 
-        // retain everything we haven't yeeted
-        self.collision_responses.retain(|r| destroyed_responses.contains(&r) == false);
+        // clean up all destroyed entities and their bodies/colliders!
+        for rigid_body_handle in destroyed_bodies {
 
-    }
+            let should_remove_attached_colliders = true;
 
-    pub fn handle_collisions(&mut self, world: &mut World) {
+            self.core_state.rigid_body_set.remove(
+                rigid_body_handle,
+                &mut self.core_state.island_manager,
+                &mut self.core_state.collider_set,
+                &mut self.core_state.impulse_joint_set,
+                &mut self.core_state.multibody_joint_set,
+                should_remove_attached_colliders
+            );
 
-        self.handle_destroyed_entities(world);
-
-        let mut command_buffer = CommandBuffer::new();
-
-        for (entity, other, active) in &mut self.collision_responses {
-
-            let (resolved_impact_velocity, this_body_mass) = {
-
-                let other_body = {
-                    (*world.get::<&DynamicBody>(*other).expect("must have dynamic body!")).clone()
-                };
-
-                let mut this_body = world.get::<&mut DynamicBody>(*entity).expect("must have dynamic body!");
-                let this_body_mass = this_body.mass();
-
-                let resolved_impact_velocity = if !(*active) {
-                    Self::collision_response_with_entity(&mut this_body, &other_body, self.timestep)
-                } else {
-                    Self::collision_separate_from_entity(&mut this_body, &other_body, self.timestep);
-                    Vec2::ZERO
-                };
-
-                *active = intersect_rect(&this_body.bounds(), &other_body.bounds());
-
-                (resolved_impact_velocity, this_body_mass)
-
-            };
-
-            // resolve impact velocity...
-            {
-                let mut other_body_mut = world.get::<&mut DynamicBody>(*other).expect("must have dynamic body!");
-                let other_body_mass = other_body_mut.mass();
-                *other_body_mut.velocity_mut() -= resolved_impact_velocity * other_body_mass;
-            }
-
-            // handle collision response callbacks, if it has one (make sure to drop mut ref here, or we get multiple muts)
-            if let Ok(dynamic_body_callback) = world.get::<&DynamicBodyCallback>(*entity) {
-                let other_body = world.get::<&DynamicBody>(*other).expect("must have dynamic body!");
-                (dynamic_body_callback.on_collision)(&world, &mut command_buffer, *entity, *other, &other_body);
-            }
+            self.rigid_body_handle_to_entity.remove(&rigid_body_handle);
 
         }
 
-        // retain only active collisions
-        self.collision_responses.retain(|(a_entity, b_entity, active)| *active);
-
-        // run command buffer now
-        command_buffer.run_on(world);
-
-    }
-
-    pub fn standard_collision_response_with_dynamic_entity(entity: &mut DynamicBody, other: &DynamicBody, timestep: f32) -> Vec2 {
-
-        let average_size = (entity.bounds().w + entity.bounds().h) / 2.0;
-    
-        let separating_vector = -(other.position() - entity.position());
-        let normalized_offset = separating_vector.normalize_or_zero();
-        let offset_magnitude = average_size / separating_vector.length();
-
-        let other_velocity_normal = other.velocity().normalize_or_zero();
-        let left_of_center_of_mass = other_velocity_normal.dot(normalized_offset.perpendicular()) < 0.0;
-        let offset_multiplier = if left_of_center_of_mass { 1.0 } else { -1.0 };
-
-        let their_velocity_normal = other.velocity().normalize_or_zero();
-        let other_velocity_towards_us_factor = their_velocity_normal.normalize_or_zero().dot(separating_vector.normalize_or_zero()).max(0.0);
-        let their_velocity_projection = other.velocity() * other_velocity_towards_us_factor;
-
-        let impact_velocity_vector = other.mass() * their_velocity_projection;
-        let impact_velocity_angular = other.mass() * offset_magnitude * offset_multiplier * (other.velocity().length() / 16.0);
-        
-        *entity.velocity_mut() += impact_velocity_vector * COLLISION_ELASTICITY * timestep;
-        *entity.angular_velocity_mut() += impact_velocity_angular * timestep;
-
-        impact_velocity_vector
-
-    }
-
-    pub fn standard_collision_response_with_static_entity(entity: &mut DynamicBody, other: &DynamicBody, timestep: f32) -> Vec2 {
-
-        let separating_vector = -(entity.position() - other.position()).normalize_or_zero();
-        other.velocity() * -other.velocity().normalize_or_zero().dot(separating_vector)
-
-    }
-
-    pub fn collision_response_with_entity(entity: &mut DynamicBody, other: &DynamicBody, timestep: f32) -> Vec2 {
-
-        let response = if entity.is_static == false {
-            Self::standard_collision_response_with_dynamic_entity(entity, other, timestep)
-        } else {
-            Self::standard_collision_response_with_static_entity(entity, other, timestep)
-        };
-
-        if response.is_nan() {
-            Vec2::ZERO
-        } else {
-            response
-        }
-
-    }
-
-    pub fn standard_dynamic_collision_separate_from_entity(entity: &mut DynamicBody, other: &DynamicBody, timestep: f32) {
-
-        let average_size = (entity.bounds().w + entity.bounds().h) / 2.0;
-        let separating_vector = -(other.position() - entity.position());
-        let separating_vector_length = separating_vector.length();
-
-        let offset_magnitude = ((separating_vector_length*separating_vector_length) / average_size) * 8.0;
-        *entity.velocity_mut() += separating_vector.normalize_or_zero() * offset_magnitude * timestep;
-
-    }
-
-    pub fn standard_static_collision_separate_from_entity(entity: &mut DynamicBody, other: &DynamicBody, timestep: f32) {
-
-    }
-
-    pub fn collision_separate_from_entity(entity: &mut DynamicBody, other: &DynamicBody, timestep: f32) {
-
-        if entity.is_static == false {
-            Self::standard_dynamic_collision_separate_from_entity(entity, other, timestep);
-        } else {
-            Self::standard_static_collision_separate_from_entity(entity, other, timestep)
-        };
-
-    }
-
-    pub fn collides_with(&self, entity: &DynamicBody, other: &DynamicBody) -> bool {
-        entity.mask & other.mask == 0
     }
 
 }

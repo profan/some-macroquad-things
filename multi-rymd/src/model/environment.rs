@@ -5,6 +5,8 @@ use utility::Kinematic;
 
 use super::{create_default_kinematic_body, DynamicBody, Health, ResourceSource, Sprite, Transform};
 
+const ENV_COLLISION_MASK: u32 = 1 << 31;
+
 pub fn create_asteroid(world: &mut World, position: Vec2, rotation: f32) -> Entity {
 
     let size = 64.0;
@@ -24,7 +26,7 @@ pub fn create_asteroid(world: &mut World, position: Vec2, rotation: f32) -> Enti
         is_enabled: true,
         is_static: false,
         kinematic: asteroid_kinematic_body,
-        mask: 0,
+        mask: ENV_COLLISION_MASK as u64,
         bounds
     };
 

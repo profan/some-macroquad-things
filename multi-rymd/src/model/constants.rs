@@ -1,7 +1,7 @@
-use macroquad::{color::Color, math::Rect, prelude::Vec2};
+use macroquad::{math::Rect, prelude::Vec2};
 use utility::{SteeringParameters, Kinematic};
 
-use super::{BeamParameters, BulletParameters};
+use super::{BeamParameters, BulletParameters, ARBITRARY_DISTANCE_THRESHOLD};
 
 pub enum Blueprints {
 
@@ -9,15 +9,17 @@ pub enum Blueprints {
     SolarCollector = 2,
     EnergyStorage = 3,
     MetalStorage = 4,
+    EnergyConverter = 5,
 
     // blue units
-    Commander = 5,
-    Arrowhead = 6,
-    Extractor = 7,
+    Commander = 6,
+    Arrowhead = 7,
+    Dragonfly = 8,
+    Extractor = 9,
 
     // green units
-    Commissar = 8,
-    Grunt = 9
+    Commissar = 10,
+    Grunt = 11
 
 }
 
@@ -27,7 +29,7 @@ pub const DEFAULT_STEERING_PARAMETERS: SteeringParameters = SteeringParameters {
 
     max_speed: 384.0,
     max_acceleration: 128.0,
-    arrive_radius: 64.0,
+    arrive_radius: ARBITRARY_DISTANCE_THRESHOLD,
     slow_radius: 200.0,
 
     align_max_rotation: 2.0,
@@ -46,6 +48,11 @@ pub const COMMANDER_STEERING_PARAMETERS: SteeringParameters = SteeringParameters
 };
 
 pub const ARROWHEAD_STEERING_PARAMETERS: SteeringParameters = SteeringParameters {
+    align_max_angular_acceleration: 8.0,
+    ..DEFAULT_STEERING_PARAMETERS
+};
+
+pub const DRAGONFLY_STEERING_PARAMETERS: SteeringParameters = SteeringParameters {
     align_max_angular_acceleration: 8.0,
     ..DEFAULT_STEERING_PARAMETERS
 };

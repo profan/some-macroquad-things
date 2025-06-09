@@ -1,5 +1,5 @@
 use core::f32;
-use std::{cmp::Ordering};
+use std::cmp::Ordering;
 
 use fnv::{FnvHashMap, FnvHashSet};
 use hecs::{Entity, World};
@@ -176,7 +176,7 @@ impl SpatialQueryManager {
         self.buckets.iter()
             .filter(move |(&bucket_position, bucket)| Self::get_bucket_bounds(bucket_position, bucket_size).overlaps(&search_bounds))
             .flat_map(|(bucket_position, bucket)| bucket)
-            .map(|e| *e)
+            .copied()
 
     }
 
@@ -195,7 +195,7 @@ impl SpatialQueryManager {
     pub fn entities_within_min_max(&self, min: Vec2, max: Vec2) -> impl Iterator::<Item = Entity> + '_  {
 
         let bucket_size = self.bucket_size;
-        let position_bounds = Rect::new(min.x, min.y, max.x - min.x, max.y - max.y);
+        let position_bounds = Rect::new(min.x, min.y, max.x - min.x, max.y - min.y);
         self.entities_within_rect(position_bounds)
 
     }

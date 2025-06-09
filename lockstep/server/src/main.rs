@@ -90,51 +90,7 @@ impl ws::Handler for Session {
 
         let Ok(text) = msg.as_text() else { return Ok(()); };
 
-        match RelayMessage::deserialize_json(text) {
-            Ok(msg) => match msg {
-
-                // client management on the relay server
-                RelayMessage::Register(name) => { self.server.borrow_mut().register_client_nickname(self.id, name); },
-
-                // messaages for lobby management for the clients
-                RelayMessage::CreateLobby(name) => { self.server.borrow_mut().create_lobby(self.id, name); },
-                RelayMessage::StartLobby => { self.server.borrow_mut().start_lobby_with_client_id(self.id); },
-                RelayMessage::StopLobby => { self.server.borrow_mut().stop_lobby_with_client_id(self.id); },
-                RelayMessage::CloseLobby => { self.server.borrow_mut().close_lobby_with_client_id(self.id); },
-                RelayMessage::LeaveLobby => { self.server.borrow_mut().leave_lobby(self.id); },
-                RelayMessage::JoinLobby(lobby_id) => { self.server.borrow_mut().join_lobby(lobby_id, self.id); },
-
-                // ping/pong messages between clients
-                RelayMessage::Ping(from_client_id, to_client_id) => { self.server.borrow_mut().ping(from_client_id, to_client_id); },
-                RelayMessage::Pong(from_client_id, to_client_id) => { self.server.borrow_mut().pong(from_client_id, to_client_id); },
-
-                // lobby state update message for clients
-                RelayMessage::PushLobbyData(data) => { self.server.borrow_mut().send_update_data_to_clients_lobby(self.id, data); },
-
-                // messages for passing game data, external to the relay server (to be forwarded to all in the same lobby)
-                RelayMessage::Message(peer_id, text) => { self.server.borrow_mut().send_message_to_clients_lobby(self.id, RelayMessage::Message(peer_id, text)); },
-
-                // messages for querying relay server/lobby state
-                RelayMessage::QueryActiveLobbies => { self.server.borrow().query_active_lobbies(self.id); },
-                RelayMessage::QueryActivePlayers => { self.server.borrow().query_active_players(self.id); },
-
-                // messages the server may send, so we don't care here :>
-                RelayMessage::ClientID(_) => (),
-                RelayMessage::LeftLobby(_) => (),
-                RelayMessage::JoinedLobby(_) => (),
-                RelayMessage::UpdatedLobby(_) => (),
-                RelayMessage::StartedLobby => (),
-                RelayMessage::StoppedLobby => (),
-                RelayMessage::SuccessfullyJoinedLobby(_) => (),
-                RelayMessage::FailedToJoinLobby(_, _) => (),
-                RelayMessage::ActiveLobbies(_) => (),
-                RelayMessage::ActivePlayers(_) => (),
-
-            },
-            Err(err) => {
-                println!("[id: {}]: sent invalid message, with error: {}", self.id, err);
-            }
-        };
+        self.server.borrow_mut().handle_relay_message(self.id, text);
         
         Ok(())
 
@@ -173,6 +129,57 @@ impl RelayServer {
             lobbies: BTreeMap::new(),
             port: DEFAULT_LOBBY_PORT
         }
+    }
+
+    fn handle_relay_message(&mut self, sender_id: LobbyClientID, message_text: &str) {
+
+        match RelayMessage::deserialize_json(message_text) {
+            Ok(msg) => match msg {
+
+                // client management on the relay server
+                RelayMessage::Register(name) => { self.register_client_nickname(sender_id, name); },
+
+                // messaages for lobby management for the clients
+                RelayMessage::CreateLobby(name) => { self.create_lobby(sender_id, name); },
+                RelayMessage::StartLobby => { self.start_lobby_with_client_id(sender_id); },
+                RelayMessage::StopLobby => { self.stop_lobby_with_client_id(sender_id); },
+                RelayMessage::CloseLobby => { self.close_lobby_with_client_id(sender_id); },
+                RelayMessage::LeaveLobby => { self.leave_lobby(sender_id); },
+                RelayMessage::JoinLobby(lobby_id) => { self.join_lobby(lobby_id, sender_id); },
+
+                // ping/pong messages between clients
+                RelayMessage::Ping(from_client_id, to_client_id) => { self.ping(from_client_id, to_client_id); },
+                RelayMessage::Pong(from_client_id, to_client_id) => { self.pong(from_client_id, to_client_id); },
+
+                // lobby state update message for clients
+                RelayMessage::PushLobbyData(data) => { self.send_update_data_to_clients_lobby(sender_id, data); },
+
+                // messages for passing game data, external to the relay server (to be forwarded to all in the same lobby)
+                RelayMessage::Message(peer_id, text) => { self.send_message_to_clients_lobby(sender_id, RelayMessage::Message(peer_id, text)); },
+
+                // messages for querying relay server/lobby state
+                RelayMessage::QueryActiveLobbies => { self.query_active_lobbies(sender_id); },
+                RelayMessage::QueryActivePlayers => { self.query_active_players(sender_id); },
+
+                // messages the server may send, so we don't care here :>
+                RelayMessage::ClientID(_) => (),
+                RelayMessage::LeftLobby(_) => (),
+                RelayMessage::JoinedLobby(_) => (),
+                RelayMessage::UpdatedLobby(_) => (),
+                RelayMessage::StartedLobby => (),
+                RelayMessage::StoppedLobby => (),
+                RelayMessage::SuccessfullyJoinedLobby(_) => (),
+                RelayMessage::FailedToJoinLobby(_, _) => (),
+                RelayMessage::ActiveLobbies(_) => (),
+                RelayMessage::ActivePlayers(_) => (),
+                RelayMessage::Boss(_) => (),
+
+            },
+            Err(err) => {
+                println!("[id: {}]: sent invalid message, with error: {}", sender_id, err);
+            }
+        };
+
     }
 
     pub fn start() {
@@ -214,7 +221,21 @@ impl RelayServer {
     }
 
     pub fn create_new_unique_client_name(&mut self) -> String {
-        "rts_fan".to_string()
+
+        let initial_unique_name = "rts_fan";
+
+        let mut current_unique_name = initial_unique_name.to_owned();
+        let mut current_unique_name_id = 1;
+
+        for (_, client) in &self.clients {
+            if client.name == current_unique_name {
+                current_unique_name = format!("{}{}", initial_unique_name, current_unique_name_id);
+                current_unique_name_id += 1;
+            }
+        }
+
+        return current_unique_name;
+
     }
 
     pub fn create_client(&mut self, sender: ws::Sender) -> LobbyClientID {
@@ -227,13 +248,16 @@ impl RelayServer {
         created_client_id
     }
 
+    /// Returns true if the lobby was closed since it was empty.
     pub fn close_lobby_if_empty(&mut self, lobby_id: LobbyID) -> bool {
         if let Some(lobby) = self.lobbies.get(&lobby_id) {
             let lobby_player_count = lobby.clients.len();
             if lobby_player_count == 0 {
                 self.close_lobby(lobby_id);
+                true
+            } else  {
+                false
             }
-            true
         } else {
             false
         }
@@ -241,10 +265,7 @@ impl RelayServer {
  
     pub fn remove_client(&mut self, client_id: LobbyClientID) {
         if let Some(client_lobby_id) = self.get_client_lobby(client_id) {
-            self.leave_lobby(client_id);
-            if self.close_lobby_if_empty(client_lobby_id) {
-                println!("closed the lobby: {} as it was empty!", client_lobby_id);
-            }
+            self.client_left_lobby(client_lobby_id, client_id);
         }
         self.clients.remove(&client_id);
         self.senders.remove(&client_id);
@@ -253,7 +274,7 @@ impl RelayServer {
 
     pub fn create_lobby(&mut self, client_id: LobbyClientID, name: String) -> LobbyID {
         let created_lobby_id = self.current_lobby_id;
-        self.lobbies.insert(created_lobby_id, Lobby::new(created_lobby_id, name));
+        self.lobbies.insert(created_lobby_id, Lobby::new(created_lobby_id, client_id, name));
 
         // #FIXME: this is terrible :D
         self.update_lobby(created_lobby_id, client_id);
@@ -316,13 +337,12 @@ impl RelayServer {
 
     pub fn leave_lobby(&mut self, client_id: LobbyClientID) {
         if let Some(lobby_id) = self.get_client_lobby(client_id) {
-            let lobby = self.lobbies.get_mut(&lobby_id).unwrap();
-            let lobby_id = lobby.id;
-            lobby.clients.retain(|id| client_id != *id);
+
+            self.client_left_lobby(lobby_id, client_id);
+
             let leaving_message = RelayMessage::LeftLobby(client_id);
-            self.send_message_to_lobby(lobby_id, leaving_message.clone());
             self.send_message_to_client(client_id, leaving_message.clone());
-            self.close_lobby_if_empty(lobby_id);
+
         } else {
             // can't leave a lobby you aren't in!
         }
@@ -339,16 +359,54 @@ impl RelayServer {
     }
 
     fn client_joined_lobby(&mut self, lobby_id: LobbyID, client_id: LobbyClientID) {
-        if let Some(lobby) = self.lobbies.get_mut(&lobby_id) {
-            lobby.clients.push(client_id);
-            let cloned_lobby = lobby.clone();
-            self.send_message_to_client(client_id, RelayMessage::SuccessfullyJoinedLobby(lobby_id));
-            self.send_message_to_clients_lobby(client_id, RelayMessage::UpdatedLobby(cloned_lobby));
-            let joining_message = RelayMessage::JoinedLobby(client_id);
-            self.send_message_to_clients_lobby(client_id, joining_message.clone());
-        } else {
-            // client joined nonexistent lobby? should not happen!
+
+        let lobby = self.lobbies.get_mut(&lobby_id).unwrap();
+        let lobby_id = lobby.id;
+
+        lobby.clients.push(client_id);
+        let boss_changed = lobby.figure_out_lobby_boss();
+        let new_lobby_boss = lobby.boss;
+        if boss_changed {
+            println!("the boss of lobby: {} changed to client: {}", lobby_id, lobby.boss);
         }
+
+        let cloned_lobby = lobby.clone();
+        self.send_message_to_client(client_id, RelayMessage::SuccessfullyJoinedLobby(lobby_id));
+        self.send_message_to_clients_lobby(client_id, RelayMessage::UpdatedLobby(cloned_lobby));
+        
+        let joining_message = RelayMessage::JoinedLobby(client_id);
+        self.send_message_to_clients_lobby(client_id, joining_message.clone());
+
+        if boss_changed {
+            self.send_message_to_clients_lobby(client_id, RelayMessage::Boss(new_lobby_boss));
+        }
+
+    }
+
+    fn client_left_lobby(&mut self, lobby_id: LobbyID, client_id: LobbyClientID) {
+
+        let lobby = self.lobbies.get_mut(&lobby_id).unwrap();
+        let lobby_id = lobby.id;
+
+        lobby.clients.retain(|id| client_id != *id);
+        let boss_changed = lobby.figure_out_lobby_boss();
+        let new_lobby_boss = lobby.boss;
+        if boss_changed {
+            println!("the boss of lobby: {} changed to client: {}", lobby_id, lobby.boss);
+        }
+
+        let cloned_lobby = lobby.clone();
+        self.send_message_to_lobby(lobby_id, RelayMessage::UpdatedLobby(cloned_lobby));
+
+        let leaving_message = RelayMessage::LeftLobby(client_id);
+        self.send_message_to_lobby(lobby_id, leaving_message.clone());
+
+        if self.close_lobby_if_empty(lobby_id) == false {
+            if boss_changed {
+                self.send_message_to_clients_lobby(client_id, RelayMessage::Boss(new_lobby_boss));
+            }
+        }
+
     }
 
     pub fn join_lobby(&mut self, lobby_id: LobbyID, client_id: LobbyClientID) {

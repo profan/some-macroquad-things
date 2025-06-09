@@ -9,20 +9,23 @@ use utility::RotatedBy;
 use crate::EntityID;
 use crate::model::GameMessage;
 
-
-use super::are_players_allied;
+use super::constructible_at_position;
+use super::existing_static_body_at_position;
+use super::existing_static_body_within_entity_bounds;
 use super::set_movement_target_to_position;
 use super::set_rotation_target_to_position;
 use super::Attacker;
 use super::BlueprintID;
 use super::DynamicBody;
-use super::EntityState;
 use super::Extractor;
 use super::PhysicsBody;
 use super::get_entity_position;
 use super::get_entity_position_from_id;
 use super::get_closest_position_with_entity_bounds;
 use super::{RymdGameModel, Constructor, Controller, Health, Orderable};
+
+pub const ARBITRARY_DISTANCE_THRESHOLD: f32 = 16.0;
+pub const ARBITRARY_DISTANCE_THRESHOLD_SQUARED: f32 = ARBITRARY_DISTANCE_THRESHOLD * ARBITRARY_DISTANCE_THRESHOLD;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum GameOrderType {
@@ -46,43 +49,43 @@ impl GameOrdersExt for LockstepClient {
 
     fn send_attack_order(&mut self, entity: Entity, target_entity: Entity, should_add: bool) {
         let attack_order = GameOrder::Attack(AttackOrder { entity_id: target_entity.to_bits().into() });
-        let attack_unit_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: attack_order, add: should_add };
+        let attack_unit_message = GameMessage::Order { entity: entity.to_bits().into(), order: attack_order, add: should_add };
         self.send_command(attack_unit_message.serialize_json());
     }
 
     fn send_attack_move_order(&mut self, entity: Entity, target_position: Vec2, should_add: bool) {
         let attack_move_order = GameOrder::AttackMove(AttackMoveOrder { x: target_position.x, y: target_position.y });
-        let attack_move_order_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: attack_move_order, add: should_add };
+        let attack_move_order_message = GameMessage::Order { entity: entity.to_bits().into(), order: attack_move_order, add: should_add };
         self.send_command(attack_move_order_message.serialize_json());  
     }
 
     fn send_move_order(&mut self, entity: Entity, target_position: Vec2, should_add: bool) {
         let move_order = GameOrder::Move(MoveOrder { x: target_position.x, y: target_position.y });
-        let move_unit_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: move_order, add: should_add };
+        let move_unit_message = GameMessage::Order { entity: entity.to_bits().into(), order: move_order, add: should_add };
         self.send_command(move_unit_message.serialize_json());
     }
 
     fn send_build_order(&mut self, entity: Entity, target_position: Vec2, blueprint_id: BlueprintID, should_add: bool, is_self: bool) {
         let build_order = GameOrder::Construct(ConstructOrder { entity_id: None, blueprint_id: Some(blueprint_id), is_self_order: is_self, x: target_position.x, y: target_position.y });
-        let build_unit_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: build_order, add: should_add || is_self };
+        let build_unit_message = GameMessage::Order { entity: entity.to_bits().into(), order: build_order, add: should_add || is_self };
         self.send_command(build_unit_message.serialize_json());
     }
 
     fn send_repair_order(&mut self, entity: Entity, target_position: Vec2, target: Entity, should_add: bool) {
         let build_order = GameOrder::Construct(ConstructOrder { entity_id: Some(target.to_bits().get()), blueprint_id: None, is_self_order: false, x: target_position.x, y: target_position.y });
-        let build_unit_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: build_order, add: should_add };
+        let build_unit_message = GameMessage::Order { entity: entity.to_bits().into(), order: build_order, add: should_add };
         self.send_command(build_unit_message.serialize_json());
     }
 
     fn cancel_current_orders(&mut self, entity: Entity) {
         let cancel_order = GameOrder::Cancel(CancelOrder {});
-        let cancel_order_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: cancel_order, add: false };
+        let cancel_order_message = GameMessage::Order { entity: entity.to_bits().into(), order: cancel_order, add: false };
         self.send_command(cancel_order_message.serialize_json());
     }
     
     fn send_extract_order(&mut self, entity: Entity, target: Entity, should_add: bool) {
         let extract_order = GameOrder::Extract(ExtractOrder { entity_id: target.to_bits().get() });
-        let extract_order_message = GameMessage::Order { entities: vec![entity.to_bits().into()], order: extract_order, add: should_add };
+        let extract_order_message = GameMessage::Order { entity: entity.to_bits().into(), order: extract_order, add: should_add };
         self.send_command(extract_order_message.serialize_json());
     }
 
@@ -189,9 +192,8 @@ pub struct MoveOrder {
 
 impl Order for MoveOrder {
     fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
-        let arbitrary_distance_threshold_squared = 64.0 * 64.0;
         let position = get_entity_position(&model.world, entity).expect("could not get position for move order, should never happen!");
-        position.distance_squared(vec2(self.x, self.y)) < arbitrary_distance_threshold_squared
+        position.distance_squared(vec2(self.x, self.y)) < ARBITRARY_DISTANCE_THRESHOLD_SQUARED
     }
 
     fn get_target_position(&self, model: &RymdGameModel) -> Option<Vec2> {
@@ -247,7 +249,7 @@ impl Order for AttackOrder {
     }
 
     fn on_completed(&self, entity: Entity, model: &mut RymdGameModel) {
-        set_movement_target_to_position(&mut model.world, entity, None);
+        set_movement_target_to_position(&model.world, entity, None);
     }
 
 }
@@ -260,9 +262,8 @@ pub struct AttackMoveOrder {
 
 impl Order for AttackMoveOrder {
     fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
-        let arbitrary_distance_threshold_squared = 64.0 * 64.0;
         let position = get_entity_position(&model.world, entity).expect("could not get position for attack move order, should never happen!");
-        position.distance_squared(vec2(self.x, self.y)) < arbitrary_distance_threshold_squared
+        position.distance_squared(vec2(self.x, self.y)) < ARBITRARY_DISTANCE_THRESHOLD_SQUARED
     }
 
     fn get_target_position(&self, model: &RymdGameModel) -> Option<Vec2> {
@@ -311,26 +312,6 @@ impl ConstructOrder {
     }
 }
 
-/// Returns the constructible entity intersecting with the specific position, if any
-fn constructible_at_position(world: &World, position: Vec2) -> Option<Entity> {
-    for (e, (body, health, state)) in world.query::<(&DynamicBody, &Health, &EntityState)>().iter() {
-        if body.bounds().contains(position) && *state == EntityState::Ghost {
-            return Some(e);
-        }
-    }
-    None
-}
-
-/// Returns true if there's an existing static body at the given position.
-fn existing_static_body_at_position(world: &World, position: Vec2) -> bool {
-    for (e, (body, health, state)) in world.query::<(&DynamicBody, &Health, &EntityState)>().iter() {
-        if body.bounds().contains(position) && body.is_static {
-            return true;
-        }
-    }
-    false
-}
-
 impl Order for ConstructOrder {
 
     fn is_order_completed(&self, entity: Entity, model: &RymdGameModel) -> bool {
@@ -361,21 +342,29 @@ impl Order for ConstructOrder {
 
     fn tick(&self, entity: Entity, model: &mut RymdGameModel, dt: f32) {
 
-        // we're building/repairing an existing construction, this could be tick 2 of the "constructing a blueprint" case
-        if let Some(entity_id) = self.entity_id && let Some(constructing_entity) = Entity::from_bits(entity_id) {
+        if let Some(current_constructor_target) = model.world.get::<&Constructor>(entity).expect("must have constructor to be issuing construct order!").current_target {
 
-            let target_position = get_entity_position_from_id(&model.world, entity_id).expect("could not unpack target position?");
+            let target_position = get_entity_position(&model.world, current_constructor_target).expect("could not unpack target position?");
+
             if self.is_self_order == false && self.is_within_constructor_range(entity, &model.world, target_position) == false {
                 set_movement_target_to_position(&model.world, entity, Some(target_position));
-                return;
             }
 
             if self.is_self_order == false && self.is_within_constructor_range(entity, &model.world, target_position) {
                 set_rotation_target_to_position(&model.world, entity, Some(target_position));
             }
 
+            return;
+            
+        }
+
+        // we're building/repairing an existing construction, this could be tick 2 of the "constructing a blueprint" case
+        if let Some(entity_id) = self.entity_id && let Some(constructing_entity) = Entity::from_bits(entity_id) {
+
             let mut constructor = model.world.get::<&mut Constructor>(entity).expect("must have constructor to be issuing construct order!");
             constructor.current_target = Some(constructing_entity);
+
+            return;
 
         }
 
@@ -389,6 +378,9 @@ impl Order for ConstructOrder {
             // issue order to go construct the new thing!
             self.construct_external_entity(entity, &mut model.world, existing_constructible, vec2(self.x, self.y));
 
+            info!("cancel!");
+
+            return;
         }
 
         // we're constructing something new given a blueprint
@@ -421,6 +413,8 @@ impl Order for ConstructOrder {
 
             }
 
+            return;
+
         }
 
     }
@@ -443,10 +437,13 @@ impl Order for ConstructOrder {
         }
 
         let our_position = get_entity_position(&model.world, entity).unwrap();
-        if self.is_self_order == false && existing_static_body_at_position(&model.world, our_position) && has_pending_orders(&model.world, entity, GameOrderType::Order) == false {
+        if self.is_self_order == false && existing_static_body_within_entity_bounds(&model.world, entity) && has_pending_orders(&model.world, entity, GameOrderType::Order) == false {
+
             let Some(constructed_entity) = self.entity() else { return; };
-            let Some(target_position) = Self::calculate_movement_position_out_of_constructor(our_position, model, constructed_entity, true) else { return; };
-            self.move_entity_to_position(entity, &mut model.world, target_position);
+            if let Some(target_position) = Self::calculate_movement_position_out_of_constructor(our_position, model, constructed_entity, true) {
+                self.move_entity_to_position(entity, &mut model.world, target_position);
+            }
+
         }
 
     }
@@ -533,16 +530,31 @@ impl ConstructOrder {
     }
 
     fn calculate_movement_position_out_of_constructor(position: Vec2, model: &mut RymdGameModel, entity: Entity, has_orderable: bool) -> Option<Vec2> {
-        let target_position = if let Ok(body) = model.world.get::<&DynamicBody>(entity) && has_orderable {
+
+        if has_orderable == false {
+            return None;
+        }
+
+        let Ok(body) = model.world.get::<&DynamicBody>(entity) else { return None };
+
+        let attempts = 10;
+        let mut target_position = Vec2::ZERO;
+
+        for i in 0..attempts {
+
             let angle_range = PI / 4.0;
             let random_angle = model.random.gen_range(-angle_range, angle_range);
             let dir_to_entity = (position - body.position()).normalize();
-            let target_position = body.position() + dir_to_entity.rotated_by(random_angle) * body.bounds.size().max_element();
-            Some(target_position)
-        } else {
-            None
-        };
-        target_position
+            target_position = body.position() + dir_to_entity.rotated_by(random_angle) * body.bounds.size().max_element();
+
+            if existing_static_body_at_position(&model.world, target_position) == false {
+                break;
+            }
+
+        }
+
+        Some(target_position)
+
     }
 
 }

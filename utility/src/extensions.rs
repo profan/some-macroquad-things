@@ -1,5 +1,4 @@
 use macroquad::prelude::*;
-use std::f32::consts::*;
 
 use crate::lerp;
 
@@ -63,15 +62,15 @@ impl LerpColor for Color {
 
 impl AsAngle for Vec2 {
     fn as_angle(&self) -> f32 {
-        self.angle_between(vec2(0.0, -1.0))
+        f32::atan2(self.y, self.x)
     }
 }
 
 impl AsVector for f32 {      
     fn as_vector(&self) -> Vec2 {
         vec2(
-            (self + (PI/2.0)).cos(),
-            (self + (PI/2.0)).sin()
+            self.cos(),
+            self.sin()
         )
     }
 }

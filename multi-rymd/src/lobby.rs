@@ -1,9 +1,7 @@
 use nanoserde::{DeJson, SerJson};
 
-use crate::game::{RymdGameModeChickensData, RymdGameModeConquestData};
-
 #[derive(Debug, Clone, SerJson, DeJson)]
-pub enum LobbyGameState {
-    Conquest(RymdGameModeConquestData),
-    Chickens(RymdGameModeChickensData)
+pub struct LobbyGameState {
+    pub game_mode_name: String,
+    pub game_mode_state: String
 }

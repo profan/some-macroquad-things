@@ -3,7 +3,7 @@ use macroquad::{color::Color, math::Rect, prelude::Vec2};
 use utility::{AsAngle, Kinematic};
 use crate::PlayerID;
 
-use super::{create_default_kinematic_body, create_impact_effect_in_buffer, create_muzzle_flash_effect_in_world, get_entity_physics_position, Beam, Controller, DynamicBody, DynamicBodyCallback, Effect, Health, PhysicsBody, Projectile, Sprite, Transform, SIMPLE_BEAM_PARAMETERS, SIMPLE_BULLET_PARAMETERS};
+use super::{create_default_kinematic_body, create_impact_effect_in_buffer, create_muzzle_flash_effect_in_world, get_entity_physics_position, get_player_team_allegiance, Beam, Controller, DynamicBody, DynamicBodyCallback, Effect, Health, PhysicsBody, Projectile, Sprite, Transform, SIMPLE_BEAM_PARAMETERS, SIMPLE_BULLET_PARAMETERS};
 
 #[derive(Clone, Copy, Debug)]
 pub struct BulletParameters {
@@ -41,7 +41,7 @@ fn on_bullet_impact(world: &World, buffer: &mut CommandBuffer, a: Entity, b: Ent
 
     let entity_a_physics_position = get_entity_physics_position(world, a).unwrap();
     let (position_on_target_radius, normal_on_targeted_entity) = get_position_and_normal_on_targeted_entity_relative_to(world, b_body, entity_a_physics_position);
-    create_impact_effect_in_buffer(buffer, position_on_target_radius, -normal_on_targeted_entity);
+    create_impact_effect_in_buffer(buffer, position_on_target_radius, normal_on_targeted_entity);
 
 }
 
@@ -67,9 +67,9 @@ fn create_bullet(world: &mut World, owner: PlayerID, position: Vec2, direction: 
     let is_static = false;
     let is_enabled = true;
     let bounds = parameters.bounds;
-    let mask = 1 << owner;
+    let mask = 1 << get_player_team_allegiance(world, owner);
     
-    let orientation = -direction.as_angle();
+    let orientation = (-direction).as_angle();
     let kinematic = Kinematic {
         mass: 0.1,
         ..create_default_kinematic_body(position, orientation)
@@ -101,9 +101,9 @@ fn create_beam(world: &mut World, owner: PlayerID, position: Vec2, direction: Ve
 
     let is_static = false;
     let is_enabled = true;
-    let mask = 1 << owner;
+    let mask = 1 << get_player_team_allegiance(world, owner);
     
-    let orientation = -direction.as_angle();
+    let orientation = direction.as_angle();
     let controller = Controller { id: owner };
     let transform = Transform::new(position, orientation, None);
     let beam = Beam { position, target: position + direction * beam_range, damage: beam_damage, fired: false, color: beam_color };

@@ -25,7 +25,7 @@ fn create_moon(position: Vec3) -> Moon {
 
 fn random_position_in_sphere(radius: f32) -> Vec3 {
 
-    let allow_negative = false;
+    let allow_negative = true;
     let min = if allow_negative { -1.0 } else { 0.1 };
     let max = 1.0;
 

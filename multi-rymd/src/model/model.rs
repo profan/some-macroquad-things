@@ -1,12 +1,10 @@
 use core::f32;
-use std::cell::RefCell;
 use std::collections::BTreeMap;
 
 use hecs::{CommandBuffer, Entity, World};
 use macroquad::*;
 use math::Vec2;
 use rand::RandGenerator;
-use rand::RandomRange;
 use utility::separation;
 use utility::AsVector;
 use utility::RotatedBy;
@@ -24,6 +22,8 @@ use crate::PlayerID;
 use super::are_players_allied;
 use super::are_players_hostile;
 use super::create_commissar_ship_blueprint;
+use super::create_dragonfly_ship_blueprint;
+use super::create_energy_converter_blueprint;
 use super::create_extractor_ship_blueprint;
 use super::create_grunt_ship_blueprint;
 use super::create_impact_effect_in_world;
@@ -36,6 +36,7 @@ use super::AnimatedSprite;
 use super::Beam;
 use super::Building;
 use super::BulletParameters;
+use super::Decayer;
 use super::ExtractOrder;
 use super::Extractor;
 use super::MovementTarget;
@@ -43,7 +44,6 @@ use super::OrdersExt;
 use super::PreviousTransform;
 use super::ResourceSource;
 use super::RotationTarget;
-use super::UnitState;
 use super::{create_simple_bullet, Effect};
 use super::get_entity_position;
 use super::point_entity_towards_target;
@@ -103,21 +103,25 @@ fn create_blue_side_blueprints() -> BTreeMap<i32, Blueprint> {
     let metal_storage_blueprint = create_metal_storage_blueprint();
     let energy_storage_blueprint = create_energy_storage_blueprint();
     let solar_collector_blueprint = create_solar_collector_blueprint();
+    let energy_converter_blueprint = create_energy_converter_blueprint();
     let shipyard_blueprint = create_shipyard_blueprint();
 
     blueprints.insert(metal_storage_blueprint.id, metal_storage_blueprint);
     blueprints.insert(energy_storage_blueprint.id, energy_storage_blueprint);
     blueprints.insert(solar_collector_blueprint.id, solar_collector_blueprint);
+    blueprints.insert(energy_converter_blueprint.id, energy_converter_blueprint);
     blueprints.insert(shipyard_blueprint.id, shipyard_blueprint);
 
     // units
     let commander_ship_blueprint = create_commander_ship_blueprint();
     let arrowhead_ship_blueprint = create_arrowhead_ship_blueprint();
     let extractor_ship_blueprint = create_extractor_ship_blueprint();
+    let dragonfly_ship_blueprint = create_dragonfly_ship_blueprint();
 
     blueprints.insert(commander_ship_blueprint.id, commander_ship_blueprint);
     blueprints.insert(arrowhead_ship_blueprint.id, arrowhead_ship_blueprint);
     blueprints.insert(extractor_ship_blueprint.id, extractor_ship_blueprint);
+    blueprints.insert(dragonfly_ship_blueprint.id, dragonfly_ship_blueprint);
 
     blueprints
 
@@ -211,17 +215,15 @@ impl RymdGameModel {
         self.world.clear();
     }
 
-    fn handle_order(&mut self, entities: &Vec<EntityID>, order: GameOrder, should_add: bool) {
+    fn handle_order(&mut self, entity_id: EntityID, order: GameOrder, should_add: bool) {
 
-        for &entity_id in entities {
-            let Some(entity) = Entity::from_bits(entity_id) else { continue; };
-            if let Ok(orderable) = self.world.query_one_mut::<&mut Orderable>(entity) {
-                if should_add {
-                    orderable.queue_order(order);
-                } else {
-                    orderable.cancel_orders(order.order_type());
-                    orderable.queue_order(order);
-                }
+        let Some(entity) = Entity::from_bits(entity_id) else { return };
+        if let Ok(orderable) = self.world.query_one_mut::<&mut Orderable>(entity) {
+            if should_add {
+                orderable.queue_order(order);
+            } else {
+                orderable.cancel_orders(order.order_type());
+                orderable.queue_order(order);
             }
         }
         
@@ -232,7 +234,7 @@ impl RymdGameModel {
         // println!("[RymdGameModel] got message: {:?}", message);
 
         match message {
-            GameMessage::Order { entities, order, add } => self.handle_order(entities, *order, *add),
+            GameMessage::Order { entity, order, add } => self.handle_order(*entity, *order, *add),
         }
 
     }
@@ -266,8 +268,8 @@ impl RymdGameModel {
     fn tick_powered_entities(&mut self) {
 
         for (e, (state, controller, consumer, _powered)) in self.world.query::<(&mut EntityState, &Controller, &Consumer, &Powered)>().iter() {
-            if *state == EntityState::Constructed {
-                if consumer.energy >= current_energy(controller.id, &self.world) {
+            if *state == EntityState::Constructed || *state == EntityState::Inactive {
+                if consumer.energy * Self::TIME_STEP >= current_energy(controller.id, &self.world) {
                     *state = EntityState::Inactive
                 } else {
                     *state = EntityState::Constructed;
@@ -295,7 +297,7 @@ impl RymdGameModel {
         for (e, (orderable, &state)) in self.world.query::<(&Orderable, &EntityState)>().iter() {
 
             if let Some(order) = orderable.first_order(order_type) && Self::is_processing_orders(state) {
-                if order.is_order_completed(e, &self) {
+                if order.is_order_completed(e, self) {
                     completed_orders.push(e);
                 } else {
                     in_progress_orders.push(e);
@@ -412,7 +414,7 @@ impl RymdGameModel {
 
             let steering_parameters = steering.parameters;
             let nearby_entities = self.spatial_manager.entities_within_radius(dynamic_body.position(), steering_parameters.separation_threshold);
-            let nearby_entities_with_dynamic_body = nearby_entities.filter(|o| e != *o).filter_map(|e| self.world.get::<&DynamicBody>(e).and_then(|b| Ok(b.kinematic.clone())).ok());
+            let nearby_entities_with_dynamic_body = nearby_entities.filter(|o| e != *o).filter_map(|e| self.world.get::<&DynamicBody>(e).map(|b| b.kinematic.clone()).ok());
 
             let steering_output = separation(
                 &dynamic_body.kinematic,
@@ -529,15 +531,20 @@ impl RymdGameModel {
 
         for (e, (controller, transform, attacker, projectile_weapon)) in self.world.query::<(&Controller, &Transform, &Attacker, &mut ProjectileWeapon)>().iter() {
 
-            if let Some(attacker) = attacker.target {
+            if let Some(target_entiy) = attacker.target {
 
                 if projectile_weapon.cooldown == 0.0 {
 
-                    let attacker_position = get_entity_position(&self.world, attacker).unwrap();
+                    let Some(target_position) = get_entity_position(&self.world, target_entiy) else { continue };
 
                     let attack_direction_deviation = self.random.random_binomial() * projectile_weapon.deviation;
-                    let attack_direction = (attacker_position - transform.world_position).normalize();
+                    let attack_direction = (target_position - transform.world_position).normalize();
                     let attack_direction_with_deviation = attack_direction.rotated_by(attack_direction_deviation);
+                    let is_in_attack_cone = transform.world_rotation.as_vector().dot(attack_direction).acos().abs() < projectile_weapon.fire_arc;
+
+                    if is_in_attack_cone == false {
+                        continue;
+                    }
 
                     let id = controller.id;
                     let creation_world_position = transform.world_position + projectile_weapon.offset.rotated_by(transform.world_rotation);
@@ -574,15 +581,20 @@ impl RymdGameModel {
 
         for (e, (controller, transform, attacker, beam_weapon)) in self.world.query::<(&Controller, &Transform, &Attacker, &mut BeamWeapon)>().iter() {
 
-            if let Some(attacker) = attacker.target {
+            if let Some(target_entity) = attacker.target {
 
                 if beam_weapon.cooldown == 0.0 {
 
-                    let attacker_position = get_entity_position(&self.world, attacker).unwrap();
+                    let Some(target_position) = get_entity_position(&self.world, target_entity) else { continue };
 
                     let attack_direction_deviation = self.random.random_binomial() * beam_weapon.deviation;
-                    let attack_direction = (attacker_position - transform.world_position).normalize();
+                    let attack_direction = (target_position - transform.world_position).normalize();
                     let attack_direction_with_deviation = attack_direction.rotated_by(attack_direction_deviation);
+                    let is_in_attack_cone = transform.world_rotation.as_vector().dot(attack_direction).acos().abs() < beam_weapon.fire_arc;
+
+                    if is_in_attack_cone == false {
+                        continue;
+                    }
 
                     let id = controller.id;
                     let creation_world_position = transform.world_position + beam_weapon.offset.rotated_by(transform.world_rotation);
@@ -712,6 +724,28 @@ impl RymdGameModel {
             let entity_repair_health = entity_health_regain_amount * Self::TIME_STEP;
             entity_health.heal(entity_repair_health);
             
+        }
+
+    }
+
+    fn tick_decayers(&mut self) {
+
+        for (e, (&state, health, decayer)) in self.world.query::<(&EntityState, &mut Health, &mut Decayer)>().iter() {
+
+            // percentage of the health of this unit that should decay per second, or should it be a flat amount of metal/energy per second? for now it's a percentage
+            let decay_fraction = 0.1 * Self::TIME_STEP;
+
+            if state != EntityState::Ghost {
+                return;
+            }
+
+            let should_decay = decayer.last_entity_health == health.current_health();
+            decayer.last_entity_health = health.current_health();
+
+            if should_decay {
+                health.damage_fraction(decay_fraction);
+            }
+
         }
 
     }
@@ -951,9 +985,7 @@ impl RymdGameModel {
 
     //#[profiling::function]
     fn tick_physics_engine(&mut self) {
-        self.physics_manager.integrate(&mut self.world);
-        self.physics_manager.handle_overlaps(&mut self.world, &self.spatial_manager);
-        self.physics_manager.handle_collisions(&mut self.world);
+        self.physics_manager.tick(&mut self.world);
     }
 
     //#[profiling::function]
@@ -1045,8 +1077,11 @@ impl RymdGameModel {
     }
 
     pub fn is_entity_attackable_by(&self, attacking_controller_id: PlayerID, entity: Entity) -> bool {
-        let controller = self.world.get::<&Controller>(entity).expect("must have controller!");
-        self.is_controller_attackable_by(attacking_controller_id, &controller) && self.world.get::<&Attackable>(entity).is_ok()
+        if let Ok(controller) = self.world.get::<&Controller>(entity) {
+            self.is_controller_attackable_by(attacking_controller_id, &controller) && self.world.get::<&Attackable>(entity).is_ok()
+        } else {
+            false
+        }
     }
 
     pub fn tick(&mut self) {
@@ -1069,6 +1104,7 @@ impl RymdGameModel {
         self.tick_effects();
         self.tick_constructors();
         self.tick_extractors();
+        self.tick_decayers();
         self.tick_physics_engine();
         self.tick_spatial_engine();
         self.tick_transform_updates();

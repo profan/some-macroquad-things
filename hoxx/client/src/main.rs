@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use camera::GameCamera2D;
 use drawing::draw_hex;
 use hexx::Hex;
-use hoxx_shared::{utils::{trace_hex_boundary}, ClientColor, ClientID, ClientMessage, GameState, HEX_SIZE, IS_RUNNING_LOCALLY, SERVER_ADDRESS, SERVER_INTERNAL_PORT};
+use hoxx_shared::{utils::trace_hex_boundary, ClientColor, ClientID, ClientMessage, GameState, HEX_SIZE, IS_RUNNING_LOCALLY, SERVER_ADDRESS, SERVER_INTERNAL_PORT};
 use macroquad::{experimental::camera::mouse, prelude::*};
 use nanoserde::{DeJson, SerJson};
 use network::{ConnectionState, NetworkClient};
