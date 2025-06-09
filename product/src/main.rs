@@ -2,7 +2,7 @@
 use std::f32::consts::PI;
 
 use macroquad::prelude::*;
-use utility::{draw_arrow, DebugText};
+use utility::{draw_arrow, draw_text_centered, DebugText, RotatedBy};
 
 fn window_conf() -> Conf {
     Conf {
@@ -10,6 +10,20 @@ fn window_conf() -> Conf {
         sample_count: 4,
         ..Default::default()
     }
+}
+
+fn draw_arc(start: Vec2, end: Vec2, center: Vec2, segments: i32, thickness: f32, color: Color) {
+
+    let a_t = (start - center).angle_between(end - center);
+    let a_i = a_t / segments as f32;
+
+    let mut c = start;
+    for i in 1..=segments  {
+        let n = start.rotated_by_around_origin(a_i * i as f32, center);
+        draw_line(c.x, c.y, n.x, n.y, thickness, color);
+        c = n;
+    }
+
 }
 
 #[macroquad::main(window_conf)]
@@ -61,6 +75,16 @@ async fn main() {
 
         let a = if n_p < 0.0 { n_d.acos() } else { -n_d.acos() };
         debug_text.draw_text(format!("angle between (normalized) vector and target = {:.2} degrees ({:.2} radians, {:.2} pi)", a.to_degrees(), a, a / PI), utility::TextPosition::TopLeft, BLACK);
+
+        let start = vec2(c_x, c_y) + (vec2(m_x, m_y) - vec2(c_x, c_y)) * 0.1;
+        let end = vec2(c_x, c_y) + (vec2(ts_x, ts_y) - vec2(c_x, c_y)) * 0.1;
+        draw_arc(start, end, vec2(c_x, c_y), 8, 2.0, ORANGE);
+
+        let start_t = vec2(c_x, c_y) + (vec2(m_x, m_y) - vec2(c_x, c_y)) * 0.5;
+        let end_t = vec2(c_x, c_y) + (vec2(ts_x, ts_y) - vec2(c_x, c_y)) * 0.5;
+        let centroid = (start_t + end_t) / 2.0;
+
+        draw_text_centered(&format!("{:.0}°", a.to_degrees()), centroid.x, centroid.y, 24.0, BLACK);
 
         next_frame().await;
 
