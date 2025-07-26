@@ -4,6 +4,9 @@ pub use curve::*;
 mod camera;
 pub use camera::*;
 
+mod camera_2d;
+pub use camera_2d::*;
+
 mod debug;
 pub use debug::*;
 
