@@ -6,11 +6,11 @@ use utility::{DebugText, GameCamera2D};
 
 struct VertexData {
     position: Vec2,
-    place: bool
+    is_place: bool
 }
 
 struct EdgeData {
-    marked: bool
+    is_place_connection: bool
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
@@ -73,7 +73,7 @@ fn generate_square_grid_graph(grid_world_size: i32, grid_cell_size: i32) -> Grap
     for idx in 0 .. number_of_grid_cells {
         nodes.push(Vertex(idx));
         let vertex_position = idx_to_grid_position(idx, grid_cell_count) * grid_cell_size;
-        node_data.insert(Vertex(idx), VertexData { position: vec2(vertex_position.x as f32, vertex_position.y as f32), place: false });
+        node_data.insert(Vertex(idx), VertexData { position: vec2(vertex_position.x as f32, vertex_position.y as f32), is_place: false });
     }
 
     for x in 0..grid_cell_count {
@@ -88,28 +88,28 @@ fn generate_square_grid_graph(grid_world_size: i32, grid_cell_size: i32) -> Grap
                 let source_idx = grid_position_to_idx(x, y, grid_cell_count);
                 let target_idx = grid_position_to_idx(top.x, top.y, grid_cell_count);
                 edges.push(Edge { source: Vertex(source_idx), target: Vertex(target_idx) });
-                edge_data.insert((Vertex(source_idx), Vertex(target_idx)), EdgeData { marked: false });
+                edge_data.insert((Vertex(source_idx), Vertex(target_idx)), EdgeData { is_place_connection: false });
             }
 
             if is_within_bounds(right.x, right.y, grid_cell_count) {
                 let source_idx = grid_position_to_idx(x, y, grid_cell_count);
                 let target_idx = grid_position_to_idx(right.x, right.y, grid_cell_count);
                 edges.push(Edge { source: Vertex(source_idx), target: Vertex(target_idx) });
-                edge_data.insert((Vertex(source_idx), Vertex(target_idx)), EdgeData { marked: false });
+                edge_data.insert((Vertex(source_idx), Vertex(target_idx)), EdgeData { is_place_connection: false });
             }
 
             if is_within_bounds(bottom.x, bottom.y, grid_cell_count) {
                 let source_idx = grid_position_to_idx(x, y, grid_cell_count);
                 let target_idx = grid_position_to_idx(bottom.x, bottom.y, grid_cell_count);
                 edges.push(Edge { source: Vertex(source_idx), target: Vertex(target_idx) });
-                edge_data.insert((Vertex(source_idx), Vertex(target_idx)), EdgeData { marked: false });
+                edge_data.insert((Vertex(source_idx), Vertex(target_idx)), EdgeData { is_place_connection: false });
             }
 
             if is_within_bounds(left.x, left.y, grid_cell_count) {
                 let source_idx = grid_position_to_idx(x, y, grid_cell_count);
                 let target_idx = grid_position_to_idx(left.x, left.y, grid_cell_count);
                 edges.push(Edge { source: Vertex(source_idx), target: Vertex(target_idx) });
-                edge_data.insert((Vertex(source_idx), Vertex(target_idx)), EdgeData { marked: false });
+                edge_data.insert((Vertex(source_idx), Vertex(target_idx)), EdgeData { is_place_connection: false });
             }
 
         }
@@ -128,7 +128,7 @@ fn generate_random_places_on_grid(state: &mut WorldState) {
     for _ in 0..number_of_random_nodes {
         let random_vertex = state.graph.nodes[gen_range(0, state.graph.nodes.len())];
         let vertex_data = state.graph.node_data.get_mut(&random_vertex).unwrap();
-        vertex_data.place = true;
+        vertex_data.is_place = true;
     }
 
 }
@@ -215,7 +215,7 @@ fn astar(source: Vertex, target: Vertex, graph: &Graph) -> Vec<Vertex> {
 
 fn connect_random_places_on_grid(state: &mut WorldState) {
 
-    let all_unvisited_places: Vec<Vertex> = state.graph.nodes.iter().filter(|n| state.graph.node_data[n].place).map(|v| *v).collect();
+    let all_unvisited_places: Vec<Vertex> = state.graph.nodes.iter().filter(|n| state.graph.node_data[n].is_place).map(|v| *v).collect();
     let mut unvisited_places = all_unvisited_places;
 
     if unvisited_places.len() < 2 {
@@ -242,7 +242,7 @@ fn connect_random_places_on_grid(state: &mut WorldState) {
             if i + 1 < path.len() {
                 let next_node = path[i + 1];
                 let edge_data = state.graph.edge_data.get_mut(&(current_node, next_node)).unwrap();
-                edge_data.marked = true;
+                edge_data.is_place_connection = true;
             }
         }
 
@@ -270,7 +270,7 @@ fn draw_graph(graph: &Graph) {
         let data = &graph.node_data[vertex];
         let position = data.position;
         
-        if data.place {
+        if data.is_place {
             draw_circle(position.x, position.y, vertex_radius * place_vertex_thickness_multiplier, BLACK);
         } else {
             draw_circle(position.x, position.y, vertex_radius, BLACK);
@@ -282,7 +282,7 @@ fn draw_graph(graph: &Graph) {
         let pos_target = &graph.node_data[&edge.target].position;
         let data = &graph.edge_data[&(edge.source, edge.target)];
 
-        if data.marked {
+        if data.is_place_connection {
             draw_line(pos_source.x, pos_source.y, pos_target.x, pos_target.y, edge_thickness * path_edge_thickness_multiplier, BLACK);
         } else {
             draw_line(pos_source.x, pos_source.y, pos_target.x, pos_target.y, edge_thickness, BLACK);
