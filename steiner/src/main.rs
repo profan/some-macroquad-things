@@ -185,7 +185,7 @@ fn astar(source: Vertex, target: Vertex, graph: &Graph) -> Vec<Vertex> {
     g_score.insert(source, 0.0);
     f_score.insert(source, h(source));
 
-    while open_set.len() > 0 {
+    while open_set.is_empty() == false {
 
         // #NOTE: this is absolutel beyond heinous, but the point of this example is not an efficient A* implementation, it is demonstrating steiner trees on graphs
         let current: Vertex = *open_set.iter().min_by(|a, b| f_score.get(&a).unwrap_or(&f32::MAX).partial_cmp(&f_score.get(&b).unwrap_or(&f32::MAX)).unwrap()).unwrap();
@@ -225,7 +225,7 @@ fn connect_random_places_on_grid(state: &mut WorldState) {
     let random_first_visited_place = unvisited_places.remove(gen_range(0, unvisited_places.len()));
     let mut visited_places = vec![random_first_visited_place];
 
-    while unvisited_places.len() > 0 {
+    while unvisited_places.is_empty() == false {
 
         let (visited_place_idx, unvisited_place_idx) = find_closest_visited_place_and_unvisited_place(&visited_places, &unvisited_places, |v| state.graph.node_data[&v].position);
 
