@@ -187,6 +187,7 @@ fn astar(source: Vertex, target: Vertex, graph: &Graph) -> Vec<Vertex> {
 
     while open_set.len() > 0 {
 
+        // #NOTE: this is absolutel beyond heinous, but the point of this example is not an efficient A* implementation, it is demonstrating steiner trees on graphs
         let current: Vertex = *open_set.iter().min_by(|a, b| f_score.get(&a).unwrap_or(&f32::MAX).partial_cmp(&f_score.get(&b).unwrap_or(&f32::MAX)).unwrap()).unwrap();
         if current == target {
             return reconstruct_path(&came_from, current);
