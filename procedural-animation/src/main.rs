@@ -757,7 +757,7 @@ fn create_default_scene(game: &mut Game) {
 
     // add a bunch of characters around 0, 0, 0
 
-    let area_size = 1;
+    let area_size = 10;
 
     for x in -area_size..area_size {
 
@@ -811,7 +811,15 @@ fn handle_reset_world_state(game: &mut Game) {
 
 }
 
-#[macroquad::main("procedural-animation")]
+fn window_conf() -> Conf {
+    Conf {
+        window_title: "procedural-animation".to_owned(),
+        sample_count: 4,
+        ..Default::default()
+    }
+}
+
+#[macroquad::main(window_conf)]
 async fn main() {
 
     let mut game = Game::new();
