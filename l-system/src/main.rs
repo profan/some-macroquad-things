@@ -1,6 +1,6 @@
 use std::{collections::HashMap, f32::consts::PI};
 use macroquad::{prelude::*, ui::{hash, root_ui}};
-use utility::{AdjustHue, AsAngle, RotatedBy};
+use utility::{AdjustHue, AsAngle, GameCamera2D, RotatedBy};
 
 #[derive(Debug)]
 struct LSystem {
@@ -45,10 +45,12 @@ fn window_conf() -> Conf {
     }
 }
 
-fn draw_l_system_as_tree(l_system: &LSystem, angle: f32, length: f32) {
+fn draw_l_system_as_tree(l_system: &LSystem, draw_forward_characters: &str, angle: f32, length: f32) {
 
     let w = screen_width();
     let h = screen_height();
+
+    let angle_radians = angle.to_radians();
 
     let thickness = 1.0;
     let mut position = vec2(w / 2.0, h);
@@ -61,16 +63,16 @@ fn draw_l_system_as_tree(l_system: &LSystem, angle: f32, length: f32) {
     for c in l_system.state.chars() {
 
         match c {
-            'F' => {
+            v if draw_forward_characters.contains(v) => {
                 position = position + rotation;
                 color.r += (1.0 / 255.0) * rotation.normalize().as_angle() % PI / 2.0;
             },
             '-' => {
-                rotation = rotation.rotated_by(-angle);
+                rotation = rotation.rotated_by(-angle_radians);
                 color.g += (1.0 / 255.0) * rotation.normalize().as_angle() % PI / 2.0;
             },
             '+' => {
-                rotation = rotation.rotated_by(angle);
+                rotation = rotation.rotated_by(angle_radians);
                 color.b += (1.0 / 255.0) * rotation.normalize().as_angle() % PI / 2.0;
             },
             '[' => {
@@ -95,11 +97,13 @@ fn draw_l_system_as_tree(l_system: &LSystem, angle: f32, length: f32) {
 async fn main() {
 
     let mut l_system = LSystem::new("");
+    let mut camera = GameCamera2D::new();
 
-    let mut current_branch_bend_angle = 0.45;
+    let mut current_branch_bend_angle = 25.0;
     let mut current_branch_length = 1.5;
 
     let mut current_initial_state = "X".to_string();
+    let mut current_draw_forward_characters = "F".to_string();
     let mut current_number_of_steps = 6;
 
     let mut current_number_of_steps_str = current_number_of_steps.to_string();
@@ -115,13 +119,15 @@ async fn main() {
 
     loop {
 
+        let dt = get_frame_time();
         clear_background(BLACK.lighten(0.1));
 
-        let window_height = 220.0 + current_rules.len() as f32 * 16.0;
+        let window_height = 240.0 + current_rules.len() as f32 * 16.0;
         root_ui().window(hash!(), vec2(32.0, 64.0), vec2(384.0, window_height), |w| {
 
             w.label(None, "initial system state");
             w.input_text(hash!(), "state", &mut current_initial_state);
+            w.input_text(hash!(), "draw forward characters", &mut current_draw_forward_characters);
             w.input_text(hash!(), "number of steps", &mut current_number_of_steps_str);
             current_number_of_steps = current_number_of_steps_str.parse().unwrap_or(6);
 
@@ -166,16 +172,17 @@ async fn main() {
 
             }
 
-            current_branch_bend_angle = current_branch_bend_angle_str.parse().unwrap_or(0.45);
+            current_branch_bend_angle = current_branch_bend_angle_str.parse().unwrap_or(25.0);
             current_branch_length = current_branch_length_str.parse().unwrap_or(1.5);
-
-            if is_key_pressed(KeyCode::Enter) {
-                w.clear_input_focus();
-            }
 
         });
 
-        draw_l_system_as_tree(&l_system, current_branch_bend_angle, -current_branch_length);
+
+        camera.push();
+        draw_l_system_as_tree(&l_system, &current_draw_forward_characters, current_branch_bend_angle, -current_branch_length);
+        camera.pop();
+        camera.tick(dt);
+        
         next_frame().await;
 
     }
