@@ -1,6 +1,6 @@
 use std::{collections::HashMap, f32::consts::PI};
 use macroquad::{prelude::*, ui::{hash, root_ui}};
-use utility::{AdjustHue, AsAngle, GameCamera2D, RotatedBy};
+use utility::{wrap, AdjustHue, AsAngle, GameCamera2D, RotatedBy};
 
 #[derive(Debug)]
 struct LSystem {
@@ -99,20 +99,42 @@ async fn main() {
     let mut l_system = LSystem::new("");
     let mut camera = GameCamera2D::new();
 
-    let mut current_branch_bend_angle = 25.0;
-    let mut current_branch_length = 1.5;
+    let mut current_branch_bend_angle = 60.0;
+    let mut current_branch_length = 2.0;
 
-    let mut current_initial_state = "X".to_string();
-    let mut current_draw_forward_characters = "F".to_string();
-    let mut current_number_of_steps = 6;
+    let mut current_initial_state = "F".to_string();
+    let mut current_draw_forward_characters = "FG".to_string();
+    let mut current_number_of_steps = 8;
 
     let mut current_number_of_steps_str = current_number_of_steps.to_string();
     let mut current_branch_bend_angle_str = current_branch_bend_angle.to_string();
     let mut current_branch_length_str = current_branch_length.to_string();
     let mut current_rules: Vec<String> = vec![
-        "X=F-[[X]+X]+F[+FX]-X".to_string(),
-        "F=FF".to_string()
+        "F=F-[G+F+G]-F".to_string(),
+        "G=GG".to_string()
     ];
+
+
+    let mut current_branch_bend_angle_start = current_branch_bend_angle;
+    let mut current_branch_bend_angle_end = current_branch_bend_angle;
+    let mut current_branch_bend_interpolation_speed = 10.0;
+    let mut current_branch_bend_interpolation_up = true;
+
+    let mut current_branch_bend_angle_start_str = current_branch_bend_angle.to_string();
+    let mut current_branch_bend_angle_end_str = current_branch_bend_angle.to_string();
+    let mut current_branch_bend_interpolation_speed_str = current_branch_bend_interpolation_speed.to_string();
+
+    let mut current_branch_branch_length_start = current_branch_length;
+    let mut current_branch_branch_length_end = current_branch_length;
+    let mut current_branch_length_interpolation_speed = 1.0;
+    let mut current_branch_length_interpolation_up = true;
+
+    let mut current_branch_branch_length_start_str = current_branch_length.to_string();
+    let mut current_branch_branch_length_end_str = current_branch_length.to_string();
+    let mut current_branch_length_interpolation_speed_str = current_branch_length_interpolation_speed.to_string();
+
+    let mut should_interpolate_current_bend_angle = false;
+    let mut should_interpolate_current_branch_length = false;
 
     // will re-evaluate the tree on next go around
     let mut should_reevaluate = true;
@@ -132,8 +154,45 @@ async fn main() {
             current_number_of_steps = current_number_of_steps_str.parse().unwrap_or(6);
 
             w.label(None, "tree parameters");
-            w.input_text(hash!(), "branch bend angle", &mut current_branch_bend_angle_str);
-            w.input_text(hash!(), "branch length", &mut current_branch_length_str);
+
+            if should_interpolate_current_bend_angle == false {
+                w.input_text(hash!(), "branch bend angle", &mut current_branch_bend_angle_str);
+                current_branch_bend_angle = current_branch_bend_angle_str.parse().unwrap_or(current_branch_bend_angle);
+            }
+
+            // let mut last_should_interpolate_bend_angle_state = should_interpolate_current_bend_angle;
+            w.checkbox(hash!(), "interpolate bend angle?", &mut should_interpolate_current_bend_angle);
+            // let should_interpolate_bend_angle_state_changed = should_interpolate_current_bend_angle != last_should_interpolate_bend_angle_state;
+
+            if should_interpolate_current_bend_angle {
+                w.input_text(hash!(), "branch bend angle start", &mut current_branch_bend_angle_start_str);
+                w.input_text(hash!(), "branch bend angle end", &mut current_branch_bend_angle_end_str);
+                w.input_text(hash!(), "branch bend interpolation speed", &mut current_branch_bend_interpolation_speed_str);
+
+                // if should_interpolate_bend_angle_state_changed {
+                //     current_branch_bend_angle = current_branch_bend_angle_start
+                // }
+
+                current_branch_bend_angle_start = current_branch_bend_angle_start_str.parse().unwrap_or(current_branch_bend_angle_start);
+                current_branch_bend_angle_end = current_branch_bend_angle_end_str.parse().unwrap_or(current_branch_bend_angle_end);
+                current_branch_bend_interpolation_speed = current_branch_bend_interpolation_speed_str.parse().unwrap_or(current_branch_bend_interpolation_speed);
+            }
+
+            if should_interpolate_current_branch_length == false {
+                w.input_text(hash!(), "branch length", &mut current_branch_length_str);
+                current_branch_length = current_branch_length_str.parse().unwrap_or(current_branch_length);
+            }
+
+            w.checkbox(hash!(), "interpolate branch length?", &mut should_interpolate_current_branch_length);
+            if should_interpolate_current_branch_length {
+                w.input_text(hash!(), "branch branch length start", &mut current_branch_branch_length_start_str);
+                w.input_text(hash!(), "branch branch length end", &mut current_branch_branch_length_end_str);
+                w.input_text(hash!(), "branch length interpolation speed", &mut current_branch_length_interpolation_speed_str);
+
+                current_branch_branch_length_start = current_branch_branch_length_start_str.parse().unwrap_or(current_branch_branch_length_start);
+                current_branch_branch_length_end = current_branch_branch_length_end_str.parse().unwrap_or(current_branch_branch_length_end);
+                current_branch_length_interpolation_speed = current_branch_length_interpolation_speed_str.parse().unwrap_or(current_branch_length_interpolation_speed);
+            }
 
             w.label(None, "rule parameters");
 
@@ -172,13 +231,41 @@ async fn main() {
 
             }
 
-            current_branch_bend_angle = current_branch_bend_angle_str.parse().unwrap_or(25.0);
-            current_branch_length = current_branch_length_str.parse().unwrap_or(1.5);
-
         });
 
-
         camera.push();
+
+        let angle_interpolation_direction = if current_branch_bend_interpolation_up { 1.0 } else { -1.0 };
+        let length_interpolation_direction = if current_branch_length_interpolation_up { 1.0 } else { -1.0 };
+
+        if should_interpolate_current_bend_angle {
+
+            let last_branch_bend_angle_end: f32 = current_branch_bend_angle_end;
+            current_branch_bend_angle_end = current_branch_bend_angle_end.max(current_branch_bend_angle_start);
+            current_branch_bend_angle_start = current_branch_bend_angle_start.min(last_branch_bend_angle_end);
+
+            current_branch_bend_angle = (current_branch_bend_angle + angle_interpolation_direction * current_branch_bend_interpolation_speed * dt).clamp(current_branch_bend_angle_start, current_branch_bend_angle_end);
+            if current_branch_bend_angle <= current_branch_bend_angle_start {
+                current_branch_bend_interpolation_up = true
+            } else if current_branch_bend_angle >= current_branch_bend_angle_end {
+                current_branch_bend_interpolation_up = false;
+            }
+        }
+
+        if should_interpolate_current_branch_length {
+
+            let last_branch_length_angle_end: f32 = current_branch_branch_length_end;
+            current_branch_branch_length_end = current_branch_branch_length_end.max(current_branch_branch_length_start);
+            current_branch_branch_length_start = current_branch_branch_length_start.min(last_branch_length_angle_end);
+            
+            current_branch_length = (current_branch_length + length_interpolation_direction * current_branch_length_interpolation_speed * dt).clamp(current_branch_branch_length_start, current_branch_branch_length_end);
+            if current_branch_length <= current_branch_branch_length_start {
+                current_branch_length_interpolation_up = true
+            } else if current_branch_length >= current_branch_branch_length_end {
+                current_branch_length_interpolation_up = false;
+            }
+        }
+
         draw_l_system_as_tree(&l_system, &current_draw_forward_characters, current_branch_bend_angle, -current_branch_length);
         camera.pop();
         camera.tick(dt);
