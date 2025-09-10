@@ -136,6 +136,9 @@ async fn main() {
     let mut should_interpolate_current_bend_angle = false;
     let mut should_interpolate_current_branch_length = false;
 
+    // allow toggling the ui to make it a nice screensaver thing?
+    let mut should_render_debug_ui = true;
+
     // will re-evaluate the tree on next go around
     let mut should_reevaluate = true;
 
@@ -144,94 +147,102 @@ async fn main() {
         let dt = get_frame_time();
         clear_background(BLACK.lighten(0.1));
 
-        let window_height = 240.0 + current_rules.len() as f32 * 16.0;
-        root_ui().window(hash!(), vec2(32.0, 64.0), vec2(384.0, window_height), |w| {
+        if is_key_pressed(KeyCode::K) {
+            should_render_debug_ui = !should_render_debug_ui;
+        }
 
-            w.label(None, "initial system state");
-            w.input_text(hash!(), "state", &mut current_initial_state);
-            w.input_text(hash!(), "draw forward characters", &mut current_draw_forward_characters);
-            w.input_text(hash!(), "number of steps", &mut current_number_of_steps_str);
-            current_number_of_steps = current_number_of_steps_str.parse().unwrap_or(6);
+        if should_render_debug_ui {
 
-            w.label(None, "tree parameters");
+            let window_height = 280.0 + current_rules.len() as f32 * 16.0;
+            root_ui().window(hash!(), vec2(32.0, 64.0), vec2(384.0, window_height), |w| {
 
-            if should_interpolate_current_bend_angle == false {
-                w.input_text(hash!(), "branch bend angle", &mut current_branch_bend_angle_str);
-                current_branch_bend_angle = current_branch_bend_angle_str.parse().unwrap_or(current_branch_bend_angle);
-            }
+                w.label(None, "initial system state");
+                w.input_text(hash!(), "state", &mut current_initial_state);
+                w.input_text(hash!(), "draw forward characters", &mut current_draw_forward_characters);
+                w.input_text(hash!(), "number of steps", &mut current_number_of_steps_str);
+                current_number_of_steps = current_number_of_steps_str.parse().unwrap_or(6);
 
-            // let mut last_should_interpolate_bend_angle_state = should_interpolate_current_bend_angle;
-            w.checkbox(hash!(), "interpolate bend angle?", &mut should_interpolate_current_bend_angle);
-            // let should_interpolate_bend_angle_state_changed = should_interpolate_current_bend_angle != last_should_interpolate_bend_angle_state;
+                w.label(None, "tree parameters");
 
-            if should_interpolate_current_bend_angle {
-                w.input_text(hash!(), "branch bend angle start", &mut current_branch_bend_angle_start_str);
-                w.input_text(hash!(), "branch bend angle end", &mut current_branch_bend_angle_end_str);
-                w.input_text(hash!(), "branch bend interpolation speed", &mut current_branch_bend_interpolation_speed_str);
-
-                // if should_interpolate_bend_angle_state_changed {
-                //     current_branch_bend_angle = current_branch_bend_angle_start
-                // }
-
-                current_branch_bend_angle_start = current_branch_bend_angle_start_str.parse().unwrap_or(current_branch_bend_angle_start);
-                current_branch_bend_angle_end = current_branch_bend_angle_end_str.parse().unwrap_or(current_branch_bend_angle_end);
-                current_branch_bend_interpolation_speed = current_branch_bend_interpolation_speed_str.parse().unwrap_or(current_branch_bend_interpolation_speed);
-            }
-
-            if should_interpolate_current_branch_length == false {
-                w.input_text(hash!(), "branch length", &mut current_branch_length_str);
-                current_branch_length = current_branch_length_str.parse().unwrap_or(current_branch_length);
-            }
-
-            w.checkbox(hash!(), "interpolate branch length?", &mut should_interpolate_current_branch_length);
-            if should_interpolate_current_branch_length {
-                w.input_text(hash!(), "branch branch length start", &mut current_branch_branch_length_start_str);
-                w.input_text(hash!(), "branch branch length end", &mut current_branch_branch_length_end_str);
-                w.input_text(hash!(), "branch length interpolation speed", &mut current_branch_length_interpolation_speed_str);
-
-                current_branch_branch_length_start = current_branch_branch_length_start_str.parse().unwrap_or(current_branch_branch_length_start);
-                current_branch_branch_length_end = current_branch_branch_length_end_str.parse().unwrap_or(current_branch_branch_length_end);
-                current_branch_length_interpolation_speed = current_branch_length_interpolation_speed_str.parse().unwrap_or(current_branch_length_interpolation_speed);
-            }
-
-            w.label(None, "rule parameters");
-
-            let mut rules_to_delete = Vec::new();
-            for (idx, ref mut pattern_and_replacement) in current_rules.iter_mut().enumerate() {
-                w.input_text(hash!(idx), "pattern = replacement", pattern_and_replacement);
-                w.same_line(180.0);
-                if w.button(None, "x") {
-                    rules_to_delete.push(idx);
+                if should_interpolate_current_bend_angle == false {
+                    w.input_text(hash!(), "branch bend angle", &mut current_branch_bend_angle_str);
+                    current_branch_bend_angle = current_branch_bend_angle_str.parse().unwrap_or(current_branch_bend_angle);
                 }
-            }
 
-            for rule_idx in rules_to_delete {
-                current_rules.swap_remove(rule_idx);
-            }
+                // let mut last_should_interpolate_bend_angle_state = should_interpolate_current_bend_angle;
+                w.checkbox(hash!(), "interpolate bend angle?", &mut should_interpolate_current_bend_angle);
+                // let should_interpolate_bend_angle_state_changed = should_interpolate_current_bend_angle != last_should_interpolate_bend_angle_state;
 
-            if w.button(None, "add rule") {
-                current_rules.push(String::new());
-            }
+                if should_interpolate_current_bend_angle {
+                    w.input_text(hash!(), "branch bend angle start", &mut current_branch_bend_angle_start_str);
+                    w.input_text(hash!(), "branch bend angle end", &mut current_branch_bend_angle_end_str);
+                    w.input_text(hash!(), "branch bend interpolation speed", &mut current_branch_bend_interpolation_speed_str);
 
-            if w.button(None, "evaluate") || should_reevaluate {
+                    // if should_interpolate_bend_angle_state_changed {
+                    //     current_branch_bend_angle = current_branch_bend_angle_start
+                    // }
 
-                l_system = LSystem::new(current_initial_state.clone());
-                
-                for pattern_and_replacement in &current_rules {            
-                    let split_elements: Vec<&str> = pattern_and_replacement.split("=").collect();
-                    if split_elements.len() == 2 {
-                        let pattern = split_elements[0];
-                        let replacement = split_elements[1];
-                        l_system.add_rule(pattern, replacement);
+                    current_branch_bend_angle_start = current_branch_bend_angle_start_str.parse().unwrap_or(current_branch_bend_angle_start);
+                    current_branch_bend_angle_end = current_branch_bend_angle_end_str.parse().unwrap_or(current_branch_bend_angle_end);
+                    current_branch_bend_interpolation_speed = current_branch_bend_interpolation_speed_str.parse().unwrap_or(current_branch_bend_interpolation_speed);
+                }
+
+                if should_interpolate_current_branch_length == false {
+                    w.input_text(hash!(), "branch length", &mut current_branch_length_str);
+                    current_branch_length = current_branch_length_str.parse().unwrap_or(current_branch_length);
+                }
+
+                w.checkbox(hash!(), "interpolate branch length?", &mut should_interpolate_current_branch_length);
+                if should_interpolate_current_branch_length {
+                    w.input_text(hash!(), "branch branch length start", &mut current_branch_branch_length_start_str);
+                    w.input_text(hash!(), "branch branch length end", &mut current_branch_branch_length_end_str);
+                    w.input_text(hash!(), "branch length interpolation speed", &mut current_branch_length_interpolation_speed_str);
+
+                    current_branch_branch_length_start = current_branch_branch_length_start_str.parse().unwrap_or(current_branch_branch_length_start);
+                    current_branch_branch_length_end = current_branch_branch_length_end_str.parse().unwrap_or(current_branch_branch_length_end);
+                    current_branch_length_interpolation_speed = current_branch_length_interpolation_speed_str.parse().unwrap_or(current_branch_length_interpolation_speed);
+                }
+
+                w.label(None, "rule parameters");
+
+                let mut rules_to_delete = Vec::new();
+                for (idx, ref mut pattern_and_replacement) in current_rules.iter_mut().enumerate() {
+                    w.input_text(hash!(idx), "pattern = replacement", pattern_and_replacement);
+                    w.same_line(180.0);
+                    if w.button(None, "x") {
+                        rules_to_delete.push(idx);
                     }
                 }
 
-                l_system.nth_step(current_number_of_steps);
-                should_reevaluate = false;
+                for rule_idx in rules_to_delete {
+                    current_rules.swap_remove(rule_idx);
+                }
 
-            }
+                if w.button(None, "add rule") {
+                    current_rules.push(String::new());
+                }
 
-        });
+                if w.button(None, "evaluate") || should_reevaluate {
+
+                    l_system = LSystem::new(current_initial_state.clone());
+                    
+                    for pattern_and_replacement in &current_rules {            
+                        let split_elements: Vec<&str> = pattern_and_replacement.split("=").collect();
+                        if split_elements.len() == 2 {
+                            let pattern = split_elements[0];
+                            let replacement = split_elements[1];
+                            l_system.add_rule(pattern, replacement);
+                        }
+                    }
+
+                    l_system.nth_step(current_number_of_steps);
+                    should_reevaluate = false;
+
+                }
+
+            });
+
+        }
 
         camera.push();
 
