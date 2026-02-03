@@ -1,9 +1,11 @@
 {
     "rust-analyzer.linkedProjects": [
+        "./collapse/Cargo.toml",
         "./contribution/Cargo.toml",
         "./contribution-grid/Cargo.toml",
         "./corners/Cargo.toml",
         "./dungeons/Cargo.toml",
+        "./easy/Cargo.toml",
         "./graph/Cargo.toml",
         "./l-system/Cargo.toml",
         "./graph/Cargo.toml",

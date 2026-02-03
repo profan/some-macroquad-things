@@ -1,0 +1,8 @@
+[package]
+name = "easy"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+utility = { path = "../utility" }
+macroquad = "0.4.6"

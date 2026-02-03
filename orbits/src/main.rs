@@ -102,7 +102,7 @@ fn create_game() -> Game {
 fn draw_orbital_plane(position: Vec3, angles: Vec3, radius: f32) {
 
     let line_thickness = 1.0;
-    let orbit_rotation = Quat::from_euler(EulerRot::XYZ, angles.x, angles.y, angles.z);
+    let orbit_rotation = Quat::from_euler(EulerRot::ZXY, angles.x, angles.y, angles.z);
 
     draw_with_transformation(Vec3::ZERO, orbit_rotation.inverse(), || {
         draw_circle_lines_3d(position, radius, line_thickness, RED);
@@ -185,8 +185,7 @@ fn infer_orbital_plane(position: Vec3) -> Vec3 {
     let dir_to_plane_intersection = position.with_y(0.0).normalize();
     let dir_to_position = position.normalize();
 
-    let pitch = position.angle_between(vec3(0.0, 0.0, 1.0));
-    // let pitch = position.y.signum() * sin_theta.asin();
+    let pitch = -(position.normalize().y * sin_theta.asin());
 
     let yaw = position.xz().as_angle() + PI / 2.0;
     let roll = 0.0;
