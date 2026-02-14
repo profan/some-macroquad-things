@@ -21,6 +21,7 @@
         "./polar/Cargo.toml",
         "./product/Cargo.toml",
         "./procedural-animation/Cargo.toml",
+        "./steiner/Cargo.toml",
         "./stress-majorization/Cargo.toml",
         "./territory/Cargo.toml",
         "./transformy/Cargo.toml",
