@@ -674,12 +674,14 @@ fn handle_camera_movement(active: &mut GameCamera, dt: f32) {
     active.camera_target_velocity += camera_delta * camera_speed * dt;
     active.camera.target += active.camera_target_velocity;
 
-    let clamped_target_velocity = exponential_decay(active.camera_target_velocity.length(), 15.0, dt);
+    let clamped_target_velocity = exponential_decay(active.camera_target_velocity.length(), 25.0, dt);
     active.camera_target_velocity = active.camera_target_velocity.clamp_length_max(clamped_target_velocity);
 
 }
 
 fn handle_camera_zoom(active: &mut GameCamera, dt: f32) -> bool {
+
+    let camera_speed = 128.0 * active.camera_zoom;
 
     let mouse_wheel_delta = mouse_wheel();
 
@@ -702,6 +704,12 @@ fn handle_camera_zoom(active: &mut GameCamera, dt: f32) -> bool {
     active.camera_zoom_velocity = new_zoom_velocity;
     active.camera_zoom = new_zoom;
     active.camera = new_camera;
+
+    if active.camera_zoom_velocity > 0.01 {
+        let camera_mouse_position: Vec2 = active.camera.screen_to_world(mouse_position().into());
+        let camera_delta_to_mouse_position = (camera_mouse_position - active.camera.target) * 0.75;
+        active.camera_target_velocity += camera_delta_to_mouse_position * dt;
+    }
 
     active.camera_zoom_velocity = exponential_decay(active.camera_zoom_velocity, 5.0, dt);
 
@@ -806,7 +814,7 @@ async fn main() {
     let mut should_rasterize_tile_atlas = true;
     let mut rasterized_tile_atlas: Option<RenderTarget> = None;
 
-    let mut height_field = create_height_field(256, 256);
+    let mut height_field = create_height_field(128, 128);
     apply_noise_to_height_field(&mut height_field, current_seed);
 
     // #TODO: figure out what the purpose of this was, literally do not remember
