@@ -707,7 +707,7 @@ fn handle_camera_zoom(active: &mut GameCamera, dt: f32) -> bool {
 
     if active.camera_zoom_velocity > 0.01 {
         let camera_mouse_position: Vec2 = active.camera.screen_to_world(mouse_position().into());
-        let camera_delta_to_mouse_position = (camera_mouse_position - active.camera.target) * 0.75;
+        let camera_delta_to_mouse_position = camera_mouse_position - active.camera.target;
         active.camera_target_velocity += camera_delta_to_mouse_position * dt;
     }
 
