@@ -374,6 +374,11 @@ pub fn lerp_angle(a: f32, b: f32, t: f32) -> f32 {
     normalize_angle(a + difference * t)
 }
 
+/// Given a value v that you want to decay, given a constant d and a time t, makes the decay constant over time regardless of timestep, useful for applying friction with a variable timestep for instance.
+pub fn exponential_decay(v: f32, d: f32, t: f32) -> f32 {
+    v * (1.0 / (1.0 + (t * d)))
+}
+
 #[cfg(test)]
 mod tests {
 

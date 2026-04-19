@@ -1,10 +1,10 @@
-use macroquad::{miniquad::MipmapFilterMode, prelude::*, rand::gen_range};
+use macroquad::{miniquad::MipmapFilterMode, prelude::{camera::mouse, *}, rand::gen_range};
 
 use noise::{
     utils::{PlaneMapBuilder, NoiseMapBuilder}, Add, Perlin, ScaleBias, Turbulence
 };
 
-use utility::{screen_dimensions, AdjustHue, Camera2DExt, DebugText, TextPosition, WithAlpha};
+use utility::{exponential_decay, screen_dimensions, AdjustHue, Camera2DExt, DebugText, TextPosition, WithAlpha};
 
 const TILE_PADDING: i32 = 2;
 const REAL_TILE_SIZE: i32 = 32;
@@ -608,6 +608,8 @@ fn draw_height_field(active: &GameCamera, map: &Heightmap, atlas: &Texture2D, re
 
 struct GameCamera {
     size: Vec2,
+    camera_zoom_velocity: f32,
+    camera_target_velocity: Vec2,
     camera_zoom: f32,
     camera: Camera2D,
 }
@@ -623,7 +625,9 @@ impl GameCamera {
         GameCamera {
             size: size,
             camera: camera,
-            camera_zoom: 1.0
+            camera_zoom: 1.0,
+            camera_zoom_velocity: 0.0,
+            camera_target_velocity: Vec2::ZERO
         }
 
     }
@@ -642,7 +646,7 @@ fn handle_camera_input(active: &mut GameCamera, last_mouse_position: Vec2, dt: f
 
 fn handle_camera_movement(active: &mut GameCamera, dt: f32) {
 
-    let camera_speed = 256.0 * active.camera_zoom;
+    let camera_speed = 128.0 * active.camera_zoom;
 
     let is_up_pressed = is_key_down(KeyCode::Up) || is_key_down(KeyCode::W);
     let is_down_pressed = is_key_down(KeyCode::Down) || is_key_down(KeyCode::S);
@@ -667,7 +671,11 @@ fn handle_camera_movement(active: &mut GameCamera, dt: f32) {
         camera_delta += vec2(1.0, 0.0);
     }
 
-    active.camera.target += camera_delta * camera_speed * dt;
+    active.camera_target_velocity += camera_delta * camera_speed * dt;
+    active.camera.target += active.camera_target_velocity;
+
+    let clamped_target_velocity = exponential_decay(active.camera_target_velocity.length(), 15.0, dt);
+    active.camera_target_velocity = active.camera_target_velocity.clamp_length_max(clamped_target_velocity);
 
 }
 
@@ -678,7 +686,8 @@ fn handle_camera_zoom(active: &mut GameCamera, dt: f32) -> bool {
     let min_zoom = 0.5;
     let max_zoom = 4.0;
 
-    let new_zoom = (active.camera_zoom - mouse_wheel_delta.1 * dt).clamp(min_zoom, max_zoom);
+    let new_zoom_velocity = active.camera_zoom_velocity + mouse_wheel_delta.1 * dt;
+    let new_zoom = (active.camera_zoom - new_zoom_velocity).clamp(min_zoom, max_zoom);
     let new_size = active.size * new_zoom;
 
     let new_camera = Camera2D::from_display_rect_fixed(
@@ -690,8 +699,11 @@ fn handle_camera_zoom(active: &mut GameCamera, dt: f32) -> bool {
         }
     );
 
+    active.camera_zoom_velocity = new_zoom_velocity;
     active.camera_zoom = new_zoom;
     active.camera = new_camera;
+
+    active.camera_zoom_velocity = exponential_decay(active.camera_zoom_velocity, 5.0, dt);
 
     // so we can do things on change
     mouse_wheel_delta.1 != 0.0
@@ -794,7 +806,7 @@ async fn main() {
     let mut should_rasterize_tile_atlas = true;
     let mut rasterized_tile_atlas: Option<RenderTarget> = None;
 
-    let mut height_field = create_height_field(128, 128);
+    let mut height_field = create_height_field(256, 256);
     apply_noise_to_height_field(&mut height_field, current_seed);
 
     // #TODO: figure out what the purpose of this was, literally do not remember
