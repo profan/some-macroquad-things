@@ -707,7 +707,7 @@ fn handle_camera_zoom(active: &mut GameCamera, dt: f32) -> bool {
 
     if active.camera_zoom_velocity > 0.01 {
         let camera_mouse_position: Vec2 = active.camera.screen_to_world(mouse_position().into());
-        let camera_delta_to_mouse_position = camera_mouse_position - active.camera.target;
+        let camera_delta_to_mouse_position = (camera_mouse_position - active.camera.target) * 0.5;
         active.camera_target_velocity += camera_delta_to_mouse_position * dt;
     }
 
@@ -724,8 +724,8 @@ fn handle_camera_panning(active: &mut GameCamera, last_mouse_position: Vec2, _dt
 
     if is_middle_mouse_down {
         let mouse_position_v: Vec2 = mouse_position().into();
-        let mouse_position_delta: Vec2 = last_mouse_position - mouse_position_v;
-        active.camera.target += mouse_position_delta * active.camera_zoom;
+        let mouse_position_delta: Vec2 = (last_mouse_position - mouse_position_v) * 0.5;
+        active.camera_target_velocity += mouse_position_delta * active.camera_zoom;
     }
 
 }
